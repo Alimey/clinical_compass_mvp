@@ -1,0 +1,7 @@
+.git
+.venv
+instance
+__pycache__
+.env
+demo.db
+node_modules

@@ -1,158 +1,150 @@
-"""Clinical Compass: educational, synthetic-data-only prototype.
-
-Run: streamlit run app.py
-Never use this code for real patient care.
-"""
+"""Clinical Compass mobile demo. Synthetic data only."""
+import os
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
-
-import pandas as pd
-import streamlit as st
-
-DB = Path(__file__).with_name("demo.db")
+from urllib.parse import urlsplit
+from flask import Flask, g, jsonify, request
+from werkzeug.exceptions import HTTPException
 
 
-def connect():
-    con = sqlite3.connect(DB, timeout=10)
-    con.row_factory = sqlite3.Row
-    return con
+def create_app(database=None):
+    app = Flask(__name__, static_folder='static')
+    app.config.update(DATABASE=str(database or os.environ.get('COMPASS_DB', Path(__file__).with_name('instance') / 'compass.db')), MAX_CONTENT_LENGTH=16384)
+    Path(app.config['DATABASE']).parent.mkdir(parents=True, exist_ok=True)
+
+    def db():
+        if 'db' not in g:
+            g.db = sqlite3.connect(app.config['DATABASE'], timeout=10)
+            g.db.row_factory = sqlite3.Row
+        return g.db
+
+    @app.teardown_appcontext
+    def close_db(error):
+        con = g.pop('db', None)
+        if con is not None:
+            con.close()
+
+    with app.app_context():
+        db().executescript('''
+        CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, role TEXT NOT NULL, name TEXT NOT NULL, doctor_id INTEGER);
+        CREATE TABLE IF NOT EXISTS reports (id INTEGER PRIMARY KEY AUTOINCREMENT, patient_id INTEGER NOT NULL, created_at TEXT NOT NULL, mood INTEGER NOT NULL, anxiety INTEGER NOT NULL, adherence TEXT NOT NULL, adverse_effects TEXT NOT NULL, safety_signal INTEGER NOT NULL, note TEXT NOT NULL);
+        CREATE TABLE IF NOT EXISTS alerts (id INTEGER PRIMARY KEY AUTOINCREMENT, patient_id INTEGER NOT NULL, report_id INTEGER NOT NULL, created_at TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'new', explanation TEXT NOT NULL);
+        CREATE TABLE IF NOT EXISTS decisions (id INTEGER PRIMARY KEY AUTOINCREMENT, doctor_id INTEGER NOT NULL, patient_id INTEGER NOT NULL, created_at TEXT NOT NULL, decision TEXT NOT NULL, note TEXT NOT NULL);
+        INSERT OR IGNORE INTO users VALUES(1,'doctor','Врач (демо)',NULL);
+        INSERT OR IGNORE INTO users VALUES(2,'patient','Пациент А (вымышленный)',1);
+        INSERT OR IGNORE INTO users VALUES(3,'patient','Пациент Б (вымышленный)',1);
+        ''')
+        db().commit()
+
+    def rows(sql, args=()):
+        return [dict(row) for row in db().execute(sql, args).fetchall()]
+
+    def patient(ident):
+        if not rows("SELECT id FROM users WHERE id=? AND role='patient' AND doctor_id=1", (ident,)):
+            raise ValueError('Демо-пациент не найден')
+
+    def payload():
+        data = request.get_json()
+        if not isinstance(data, dict):
+            raise ValueError('Ожидается JSON-объект')
+        return data
+
+    def text(data, key, limit=500):
+        value = data.get(key, '')
+        if not isinstance(value, str) or len(value) > limit:
+            raise ValueError(f'Поле {key}: допустимо до {limit} символов')
+        return value.strip()
+
+    def now():
+        return datetime.now(timezone.utc).isoformat(timespec='seconds')
+
+    @app.before_request
+    def same_origin():
+        if request.method == 'POST':
+            origin = request.headers.get('Origin')
+            if request.headers.get('Sec-Fetch-Site') == 'cross-site' or (origin and (urlsplit(origin).scheme not in ('http', 'https') or urlsplit(origin).netloc != request.host)):
+                return jsonify(error='Запрос с другого сайта запрещён'), 403
+
+    @app.after_request
+    def headers(response):
+        response.headers['Cache-Control'] = 'no-store'
+        response.headers['X-Content-Type-Options'] = 'nosniff'
+        response.headers['Referrer-Policy'] = 'same-origin'
+        response.headers['Content-Security-Policy'] = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'"
+        return response
+
+    @app.errorhandler(ValueError)
+    def invalid(error):
+        return jsonify(error=str(error)), 400
+
+    @app.errorhandler(HTTPException)
+    def http_error(error):
+        return jsonify(error=error.description), error.code
+
+    @app.get('/')
+    def index():
+        return app.send_static_file('index.html')
+
+    @app.get('/sw.js')
+    def worker():
+        return app.send_static_file('sw.js')
+
+    @app.get('/api/health')
+    def health():
+        db().execute('SELECT 1').fetchone()
+        return jsonify(status='ok', mode='synthetic-demo')
+
+    @app.get('/api/patients')
+    def patients():
+        return jsonify(rows("SELECT u.id, u.name, (SELECT COUNT(*) FROM alerts a WHERE a.patient_id=u.id AND a.status='new') AS unread FROM users u WHERE role='patient' AND doctor_id=1 ORDER BY id"))
+
+    @app.get('/api/patients/<int:ident>')
+    def detail(ident):
+        patient(ident)
+        return jsonify(**{table: rows(f'SELECT * FROM {table} WHERE patient_id=? ORDER BY id DESC', (ident,)) for table in ('reports', 'alerts', 'decisions')})
+
+    @app.post('/api/patients/<int:ident>/reports')
+    def report(ident):
+        patient(ident)
+        data = payload()
+        for key in ('mood', 'anxiety'):
+            if type(data.get(key)) is not int or not 0 <= data[key] <= 10:
+                raise ValueError('Настроение и тревога: целые числа от 0 до 10')
+        if type(data.get('safety_signal')) is not bool:
+            raise ValueError('Укажите сигнал безопасности')
+        if data.get('adherence') not in ('Да', 'Частично', 'Нет', 'Не применимо'):
+            raise ValueError('Выберите соблюдение рекомендаций')
+        adverse, note, stamp = text(data, 'adverse_effects'), text(data, 'note'), now()
+        with db() as con:
+            cur = con.execute('INSERT INTO reports(patient_id,created_at,mood,anxiety,adherence,adverse_effects,safety_signal,note) VALUES(?,?,?,?,?,?,?,?)', (ident, stamp, data['mood'], data['anxiety'], data['adherence'], adverse, int(data['safety_signal']), note))
+            report_id = cur.lastrowid
+            if data['safety_signal']:
+                con.execute('INSERT INTO alerts(patient_id,report_id,created_at,explanation) VALUES(?,?,?,?)', (ident, report_id, stamp, 'В самоотчёте отмечены опасения за безопасность. Требуется проверка врачом.'))
+        return jsonify(id=report_id, safety_signal=data['safety_signal']), 201
+
+    @app.post('/api/alerts/<int:ident>/review')
+    def review(ident):
+        payload()
+        with db() as con:
+            cur = con.execute("UPDATE alerts SET status='reviewed' WHERE id=? AND patient_id IN (SELECT id FROM users WHERE doctor_id=1 AND role='patient')", (ident,))
+            if not cur.rowcount:
+                raise ValueError('Сигнал не найден')
+        return jsonify(status='reviewed')
+
+    @app.post('/api/patients/<int:ident>/decisions')
+    def decision(ident):
+        patient(ident)
+        data = payload()
+        action, note = text(data, 'decision', 100), text(data, 'note')
+        if action not in ('Продолжить наблюдение', 'Назначить очную консультацию', 'Рассмотреть направление к специалисту', 'Другое'):
+            raise ValueError('Выберите действие врача')
+        with db() as con:
+            cur = con.execute('INSERT INTO decisions(doctor_id,patient_id,created_at,decision,note) VALUES(1,?,?,?,?)', (ident, now(), action, note))
+        return jsonify(id=cur.lastrowid), 201
+
+    return app
 
 
-def setup():
-    with connect() as con:
-        con.executescript("""
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY, role TEXT NOT NULL,
-            name TEXT NOT NULL, doctor_id INTEGER
-        );
-        CREATE TABLE IF NOT EXISTS reports (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            patient_id INTEGER NOT NULL, created_at TEXT NOT NULL,
-            mood INTEGER NOT NULL, anxiety INTEGER NOT NULL,
-            adherence TEXT NOT NULL, adverse_effects TEXT NOT NULL,
-            safety_signal INTEGER NOT NULL, note TEXT NOT NULL
-        );
-        CREATE TABLE IF NOT EXISTS alerts (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            patient_id INTEGER NOT NULL, report_id INTEGER NOT NULL,
-            created_at TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'new',
-            explanation TEXT NOT NULL
-        );
-        CREATE TABLE IF NOT EXISTS decisions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            doctor_id INTEGER NOT NULL, patient_id INTEGER NOT NULL,
-            created_at TEXT NOT NULL, decision TEXT NOT NULL, note TEXT NOT NULL
-        );
-        """)
-        con.execute("INSERT OR IGNORE INTO users(id,role,name,doctor_id) VALUES(1,'doctor','Врач (демо)',NULL)")
-        con.execute("INSERT OR IGNORE INTO users(id,role,name,doctor_id) VALUES(2,'patient','Пациент А (вымышленный)',1)")
-        con.execute("INSERT OR IGNORE INTO users(id,role,name,doctor_id) VALUES(3,'patient','Пациент Б (вымышленный)',1)")
-
-
-def query(sql, parameters=()):
-    with connect() as con:
-        return pd.read_sql_query(sql, con, params=parameters)
-
-
-def now():
-    return datetime.now(timezone.utc).isoformat(timespec="seconds")
-
-
-def submit_report(patient_id, mood, anxiety, adherence, adverse_effects, safety_signal, note):
-    with connect() as con:
-        cur = con.execute("""INSERT INTO reports
-        (patient_id,created_at,mood,anxiety,adherence,adverse_effects,safety_signal,note)
-        VALUES(?,?,?,?,?,?,?,?)""", (patient_id, now(), mood, anxiety, adherence,
-                                        adverse_effects, int(safety_signal), note))
-        report_id = cur.lastrowid
-        # Demonstration rule only, NOT a clinical screening/triage protocol.
-        if safety_signal:
-            con.execute("""INSERT INTO alerts(patient_id,report_id,created_at,explanation)
-                           VALUES(?,?,?,?)""", (patient_id, report_id, now(),
-                           "Самоотчёт содержит ответ о возможном риске безопасности. Требуется проверка врачом."))
-    return bool(safety_signal)
-
-
-def patient_screen(patient_id, patient_name):
-    st.header("Самоотчёт пациента")
-    st.caption(f"{patient_name} · демонстрационные вопросы, НЕ валидированная шкала")
-    with st.form("report", clear_on_submit=True):
-        mood = st.slider("Настроение сегодня (0 — очень плохое, 10 — отличное)", 0, 10, 5)
-        anxiety = st.slider("Субъективная тревога (0 — нет, 10 — очень сильная)", 0, 10, 5)
-        adherence = st.selectbox("Следовал(а) ли рекомендациям врача?", ["Да", "Частично", "Нет", "Не применимо"])
-        adverse = st.text_area("Нежелательные явления / самочувствие", max_chars=500)
-        safety = st.checkbox("Есть опасения за свою безопасность или мысли о причинении себе вреда")
-        note = st.text_area("Комментарий", max_chars=500)
-        sent = st.form_submit_button("Отправить врачу", type="primary")
-    if sent:
-        flagged = submit_report(patient_id, mood, anxiety, adherence, adverse, safety, note)
-        st.success("Самоотчёт записан и доступен врачу в демонстрационной системе.")
-        if flagged:
-            st.error("Зафиксирован сигнал безопасности. Приложение не является службой экстренной помощи. При непосредственной опасности обратитесь в местные экстренные службы или за срочной медицинской помощью. Не ждите ответа в приложении.")
-    st.subheader("История самоотчётов")
-    history = query("SELECT created_at, mood, anxiety FROM reports WHERE patient_id=? ORDER BY id", (patient_id,))
-    if history.empty:
-        st.info("Отчётов пока нет.")
-    else:
-        st.line_chart(history.set_index("created_at")[["mood", "anxiety"]])
-
-
-def doctor_screen():
-    st.header("Панель врача")
-    patients = query("SELECT id, name FROM users WHERE role='patient' AND doctor_id=1 ORDER BY id")
-    unread = query("SELECT COUNT(*) AS n FROM alerts WHERE status='new'")
-    st.metric("Непросмотренные демонстрационные алерты", int(unread.iloc[0]["n"]))
-    patient_id = st.selectbox("Пациент", patients["id"].tolist(),
-                              format_func=lambda ident: patients.loc[patients.id == ident, "name"].iloc[0])
-    st.subheader("Самоотчёты")
-    reports = query("""SELECT id, created_at, mood, anxiety, adherence,
-                     adverse_effects, safety_signal, note FROM reports
-                     WHERE patient_id=? ORDER BY id DESC""", (patient_id,))
-    if reports.empty:
-        st.info("Пациент ещё не отправлял самоотчёты.")
-    else:
-        st.dataframe(reports, hide_index=True, use_container_width=True)
-        st.line_chart(reports.sort_values("id").set_index("created_at")[["mood", "anxiety"]])
-    st.subheader("Сигналы безопасности")
-    alerts = query("SELECT id, created_at, status, explanation FROM alerts WHERE patient_id=? ORDER BY id DESC", (patient_id,))
-    if alerts.empty:
-        st.info("Сигналов нет.")
-    else:
-        for alert in alerts.itertuples(index=False):
-            with st.container(border=True):
-                st.error(f"Сигнал #{alert.id} · {alert.status} · {alert.created_at}")
-                st.write(alert.explanation)
-                if alert.status == "new" and st.button("Отметить как просмотренный", key=f"seen-{alert.id}"):
-                    with connect() as con:
-                        con.execute("UPDATE alerts SET status='reviewed' WHERE id=?", (alert.id,))
-                    st.rerun()
-    st.subheader("Фиксация решения врача")
-    st.caption("Приложение ничего не назначает автоматически. Решение вводит врач.")
-    with st.form("doctor-decision"):
-        decision = st.selectbox("Действие", ["Продолжить наблюдение", "Назначить очную консультацию", "Рассмотреть направление к специалисту", "Другое"])
-        note = st.text_area("Обоснование / заметки (только синтетические данные)")
-        saved = st.form_submit_button("Подтвердить и сохранить")
-    if saved:
-        with connect() as con:
-            con.execute("INSERT INTO decisions(doctor_id,patient_id,created_at,decision,note) VALUES(?,?,?,?,?)",
-                        (1, patient_id, now(), decision, note))
-        st.success("Действие врача сохранено.")
-    previous = query("SELECT created_at, decision, note FROM decisions WHERE patient_id=? ORDER BY id DESC", (patient_id,))
-    if not previous.empty:
-        st.dataframe(previous, hide_index=True, use_container_width=True)
-
-
-st.set_page_config(page_title="Клинический компас · демо", page_icon="🧭", layout="wide")
-setup()
-st.title("Клинический компас")
-st.warning("Учебный прототип для кейс-чемпионата. Только вымышленные данные. Не использовать для реальной диагностики, лечения или экстренной помощи.")
-role = st.sidebar.radio("Режим просмотра", ["Врач", "Пациент"])
-st.sidebar.caption("Переключение ролей — не авторизация; для демонстрации в контролируемой среде.")
-if role == "Врач":
-    doctor_screen()
-else:
-    available = query("SELECT id, name FROM users WHERE role='patient' AND doctor_id=1 ORDER BY id")
-    pid = st.sidebar.selectbox("Демо-пациент", available.id.tolist(),
-                               format_func=lambda ident: available.loc[available.id == ident, "name"].iloc[0])
-    patient_screen(pid, available.loc[available.id == pid, "name"].iloc[0])
+if __name__ == '__main__':
+    create_app().run(host=os.environ.get('COMPASS_HOST', '127.0.0.1'), port=int(os.environ.get('PORT', '8000')), debug=False)

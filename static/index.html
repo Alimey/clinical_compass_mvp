@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#17695f"><meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="description" content="Клинический компас: учебный дневник самочувствия и кабинет врача">
+<link rel="manifest" href="/static/manifest.webmanifest"><link rel="icon" href="/static/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/static/icon-192.png"><link rel="stylesheet" href="/static/style.css">
+<title>Клинический компас</title><script src="/static/app.js" defer></script>
+</head>
+<body>
+<header><div class="brand"><span class="logo" aria-hidden="true">✦</span><div>Клинический компас<small>Дневник заботы о себе · демо</small></div></div><button id="install" hidden>Установить</button></header>
+<main>
+<aside class="notice">Учебный прототип · только вымышленные данные. Не для диагностики, лечения или экстренной помощи. Переключение ролей — демонстрация, без авторизации.</aside>
+<p id="connection" class="offline" hidden>Нет соединения. Отправка недоступна; введённый текст остаётся в форме до закрытия страницы. Автоматической отправки нет.</p>
+<div class="toolbar"><div class="roles" aria-label="Режим просмотра"><button id="patient-role" aria-pressed="true">Я пациент</button><button id="doctor-role" aria-pressed="false">Я врач</button></div><label class="patient-picker">Демо-пациент<select id="patient" aria-label="Демо-пациент"></select></label></div>
+<div id="status" role="status" aria-live="polite"></div>
+<section id="checkin">
+<div class="heading"><p class="eyebrow">ЕЖЕДНЕВНЫЙ ДНЕВНИК</p><h1>Как вы сегодня?</h1><p>Несколько ответов помогут сохранить картину самочувствия.</p></div>
+<form id="report-form" class="card">
+<label class="range-label" for="mood">Настроение <output id="mood-value" for="mood">5 / 10</output></label><input id="mood" name="mood" type="range" min="0" max="10" value="5"><div class="scale"><span>Очень плохое</span><span>Отличное</span></div>
+<label class="range-label" for="anxiety">Уровень тревоги <output id="anxiety-value" for="anxiety">5 / 10</output></label><input id="anxiety" name="anxiety" type="range" min="0" max="10" value="5"><div class="scale"><span>Нет тревоги</span><span>Очень сильная</span></div>
+<label for="adherence">Следовали рекомендациям врача?</label><select id="adherence" name="adherence"><option>Да</option><option>Частично</option><option>Нет</option><option>Не применимо</option></select>
+<label for="adverse">Нежелательные явления / самочувствие</label><textarea id="adverse" name="adverse_effects" maxlength="500" rows="2" placeholder="Что изменилось с прошлого раза?"></textarea>
+<label for="note">Комментарий</label><textarea id="note" name="note" maxlength="500" rows="2" placeholder="Только вымышленные данные"></textarea>
+<label class="safety"><input type="checkbox" id="safety" name="safety_signal"><span>Есть опасения за свою безопасность или мысли о причинении себе вреда</span></label>
+<p id="urgent" class="urgent" role="alert" hidden>При непосредственной опасности обратитесь в местные экстренные службы или за срочной медицинской помощью. Не ждите ответа в приложении: оно не отправляет экстренные уведомления.</p>
+<button class="primary" type="submit">Сохранить самоотчёт</button><small>Ответы сохранятся на сервере и будут доступны в демо-кабинете врача.</small>
+</form></section>
+<section id="history" hidden><div class="heading"><p class="eyebrow">МОЙ ДНЕВНИК</p><h1>История самочувствия</h1><p>Собственные оценки, без автоматических медицинских выводов.</p></div><div id="patient-history"></div></section>
+<section id="doctor" hidden><div class="heading"><p class="eyebrow">КАБИНЕТ ВРАЧА</p><h1>Обзор пациента</h1><p id="unread"></p></div><div id="doctor-summary" class="metrics"></div><h2>Сигналы безопасности</h2><div id="alerts"></div><h2>Последние самоотчёты</h2><div id="doctor-history"></div><h2>Решение врача</h2>
+<form id="decision-form" class="card"><p>Приложение ничего не назначает автоматически.</p><label for="decision">Действие</label><select id="decision"><option>Продолжить наблюдение</option><option>Назначить очную консультацию</option><option>Рассмотреть направление к специалисту</option><option>Другое</option></select><label for="decision-note">Обоснование / заметки</label><textarea id="decision-note" maxlength="500" rows="3"></textarea><button class="primary" type="submit">Сохранить решение</button></form><h2>История решений</h2><div id="decisions"></div></section>
+<section id="about" hidden><div class="heading"><p class="eyebrow">О ПРИЛОЖЕНИИ</p><h1>Забота начинается с внимания</h1></div><div class="card"><h2>Что доступно</h2><p>Самоотчёты, история оценок, кабинет врача, демонстрационные сигналы безопасности и сохранение решений.</p><h2>Установка на телефон</h2><p>Android: откройте HTTPS-адрес в Chrome и выберите «Установить приложение» в меню. iPhone: откройте адрес в Safari → «Поделиться» → «На экран Домой».</p><h2>Нужен интернет</h2><p>Без сети доступна только оболочка приложения. Самоотчёты не сохраняются офлайн и не отправляются автоматически. Данные не кэшируются для офлайн-просмотра.</p><h2>Ограничения демо</h2><p>Нет авторизации, push-уведомлений, клинического триажа и защиты, необходимой для медицинских персональных данных. Вопросы не являются валидированной шкалой. Используйте только вымышленные сведения в контролируемой среде.</p><p>При непосредственной опасности нужна экстренная помощь. Не ждите ответа в приложении.</p></div></section>
+</main>
+<nav class="bottom-nav" aria-label="Навигация"><button data-page="checkin" aria-current="page"><span aria-hidden="true">＋</span>Самоотчёт</button><button data-page="history"><span aria-hidden="true">◷</span>История</button><button data-page="about"><span aria-hidden="true">ⓘ</span>О приложении</button></nav>
+</body></html>
