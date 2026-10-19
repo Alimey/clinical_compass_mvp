@@ -1,77 +1,98 @@
-"""Clinical Compass mobile demo. Synthetic data only."""
+"""Clinical Compass: authenticated synthetic PWA, never for real patient care."""
+
+import hashlib
+import json
 import os
-import sqlite3
-from datetime import datetime, timezone
 from pathlib import Path
+import secrets
+import sqlite3
+import time
 from urllib.parse import urlsplit
-from flask import Flask, g, jsonify, request
+
+from flask import Flask, abort, g, jsonify, request
 from werkzeug.exceptions import HTTPException
+from werkzeug.security import check_password_hash
+
+from compass.db import audit, db, init_db, notify, now, rows
+from compass.demo import seed
+from compass.rules import add_proposals, CATALOG, VERSION
 
 
-def create_app(database=None):
-    app = Flask(__name__, static_folder='static')
-    app.config.update(DATABASE=str(database or os.environ.get('COMPASS_DB', Path(__file__).with_name('instance') / 'compass.db')), MAX_CONTENT_LENGTH=16384)
-    Path(app.config['DATABASE']).parent.mkdir(parents=True, exist_ok=True)
-
-    def db():
-        if 'db' not in g:
-            g.db = sqlite3.connect(app.config['DATABASE'], timeout=10)
-            g.db.row_factory = sqlite3.Row
-        return g.db
+def create_app(database=None, *, seed_demo=True, testing=False):
+    app = Flask(__name__, static_folder="static")
+    app.config.update(
+        DATABASE=str(
+            database
+            or os.environ.get(
+                "COMPASS_DB", Path(__file__).with_name("instance") / "compass.db"
+            )
+        ),
+        MAX_CONTENT_LENGTH=16384,
+        TESTING=testing,
+        SECURE_COOKIE=os.environ.get("COMPASS_SECURE_COOKIES") == "1",
+    )
+    Path(app.config["DATABASE"]).parent.mkdir(parents=True, exist_ok=True)
 
     @app.teardown_appcontext
-    def close_db(error):
-        con = g.pop('db', None)
+    def close_db(_error):
+        con = g.pop("db", None)
         if con is not None:
             con.close()
 
     with app.app_context():
-        db().executescript('''
-        CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, role TEXT NOT NULL, name TEXT NOT NULL, doctor_id INTEGER);
-        CREATE TABLE IF NOT EXISTS reports (id INTEGER PRIMARY KEY AUTOINCREMENT, patient_id INTEGER NOT NULL, created_at TEXT NOT NULL, mood INTEGER NOT NULL, anxiety INTEGER NOT NULL, adherence TEXT NOT NULL, adverse_effects TEXT NOT NULL, safety_signal INTEGER NOT NULL, note TEXT NOT NULL);
-        CREATE TABLE IF NOT EXISTS alerts (id INTEGER PRIMARY KEY AUTOINCREMENT, patient_id INTEGER NOT NULL, report_id INTEGER NOT NULL, created_at TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'new', explanation TEXT NOT NULL);
-        CREATE TABLE IF NOT EXISTS decisions (id INTEGER PRIMARY KEY AUTOINCREMENT, doctor_id INTEGER NOT NULL, patient_id INTEGER NOT NULL, created_at TEXT NOT NULL, decision TEXT NOT NULL, note TEXT NOT NULL);
-        INSERT OR IGNORE INTO users VALUES(1,'doctor','Врач (демо)',NULL);
-        INSERT OR IGNORE INTO users VALUES(2,'patient','Пациент А (вымышленный)',1);
-        INSERT OR IGNORE INTO users VALUES(3,'patient','Пациент Б (вымышленный)',1);
-        ''')
-        db().commit()
-
-    def rows(sql, args=()):
-        return [dict(row) for row in db().execute(sql, args).fetchall()]
-
-    def patient(ident):
-        if not rows("SELECT id FROM users WHERE id=? AND role='patient' AND doctor_id=1", (ident,)):
-            raise ValueError('Демо-пациент не найден')
-
-    def payload():
-        data = request.get_json()
-        if not isinstance(data, dict):
-            raise ValueError('Ожидается JSON-объект')
-        return data
-
-    def text(data, key, limit=500):
-        value = data.get(key, '')
-        if not isinstance(value, str) or len(value) > limit:
-            raise ValueError(f'Поле {key}: допустимо до {limit} символов')
-        return value.strip()
-
-    def now():
-        return datetime.now(timezone.utc).isoformat(timespec='seconds')
+        init_db()
+        seed(seed_demo)
 
     @app.before_request
-    def same_origin():
-        if request.method == 'POST':
-            origin = request.headers.get('Origin')
-            if request.headers.get('Sec-Fetch-Site') == 'cross-site' or (origin and (urlsplit(origin).scheme not in ('http', 'https') or urlsplit(origin).netloc != request.host)):
-                return jsonify(error='Запрос с другого сайта запрещён'), 403
+    def authenticate():
+        g.user, g.csrf = None, None
+        if request.method == "POST":
+            origin = request.headers.get("Origin")
+            if request.headers.get("Sec-Fetch-Site") == "cross-site" or (
+                origin
+                and (
+                    urlsplit(origin).scheme not in ("http", "https")
+                    or urlsplit(origin).netloc != request.host
+                )
+            ):
+                abort(403, "Запрос с другого сайта запрещён")
+        if not request.path.startswith("/api/") or request.path == "/api/health":
+            return
+        token = request.cookies.get("compass_session", "")
+        token_hash = hashlib.sha256(token.encode()).hexdigest()
+        account = (
+            db()
+            .execute(
+                """SELECT u.*, s.csrf FROM sessions s JOIN users u ON u.id=s.user_id
+            WHERE s.token_hash=? AND s.expires_at>?""",
+                (token_hash, time.time()),
+            )
+            .fetchone()
+        )
+        if account:
+            g.user = dict(account)
+            g.csrf = g.user.pop("csrf")
+            g.token_hash = token_hash
+        if request.path in ("/api/auth/login", "/api/auth/me"):
+            return
+        if not g.user:
+            abort(401, "Войдите в демо-аккаунт")
+        if request.method == "POST" and not secrets.compare_digest(
+            request.headers.get("X-CSRF-Token", "").encode(), g.csrf.encode()
+        ):
+            abort(403, "Сессия формы устарела. Обновите страницу")
 
     @app.after_request
-    def headers(response):
-        response.headers['Cache-Control'] = 'no-store'
-        response.headers['X-Content-Type-Options'] = 'nosniff'
-        response.headers['Referrer-Policy'] = 'same-origin'
-        response.headers['Content-Security-Policy'] = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'"
+    def security_headers(response):
+        response.headers.update(
+            {
+                "Cache-Control": "no-store",
+                "X-Content-Type-Options": "nosniff",
+                "Referrer-Policy": "same-origin",
+                "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'",
+                "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+            }
+        )
         return response
 
     @app.errorhandler(ValueError)
@@ -82,69 +103,600 @@ def create_app(database=None):
     def http_error(error):
         return jsonify(error=error.description), error.code
 
-    @app.get('/')
-    def index():
-        return app.send_static_file('index.html')
+    @app.errorhandler(sqlite3.OperationalError)
+    def database_error(error):
+        app.logger.exception("Database operation failed")
+        return (
+            jsonify(error="Хранилище временно недоступно. Повторите запрос позже"),
+            503,
+        )
 
-    @app.get('/sw.js')
-    def worker():
-        return app.send_static_file('sw.js')
+    def require_role(role):
+        if g.user["role"] != role:
+            abort(403, "Недостаточно прав для этого действия")
 
-    @app.get('/api/health')
-    def health():
-        db().execute('SELECT 1').fetchone()
-        return jsonify(status='ok', mode='synthetic-demo')
+    def patient(ident):
+        record = (
+            db()
+            .execute("SELECT * FROM users WHERE id=? AND role='patient'", (ident,))
+            .fetchone()
+        )
+        if (
+            not record
+            or g.user["role"] not in ("doctor", "patient")
+            or (g.user["role"] == "doctor" and record["doctor_id"] != g.user["id"])
+            or (g.user["role"] == "patient" and ident != g.user["id"])
+        ):
+            abort(404, "Пациент не найден или недоступен")
+        return dict(record)
 
-    @app.get('/api/patients')
-    def patients():
-        return jsonify(rows("SELECT u.id, u.name, (SELECT COUNT(*) FROM alerts a WHERE a.patient_id=u.id AND a.status='new') AS unread FROM users u WHERE role='patient' AND doctor_id=1 ORDER BY id"))
+    def payload():
+        data = request.get_json()
+        if not isinstance(data, dict):
+            raise ValueError("Ожидается JSON-объект")
+        return data
 
-    @app.get('/api/patients/<int:ident>')
-    def detail(ident):
-        patient(ident)
-        return jsonify(**{table: rows(f'SELECT * FROM {table} WHERE patient_id=? ORDER BY id DESC', (ident,)) for table in ('reports', 'alerts', 'decisions')})
+    def text(data, key, limit=500, required=False):
+        value = data.get(key, "")
+        if (
+            not isinstance(value, str)
+            or len(value) > limit
+            or (required and not value.strip())
+        ):
+            raise ValueError(
+                f'Поле {key}: {"обязательно, " if required else ""}до {limit} символов'
+            )
+        return value.strip()
 
-    @app.post('/api/patients/<int:ident>/reports')
-    def report(ident):
-        patient(ident)
-        data = payload()
-        for key in ('mood', 'anxiety'):
-            if type(data.get(key)) is not int or not 0 <= data[key] <= 10:
-                raise ValueError('Настроение и тревога: целые числа от 0 до 10')
-        if type(data.get('safety_signal')) is not bool:
-            raise ValueError('Укажите сигнал безопасности')
-        if data.get('adherence') not in ('Да', 'Частично', 'Нет', 'Не применимо'):
-            raise ValueError('Выберите соблюдение рекомендаций')
-        adverse, note, stamp = text(data, 'adverse_effects'), text(data, 'note'), now()
+    def write_once(data, action):
+        """Commit data, audit, notifications and response atomically; retry safely."""
+        key = request.headers.get("Idempotency-Key", "")
+        if len(key) > 100:
+            raise ValueError("Слишком длинный ключ запроса")
+        fingerprint = hashlib.sha256(
+            (request.path + json.dumps(data, sort_keys=True)).encode()
+        ).hexdigest()
         with db() as con:
-            cur = con.execute('INSERT INTO reports(patient_id,created_at,mood,anxiety,adherence,adverse_effects,safety_signal,note) VALUES(?,?,?,?,?,?,?,?)', (ident, stamp, data['mood'], data['anxiety'], data['adherence'], adverse, int(data['safety_signal']), note))
-            report_id = cur.lastrowid
-            if data['safety_signal']:
-                con.execute('INSERT INTO alerts(patient_id,report_id,created_at,explanation) VALUES(?,?,?,?)', (ident, report_id, stamp, 'В самоотчёте отмечены опасения за безопасность. Требуется проверка врачом.'))
-        return jsonify(id=report_id, safety_signal=data['safety_signal']), 201
+            con.execute("BEGIN IMMEDIATE")
+            if key:
+                old = con.execute(
+                    "SELECT * FROM idempotency WHERE user_id=? AND key=?",
+                    (g.user["id"], key),
+                ).fetchone()
+                if old:
+                    if old["fingerprint"] != fingerprint:
+                        abort(409, "Ключ запроса уже использован для других данных")
+                    return jsonify(json.loads(old["response"])), old["status"]
+            result, code = action()
+            if key:
+                con.execute(
+                    "INSERT INTO idempotency VALUES(?,?,?,?,?)",
+                    (g.user["id"], key, fingerprint, json.dumps(result), code),
+                )
+        return jsonify(result), code
 
-    @app.post('/api/alerts/<int:ident>/review')
-    def review(ident):
+    @app.get("/")
+    def index():
+        return app.send_static_file("index.html")
+
+    @app.get("/sw.js")
+    def worker():
+        return app.send_static_file("sw.js")
+
+    @app.get("/api/health")
+    def health():
+        db().execute("SELECT 1").fetchone()
+        return jsonify(status="ok", mode="synthetic-demo", version=VERSION)
+
+    @app.get("/api/auth/me")
+    def me():
+        return jsonify(user=g.user, csrf=g.csrf)
+
+    @app.post("/api/auth/login")
+    def login():
+        data = payload()
+        username, password = text(data, "username", 80, True), text(
+            data, "password", 200, True
+        )
+        identity = hashlib.sha256(
+            ((request.remote_addr or "") + "|" + username.lower()).encode()
+        ).hexdigest()
+        stamp = time.time()
+        with db() as con:
+            con.execute("BEGIN IMMEDIATE")
+            attempt = con.execute(
+                "SELECT * FROM login_attempts WHERE identity=?", (identity,)
+            ).fetchone()
+            if attempt and attempt["count"] >= 6 and attempt["until"] > stamp:
+                return (
+                    jsonify(error="Слишком много попыток. Повторите через 5 минут"),
+                    429,
+                )
+            account = con.execute(
+                "SELECT * FROM credentials WHERE username=?", (username,)
+            ).fetchone()
+            valid = account and check_password_hash(account["password_hash"], password)
+            if not valid:
+                count = (
+                    attempt["count"] + 1 if attempt and attempt["until"] > stamp else 1
+                )
+                con.execute(
+                    "INSERT OR REPLACE INTO login_attempts VALUES(?,?,?)",
+                    (identity, count, stamp + 300),
+                )
+                return jsonify(error="Неверный логин или пароль"), 401
+            con.execute("DELETE FROM login_attempts WHERE identity=?", (identity,))
+            con.execute("DELETE FROM sessions WHERE expires_at<=?", (stamp,))
+            if getattr(g, "token_hash", None):
+                con.execute("DELETE FROM sessions WHERE token_hash=?", (g.token_hash,))
+            token, csrf = secrets.token_urlsafe(32), secrets.token_urlsafe(24)
+            con.execute(
+                "INSERT INTO sessions VALUES(?,?,?,?)",
+                (
+                    hashlib.sha256(token.encode()).hexdigest(),
+                    account["user_id"],
+                    csrf,
+                    stamp + 28800,
+                ),
+            )
+        user = rows("SELECT * FROM users WHERE id=?", (account["user_id"],))[0]
+        response = jsonify(user=user, csrf=csrf)
+        response.set_cookie(
+            "compass_session",
+            token,
+            max_age=28800,
+            httponly=True,
+            secure=app.config["SECURE_COOKIE"],
+            samesite="Strict",
+        )
+        return response
+
+    @app.post("/api/auth/logout")
+    def logout():
         payload()
         with db() as con:
-            cur = con.execute("UPDATE alerts SET status='reviewed' WHERE id=? AND patient_id IN (SELECT id FROM users WHERE doctor_id=1 AND role='patient')", (ident,))
-            if not cur.rowcount:
-                raise ValueError('Сигнал не найден')
-        return jsonify(status='reviewed')
+            con.execute("DELETE FROM sessions WHERE token_hash=?", (g.token_hash,))
+        response = jsonify(ok=True)
+        response.delete_cookie(
+            "compass_session",
+            httponly=True,
+            secure=app.config["SECURE_COOKIE"],
+            samesite="Strict",
+        )
+        return response
 
-    @app.post('/api/patients/<int:ident>/decisions')
+    @app.get("/api/patients")
+    def patients():
+        condition, value = (
+            ("u.doctor_id", g.user["id"])
+            if g.user["role"] == "doctor"
+            else ("u.id", g.user["id"])
+        )
+        return jsonify(
+            rows(
+                f"""SELECT u.id,u.name,p.age,p.occupation,p.goal,
+            (SELECT COUNT(*) FROM alerts a WHERE a.patient_id=u.id AND a.status='new') AS unread,
+            (SELECT COUNT(*) FROM messages m WHERE m.patient_id=u.id AND m.sender_id!=? AND m.read_at IS NULL) AS unread_messages,
+            (SELECT mood FROM reports r WHERE r.patient_id=u.id ORDER BY id DESC LIMIT 1) AS mood,
+            (SELECT anxiety FROM reports r WHERE r.patient_id=u.id ORDER BY id DESC LIMIT 1) AS anxiety,
+            (SELECT created_at FROM reports r WHERE r.patient_id=u.id ORDER BY id DESC LIMIT 1) AS last_report
+            FROM users u LEFT JOIN profiles p ON p.patient_id=u.id WHERE u.role='patient' AND {condition}=? ORDER BY u.id""",
+                (g.user["id"], value),
+            )
+        )
+
+    @app.get("/api/patients/<int:ident>")
+    def detail(ident):
+        account = patient(ident)
+        reports = rows(
+            "SELECT * FROM reports WHERE patient_id=? ORDER BY id DESC LIMIT 100",
+            (ident,),
+        )
+        recent = reports[:7]
+        applicable = [r for r in recent if r["adherence"] != "Не применимо"]
+        adherence = (
+            round(
+                sum(
+                    {"Да": 1, "Частично": 0.5, "Нет": 0}[r["adherence"]]
+                    for r in applicable
+                )
+                / len(applicable)
+                * 100
+            )
+            if applicable
+            else None
+        )
+        profile = rows("SELECT * FROM profiles WHERE patient_id=?", (ident,))
+        return jsonify(
+            patient=account,
+            profile=profile[0] if profile else {},
+            reports=reports,
+            reports_total=db()
+            .execute("SELECT COUNT(*) FROM reports WHERE patient_id=?", (ident,))
+            .fetchone()[0],
+            adherence=adherence,
+            doctor=rows(
+                "SELECT id,name FROM users WHERE id=?", (account["doctor_id"],)
+            )[0],
+            alerts=rows(
+                "SELECT * FROM alerts WHERE patient_id=? ORDER BY id DESC LIMIT 100",
+                (ident,),
+            ),
+            proposals=(
+                rows(
+                    "SELECT * FROM proposals WHERE patient_id=? ORDER BY id DESC LIMIT 100",
+                    (ident,),
+                )
+                if g.user["role"] == "doctor"
+                else []
+            ),
+            decisions=rows(
+                "SELECT * FROM decisions WHERE patient_id=? ORDER BY id DESC LIMIT 100",
+                (ident,),
+            ),
+            catalog=CATALOG,
+            rule_version=VERSION,
+        )
+
+    @app.post("/api/patients/<int:ident>/reports")
+    def report(ident):
+        account = patient(ident)
+        require_role("patient")
+        data = payload()
+        for key in ("mood", "anxiety"):
+            if type(data.get(key)) is not int or not 0 <= data[key] <= 10:
+                raise ValueError("Настроение и тревога: целые числа от 0 до 10")
+        if type(data.get("safety_signal")) is not bool:
+            raise ValueError("Укажите сигнал безопасности")
+        if data.get("adherence") not in ("Да", "Частично", "Нет", "Не применимо"):
+            raise ValueError("Выберите соблюдение рекомендаций")
+        adverse, note = text(data, "adverse_effects"), text(data, "note")
+
+        def action():
+            stamp = now()
+            cur = db().execute(
+                "INSERT INTO reports(patient_id,created_at,mood,anxiety,adherence,adverse_effects,safety_signal,note) VALUES(?,?,?,?,?,?,?,?)",
+                (
+                    ident,
+                    stamp,
+                    data["mood"],
+                    data["anxiety"],
+                    data["adherence"],
+                    adverse,
+                    int(data["safety_signal"]),
+                    note,
+                ),
+            )
+            report_id = cur.lastrowid
+            add_proposals(ident, report_id, data)
+            if data["safety_signal"]:
+                alert = (
+                    db()
+                    .execute(
+                        "INSERT INTO alerts(patient_id,report_id,created_at,explanation) VALUES(?,?,?,?)",
+                        (
+                            ident,
+                            report_id,
+                            stamp,
+                            "Самоотчёт содержит опасения за безопасность · учебное правило S-01",
+                        ),
+                    )
+                    .lastrowid
+                )
+                notify(
+                    account["doctor_id"],
+                    ident,
+                    "Сигнал безопасности",
+                    account["name"] + " отметил(а) опасения за безопасность.",
+                    alert,
+                )
+            else:
+                notify(
+                    account["doctor_id"],
+                    ident,
+                    "Новый самоотчёт",
+                    account["name"] + " заполнил(а) дневник.",
+                )
+            audit(
+                g.user["id"],
+                ident,
+                "report.created",
+                "Сохранён самоотчёт #" + str(report_id),
+            )
+            return {"id": report_id, "safety_signal": data["safety_signal"]}, 201
+
+        return write_once(data, action)
+
+    @app.post("/api/alerts/<int:ident>/review")
+    def review(ident):
+        require_role("doctor")
+        payload()
+        alert = rows("SELECT * FROM alerts WHERE id=?", (ident,))
+        if not alert:
+            abort(404, "Сигнал не найден")
+        patient(alert[0]["patient_id"])
+        with db() as con:
+            con.execute("BEGIN IMMEDIATE")
+            changed = con.execute(
+                "UPDATE alerts SET status='reviewed' WHERE id=? AND status='new'",
+                (ident,),
+            ).rowcount
+            con.execute(
+                "UPDATE notifications SET read_at=COALESCE(read_at,?) WHERE alert_id=? AND user_id=?",
+                (now(), ident, g.user["id"]),
+            )
+            if changed:
+                audit(
+                    g.user["id"],
+                    alert[0]["patient_id"],
+                    "alert.reviewed",
+                    "Просмотрен сигнал #" + str(ident),
+                )
+        return jsonify(status="reviewed")
+
+    @app.post("/api/patients/<int:ident>/decisions")
     def decision(ident):
         patient(ident)
+        require_role("doctor")
         data = payload()
-        action, note = text(data, 'decision', 100), text(data, 'note')
-        if action not in ('Продолжить наблюдение', 'Назначить очную консультацию', 'Рассмотреть направление к специалисту', 'Другое'):
-            raise ValueError('Выберите действие врача')
+        action, note = text(data, "decision", 100, True), text(data, "note", 500, True)
+        if action not in (
+            "Продолжить наблюдение",
+            "Назначить очную консультацию",
+            "Рассмотреть направление к специалисту",
+            "Другое",
+        ):
+            raise ValueError("Выберите действие врача")
+
+        def save():
+            cur = db().execute(
+                "INSERT INTO decisions(doctor_id,patient_id,created_at,decision,note) VALUES(?,?,?,?,?)",
+                (g.user["id"], ident, now(), action, note),
+            )
+            audit(g.user["id"], ident, "decision.created", action)
+            notify(ident, ident, "Новое решение врача", action)
+            return {"id": cur.lastrowid}, 201
+
+        return write_once(data, save)
+
+    @app.post("/api/patients/<int:ident>/proposals")
+    def propose(ident):
+        patient(ident)
+        require_role("doctor")
+        data = payload()
+        choice = text(data, "choice", 80, True)
+        option = next((item for item in CATALOG if item["id"] == choice), None)
+        if not option:
+            raise ValueError("Неизвестный демо-вариант")
+
+        def save():
+            profile = (
+                db()
+                .execute("SELECT * FROM profiles WHERE patient_id=?", (ident,))
+                .fetchone()
+            )
+            if profile and profile["intolerance"] == choice:
+                abort(409, "В профиле есть учебная несовместимость с этим вариантом")
+            if (
+                db()
+                .execute(
+                    "SELECT 1 FROM proposals WHERE patient_id=? AND choice=? AND status='pending'",
+                    (ident, choice),
+                )
+                .fetchone()
+            ):
+                abort(409, "Такой вариант уже ожидает решения")
+            cur = db().execute(
+                """INSERT INTO proposals(patient_id,kind,tier,title,reason,choice,rule_version,created_at)
+                VALUES(?,'therapy','desirable',?,?,?,?,?)""",
+                (
+                    ident,
+                    "Рассмотреть " + option["name"],
+                    "Вымышленный вариант сопровождения; не лекарство и не назначение.",
+                    choice,
+                    VERSION,
+                    now(),
+                ),
+            )
+            audit(g.user["id"], ident, "proposal.created", option["name"])
+            return {"id": cur.lastrowid}, 201
+
+        return write_once(data, save)
+
+    @app.post("/api/proposals/<int:ident>/resolve")
+    def resolve(ident):
+        require_role("doctor")
+        data = payload()
+        resolution = text(data, "status", 20, True)
+        note = text(data, "note", 500, True)
+        if resolution not in ("accepted", "rejected"):
+            raise ValueError("Выберите подтверждение или отклонение")
+
+        def save():
+            record = (
+                db().execute("SELECT * FROM proposals WHERE id=?", (ident,)).fetchone()
+            )
+            if not record:
+                abort(404, "Предложение не найдено")
+            patient(record["patient_id"])
+            if record["status"] != "pending":
+                abort(409, "Решение уже принято. Обновите карточку")
+            if record["kind"] == "therapy" and resolution == "accepted":
+                profile = (
+                    db()
+                    .execute(
+                        "SELECT * FROM profiles WHERE patient_id=?",
+                        (record["patient_id"],),
+                    )
+                    .fetchone()
+                )
+                if not profile:
+                    abort(409, "Профиль пациента не заполнен")
+                if profile["intolerance"] == record["choice"]:
+                    abort(409, "В профиле есть учебная несовместимость")
+                db().execute(
+                    "UPDATE profiles SET plan=?,plan_note=? WHERE patient_id=?",
+                    (record["choice"], note, record["patient_id"]),
+                )
+            stamp = now()
+            db().execute(
+                "UPDATE proposals SET status=?,resolved_at=?,resolved_by=?,resolution_note=? WHERE id=?",
+                (resolution, stamp, g.user["id"], note, ident),
+            )
+            decision_text = (
+                "Подтверждено: " if resolution == "accepted" else "Отклонено: "
+            ) + record["title"]
+            db().execute(
+                "INSERT INTO decisions(doctor_id,patient_id,created_at,decision,note) VALUES(?,?,?,?,?)",
+                (g.user["id"], record["patient_id"], stamp, decision_text, note),
+            )
+            audit(
+                g.user["id"],
+                record["patient_id"],
+                "proposal." + resolution,
+                record["title"],
+            )
+            notify(
+                record["patient_id"],
+                record["patient_id"],
+                "Решение по плану",
+                decision_text,
+            )
+            return {"status": resolution}, 200
+
+        return write_once(data, save)
+
+    @app.get("/api/patients/<int:ident>/messages")
+    def messages(ident):
+        patient(ident)
+        return jsonify(
+            rows(
+                """SELECT m.*,u.name AS sender_name,u.role AS sender_role FROM messages m
+            JOIN users u ON u.id=m.sender_id WHERE patient_id=? ORDER BY id DESC LIMIT 100""",
+                (ident,),
+            )[::-1]
+        )
+
+    @app.post("/api/patients/<int:ident>/messages")
+    def send_message(ident):
+        account = patient(ident)
+        data = payload()
+        body = text(data, "body", 1000, True)
+
+        def save():
+            cur = db().execute(
+                "INSERT INTO messages(patient_id,sender_id,body,created_at) VALUES(?,?,?,?)",
+                (ident, g.user["id"], body, now()),
+            )
+            recipient = account["doctor_id"] if g.user["role"] == "patient" else ident
+            notify(
+                recipient,
+                ident,
+                "Новое сообщение",
+                g.user["name"] + " отправил(а) сообщение.",
+            )
+            audit(
+                g.user["id"], ident, "message.sent", "Сообщение #" + str(cur.lastrowid)
+            )
+            return {"id": cur.lastrowid}, 201
+
+        return write_once(data, save)
+
+    @app.post("/api/patients/<int:ident>/messages/read")
+    def read_messages(ident):
+        patient(ident)
+        data = payload()
+        ids = data.get("ids")
+        if (
+            not isinstance(ids, list)
+            or len(ids) > 100
+            or any(type(i) is not int for i in ids)
+        ):
+            raise ValueError("Укажите до 100 идентификаторов показанных сообщений")
+        if ids:
+            placeholders = ",".join("?" for _ in ids)
+            with db() as con:
+                con.execute(
+                    f"UPDATE messages SET read_at=? WHERE patient_id=? AND sender_id!=? AND read_at IS NULL AND id IN ({placeholders})",
+                    (now(), ident, g.user["id"], *ids),
+                )
+        return jsonify(ok=True)
+
+    @app.get("/api/notifications")
+    def notifications():
+        return jsonify(
+            items=rows(
+                "SELECT * FROM notifications WHERE user_id=? ORDER BY id DESC LIMIT 50",
+                (g.user["id"],),
+            ),
+            unread=db()
+            .execute(
+                "SELECT COUNT(*) FROM notifications WHERE user_id=? AND read_at IS NULL",
+                (g.user["id"],),
+            )
+            .fetchone()[0],
+            server_time=now(),
+        )
+
+    @app.post("/api/notifications/delivered")
+    def delivered_notifications():
+        data = payload()
+        ids = data.get("ids")
+        if (
+            not isinstance(ids, list)
+            or not 1 <= len(ids) <= 50
+            or any(type(i) is not int for i in ids)
+        ):
+            raise ValueError("Укажите от 1 до 50 идентификаторов уведомлений")
+        ids = list(set(ids))
+        placeholders = ",".join("?" for _ in ids)
+        stamp = now()
         with db() as con:
-            cur = con.execute('INSERT INTO decisions(doctor_id,patient_id,created_at,decision,note) VALUES(1,?,?,?,?)', (ident, now(), action, note))
-        return jsonify(id=cur.lastrowid), 201
+            con.execute("BEGIN IMMEDIATE")
+            count = con.execute(
+                f"SELECT COUNT(*) FROM notifications WHERE user_id=? AND id IN ({placeholders})",
+                (g.user["id"], *ids),
+            ).fetchone()[0]
+            if count != len(ids):
+                abort(404, "Уведомление не найдено")
+            con.execute(
+                f"UPDATE notifications SET delivered_at=COALESCE(delivered_at,?) WHERE user_id=? AND id IN ({placeholders})",
+                (stamp, g.user["id"], *ids),
+            )
+        return jsonify(delivered_at=stamp)
+
+    @app.post("/api/notifications/read")
+    def read_notifications():
+        data = payload()
+        ident = data.get("id")
+        if type(ident) is not int:
+            raise ValueError("Укажите уведомление")
+        with db() as con:
+            if not con.execute(
+                "UPDATE notifications SET read_at=COALESCE(read_at,?),delivered_at=COALESCE(delivered_at,?) WHERE user_id=? AND id=?",
+                (now(), now(), g.user["id"], ident),
+            ).rowcount:
+                abort(404, "Уведомление не найдено")
+        return jsonify(ok=True)
+
+    @app.get("/api/patients/<int:ident>/audit")
+    def journal(ident):
+        patient(ident)
+        require_role("doctor")
+        return jsonify(
+            rows(
+                """SELECT a.*,u.name AS actor_name FROM audit a JOIN users u ON u.id=a.actor_id
+            WHERE patient_id=? ORDER BY a.id DESC LIMIT 100""",
+                (ident,),
+            )
+        )
 
     return app
 
 
-if __name__ == '__main__':
-    create_app().run(host=os.environ.get('COMPASS_HOST', '127.0.0.1'), port=int(os.environ.get('PORT', '8000')), debug=False)
+if __name__ == "__main__":
+    create_app().run(
+        host=os.environ.get("COMPASS_HOST", "127.0.0.1"),
+        port=int(os.environ.get("PORT", "8000")),
+        debug=False,
+    )
