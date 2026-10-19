@@ -1,9 +1,11 @@
 "use strict";
-const CACHE = "compass-shell-v2";
+const CACHE = "compass-shell-v3";
 const SHELL = [
   "/",
   "/static/style.css",
   "/static/app.js",
+  "/static/care.js",
+  "/static/offline.js",
   "/static/manifest.webmanifest",
   "/static/icon.svg",
   "/static/icon-192.png",
@@ -53,5 +55,34 @@ self.addEventListener("fetch", (event) => {
         return response;
       })
       .catch(() => caches.match(event.request)),
+  );
+});
+
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data?.json() || {};
+  } catch {}
+  event.waitUntil(
+    self.registration.showNotification("Клинический компас", {
+      body: "В приложении новое событие. Откройте его для просмотра.",
+      icon: "/static/icon-192.png",
+      badge: "/static/icon-192.png",
+      tag: typeof data.tag === "string" ? data.tag : "compass-event",
+      data: { url: "/" },
+    }),
+  );
+});
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  event.waitUntil(
+    clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then((windows) => {
+        const target = windows.find(
+          (w) => new URL(w.url).origin === self.location.origin,
+        );
+        return target ? target.focus() : clients.openWindow("/");
+      }),
   );
 });

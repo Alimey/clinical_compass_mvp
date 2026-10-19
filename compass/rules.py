@@ -2,7 +2,7 @@
 
 from compass.db import db, now
 
-VERSION = "synthetic-2.0"
+VERSION = "synthetic-3.0"
 CATALOG = [
     {
         "id": "demo-alpha",

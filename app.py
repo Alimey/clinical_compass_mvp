@@ -12,6 +12,11 @@ from urllib.parse import urlsplit
 from flask import Flask, abort, g, jsonify, request
 from werkzeug.exceptions import HTTPException
 from werkzeug.security import check_password_hash
+from dotenv import load_dotenv
+from compass.care import init_care, register_care, care_bundle
+from compass.onboarding import init_onboarding, register_onboarding, phone_number
+from compass.assistants import register_assistants
+from compass.delivery import init_delivery, register_delivery
 
 from compass.db import audit, db, init_db, notify, now, rows
 from compass.demo import seed
@@ -19,6 +24,7 @@ from compass.rules import add_proposals, CATALOG, VERSION
 
 
 def create_app(database=None, *, seed_demo=True, testing=False):
+    load_dotenv(Path(__file__).with_name(".env"))
     app = Flask(__name__, static_folder="static")
     app.config.update(
         DATABASE=str(
@@ -27,7 +33,7 @@ def create_app(database=None, *, seed_demo=True, testing=False):
                 "COMPASS_DB", Path(__file__).with_name("instance") / "compass.db"
             )
         ),
-        MAX_CONTENT_LENGTH=16384,
+        MAX_CONTENT_LENGTH=65536,
         TESTING=testing,
         SECURE_COOKIE=os.environ.get("COMPASS_SECURE_COOKIES") == "1",
     )
@@ -42,6 +48,9 @@ def create_app(database=None, *, seed_demo=True, testing=False):
     with app.app_context():
         init_db()
         seed(seed_demo)
+        init_care(seed_demo)
+        init_onboarding()
+        init_delivery()
 
     @app.before_request
     def authenticate():
@@ -73,7 +82,10 @@ def create_app(database=None, *, seed_demo=True, testing=False):
             g.user = dict(account)
             g.csrf = g.user.pop("csrf")
             g.token_hash = token_hash
-        if request.path in ("/api/auth/login", "/api/auth/me"):
+        if request.path in (
+            "/api/auth/login",
+            "/api/auth/me",
+        ) or request.path.startswith("/api/intake/"):
             return
         if not g.user:
             abort(401, "Войдите в демо-аккаунт")
@@ -198,6 +210,8 @@ def create_app(database=None, *, seed_demo=True, testing=False):
         username, password = text(data, "username", 80, True), text(
             data, "password", 200, True
         )
+        if username.startswith("+"):
+            username = phone_number(username)
         identity = hashlib.sha256(
             ((request.remote_addr or "") + "|" + username.lower()).encode()
         ).hexdigest()
@@ -213,7 +227,12 @@ def create_app(database=None, *, seed_demo=True, testing=False):
                     429,
                 )
             account = con.execute(
-                "SELECT * FROM credentials WHERE username=?", (username,)
+                "SELECT * FROM credentials WHERE username=? OR user_id IN (SELECT user_id FROM contacts WHERE phone=?) OR user_id IN (SELECT patient_id FROM demographics WHERE phone=?)",
+                (
+                    username,
+                    username,
+                    username,
+                ),
             ).fetchone()
             valid = account and check_password_hash(account["password_hash"], password)
             if not valid:
@@ -307,7 +326,16 @@ def create_app(database=None, *, seed_demo=True, testing=False):
             else None
         )
         profile = rows("SELECT * FROM profiles WHERE patient_id=?", (ident,))
+        if profile:
+            extra = rows("SELECT * FROM demographics WHERE patient_id=?", (ident,))
+            if extra:
+                profile[0].update(extra[0])
+        doctor = rows(
+            "SELECT u.id,u.name,c.phone,c.profession,c.organization FROM users u LEFT JOIN contacts c ON c.user_id=u.id WHERE u.id=?",
+            (account["doctor_id"],),
+        )[0]
         return jsonify(
+            care=care_bundle(ident),
             patient=account,
             profile=profile[0] if profile else {},
             reports=reports,
@@ -315,9 +343,7 @@ def create_app(database=None, *, seed_demo=True, testing=False):
             .execute("SELECT COUNT(*) FROM reports WHERE patient_id=?", (ident,))
             .fetchone()[0],
             adherence=adherence,
-            doctor=rows(
-                "SELECT id,name FROM users WHERE id=?", (account["doctor_id"],)
-            )[0],
+            doctor=doctor,
             alerts=rows(
                 "SELECT * FROM alerts WHERE patient_id=? ORDER BY id DESC LIMIT 100",
                 (ident,),
@@ -426,6 +452,10 @@ def create_app(database=None, *, seed_demo=True, testing=False):
                 (now(), ident, g.user["id"]),
             )
             if changed:
+                con.execute(
+                    "UPDATE escalations SET status='resolved' WHERE alert_id=? AND doctor_id=?",
+                    (ident, g.user["id"]),
+                )
                 audit(
                     g.user["id"],
                     alert[0]["patient_id"],
@@ -691,11 +721,20 @@ def create_app(database=None, *, seed_demo=True, testing=False):
             )
         )
 
+    register_care(app, patient, require_role, payload, text, write_once)
+    register_onboarding(app, require_role, payload, text, write_once)
+    register_assistants(app, patient, require_role, payload, text, write_once)
+    register_delivery(app, require_role, payload)
     return app
 
 
 if __name__ == "__main__":
-    create_app().run(
+    application = create_app()
+    if os.environ.get("COMPASS_DISABLE_WORKER") != "1":
+        from compass.worker import start_worker
+
+        start_worker(application)
+    application.run(
         host=os.environ.get("COMPASS_HOST", "127.0.0.1"),
         port=int(os.environ.get("PORT", "8000")),
         debug=False,

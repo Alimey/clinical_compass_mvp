@@ -31,7 +31,7 @@ client=urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cooki
 def request(path,data=None,csrf=''):
  req=urllib.request.Request('http://127.0.0.1:8000'+path,data=json.dumps(data).encode() if data is not None else None,headers={'Content-Type':'application/json','X-CSRF-Token':csrf})
  with client.open(req,timeout=5) as response:return json.load(response)
-assert request('/api/health')['version']=='synthetic-2.0'
+assert request('/api/health')['version']=='synthetic-3.0'
 try:request('/api/patients');raise AssertionError('Anonymous access')
 except urllib.error.HTTPError as error:assert error.code==401
 patient=request('/api/auth/login',{'username':'patient-a','password':'compass-demo'})
@@ -42,8 +42,12 @@ doctor=request('/api/auth/login',{'username':'doctor','password':'compass-demo'}
 assert [p['id'] for p in request('/api/patients')]==[2,3]
 assert request('/api/patients/2')['reports'][0]['note']=='Container smoke: synthetic'
 assert request('/api/notifications')['unread']>0
+assert request('/api/integrations')['worker_last_seen']
+assert len(request('/api/appointments'))==2
+assert len(request('/api/surveys/templates'))>=3
+assert request('/api/patients/2')['care']['prescriptions']
 request('/api/auth/logout',{},doctor['csrf'])
-print('PASS: container runs as non-root; health, sessions, role checks, report persistence and doctor notification')
+print('PASS: container runs as non-root; health, sessions, role checks, report persistence, care workflows and background scheduler')
 """
     result = subprocess.run(
         ["docker", "exec", "-i", container, "python", "-"],

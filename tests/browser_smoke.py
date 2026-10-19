@@ -21,6 +21,9 @@ with tempfile.TemporaryDirectory() as temp:
         **os.environ,
         "COMPASS_DB": str(Path(temp) / "browser.db"),
         "PORT": str(port),
+        "COMPASS_DISABLE_WORKER": "1",
+        "COMPASS_AI_API_KEY": "",
+        "COMPASS_TELEGRAM_BOT_TOKEN": "",
     }
     python = (
         ROOT / ".venv" / ("Scripts/python.exe" if os.name == "nt" else "bin/python")

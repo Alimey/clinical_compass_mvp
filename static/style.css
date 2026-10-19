@@ -2062,3 +2062,333 @@ dialog p {
 .chat-compose label {
   margin: 0;
 }
+/* Care workflows */
+.appointment-section {
+  margin: 0 0 26px;
+}
+.appointment-section .section-heading {
+  margin-top: 0;
+}
+.appointment-strip {
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  padding: 3px 1px 9px;
+  scroll-snap-type: x proximity;
+}
+.appointment-tile {
+  display: flex;
+  align-items: center;
+  text-align: left;
+  gap: 14px;
+  min-width: 280px;
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 15px;
+  padding: 18px;
+  scroll-snap-align: start;
+  color: var(--ink);
+}
+.appointment-tile > svg {
+  margin-left: auto;
+  color: #7e9b8c;
+}
+.appointment-tile strong {
+  font-size: 14px;
+  display: block;
+}
+.appointment-tile p {
+  font-size: 12px;
+  margin: 7px 0 3px;
+}
+.appointment-tile small {
+  font-size: 10px;
+  color: var(--muted);
+}
+.appointment-date {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 58px;
+  border-radius: 12px;
+  background: var(--mint);
+  color: var(--green);
+  flex-shrink: 0;
+}
+.appointment-date strong {
+  font-size: 22px;
+  font-weight: 600;
+}
+.appointment-date span {
+  font-size: 10px;
+}
+.quick-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 24px;
+}
+.quick-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  gap: 12px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  background: #fff;
+  border-radius: 14px;
+  color: var(--ink);
+}
+.quick-card strong {
+  font-size: 12px;
+  line-height: 1.5;
+}
+.quick-card small {
+  font-size: 10px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.quick-card .routine-icon {
+  width: 35px;
+  height: 35px;
+}
+.profile-measures {
+  display: grid;
+  grid-template-columns: 1fr 1fr 2fr;
+  gap: 20px;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 18px 0;
+  margin-bottom: 18px;
+}
+.profile-measures > span {
+  font-size: 10px;
+  color: var(--muted);
+}
+.profile-measures strong {
+  display: block;
+  color: var(--ink);
+  font-size: 23px;
+  font-weight: 550;
+  margin-top: 8px;
+}
+.profile-measures small {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 400;
+}
+.profile-measures .phone-text {
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.record-shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 20px 0;
+}
+.lab-result {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: inherit;
+  font-size: 12px;
+  padding: 15px;
+  border-radius: 10px;
+  background: #f4f8f5;
+  line-height: 1.8;
+}
+.card details {
+  margin-top: 20px;
+}
+.card summary {
+  font-size: 12px;
+  line-height: 1.6;
+  cursor: pointer;
+  color: var(--green);
+  min-height: 35px;
+}
+.question-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 150px 35px;
+  gap: 8px;
+  margin: 12px 0;
+  align-items: center;
+}
+.dose-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 15px;
+  border-top: 1px solid var(--border);
+  padding: 17px 0;
+}
+.dose-time {
+  font-size: 20px;
+  color: var(--green);
+  font-weight: 550;
+}
+.dose-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+.assistant-answer {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+  line-height: 1.85;
+}
+.invite-toolbar {
+  margin-bottom: 22px;
+}
+.invite-url {
+  font-size: 11px !important;
+  margin-bottom: 10px;
+}
+.invite-toolbar .source-note {
+  margin-top: 15px;
+}
+.settings-list {
+  display: grid;
+  gap: 12px;
+}
+.offline-layout {
+  max-width: 900px;
+  padding: 40px 24px;
+  margin: auto;
+}
+.offline-layout > .source-note {
+  margin-bottom: 24px;
+}
+.offline-layout .card + .card {
+  margin-top: 20px;
+}
+.offline-unlock {
+  border-top: 1px solid var(--border);
+  padding-top: 24px;
+  margin-top: 25px;
+}
+.offline-unlock h2 {
+  font-size: 17px;
+}
+.intake-layout {
+  max-width: 620px;
+  margin: 30px auto;
+  padding: 30px 32px;
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+}
+.intake-layout .brand {
+  margin-bottom: 35px;
+}
+.intake-layout .source-note {
+  margin-bottom: 24px;
+}
+.intake-layout .button {
+  margin-top: 24px;
+}
+.intake-layout .eyebrow {
+  margin-top: 25px;
+}
+.login-form-side > #login-form {
+  margin-bottom: 30px;
+}
+.login-form-side > #login-form .button {
+  margin-bottom: 10px;
+}
+.survey-card {
+  margin-bottom: 16px;
+}
+.contact-call {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+}
+.template-source {
+  font-size: 11px;
+  color: var(--muted);
+}
+.survey-response-table {
+  overflow: auto;
+}
+@media (max-width: 1000px) {
+  .quick-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .profile-measures {
+    grid-template-columns: 1fr 1fr;
+  }
+  .profile-measures > span:last-child {
+    grid-column: 1/-1;
+  }
+  .question-row {
+    grid-template-columns: minmax(0, 1fr) 135px 30px;
+  }
+}
+@media (max-width: 680px) {
+  .appointment-tile {
+    min-width: 265px;
+    padding: 16px;
+  }
+  .appointment-strip {
+    margin-right: -18px;
+    padding-right: 18px;
+  }
+  .quick-grid {
+    gap: 11px;
+    margin-bottom: 20px;
+  }
+  .quick-card {
+    padding: 16px;
+    gap: 10px;
+  }
+  .quick-card strong {
+    font-size: 11px;
+  }
+  .appointment-section .section-heading h2 {
+    font-size: 15px;
+  }
+  .question-row {
+    grid-template-columns: minmax(0, 1fr) 35px;
+  }
+  .question-row .question-type {
+    grid-column: 1;
+  }
+  .question-row .icon-button {
+    grid-column: 2;
+    grid-row: 1/3;
+  }
+  .dose-row {
+    gap: 10px;
+  }
+  .dose-actions {
+    width: 100%;
+    margin-left: 0;
+  }
+  .dose-actions .button {
+    flex: 1;
+  }
+  .intake-layout {
+    margin: 0;
+    border: 0;
+    padding: 30px 22px;
+    border-radius: 0;
+    min-height: 100vh;
+  }
+  .offline-layout {
+    padding: 30px 18px 60px;
+  }
+  .offline-layout .page-heading {
+    flex-direction: column;
+  }
+  .profile-measures strong {
+    font-size: 21px;
+  }
+  .quick-card small {
+    font-size: 10px;
+  }
+}

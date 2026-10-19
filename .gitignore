@@ -7,3 +7,9 @@ instance/
 .env
 node_modules/
 test-results/
+# Runtime credentials and user-selected local databases
+push-vapid.pem
+.env.*
+!.env.example
+*.sqlite
+*.db

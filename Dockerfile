@@ -13,4 +13,4 @@ COPY --chown=compass:compass compass ./compass
 USER compass
 ENV COMPASS_DB=/data/compass.db
 EXPOSE 8000
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "1", "app:create_app()"]
+CMD ["gunicorn", "--config", "python:compass.gunicorn_conf", "--bind", "0.0.0.0:8000", "--workers", "1", "--threads", "4", "app:create_app()"]

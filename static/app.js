@@ -305,6 +305,9 @@ function doctorCard() {
   const tabs = [
     ["overview", "Обзор"],
     ["plan", "План и варианты"],
+    ["record", "Карточка"],
+    ["surveys", "Опросы"],
+    ["assistant", "ИИ-помощник"],
     ["chat", "Сообщения"],
     ["audit", "Журнал"],
   ];
@@ -312,6 +315,9 @@ function doctorCard() {
   if (state.tab === "overview")
     content = `<div class="stats-grid">${stat("Настроение", d.reports[0]?.mood ?? "—", "Последняя запись", "sun")}${stat("Тревога", d.reports[0]?.anxiety ?? "—", "Последняя запись", "heart", "lilac")}${stat("Соблюдение плана", d.adherence === null ? "—" : d.adherence + "<small>%</small>", "Условный индекс, 7 записей", "check", "peach")}</div><div class="two-columns"><div><div class="card"><div class="card-heading"><h2>Динамика состояния</h2><span class="chip neutral">0–10</span></div>${chart(d.reports)}</div><div class="card"><h2>Самоотчёты <span class="muted">· ${d.reports_total}</span></h2>${reportList(d.reports)}</div></div><div><div class="card"><div class="card-heading"><h2>Сигналы безопасности</h2>${icon("shield")}</div>${alerts()}</div><div class="card"><h2>Контекст пациента</h2><p class="profile-context">${e(d.profile.context || "Профиль не заполнен")}</p><dl class="profile-context"><dt>Цель наблюдения</dt><dd>${e(d.profile.goal)}</dd><dt>Учебное ограничение</dt><dd>${d.profile.intolerance ? "Несовместимость с " + e(d.catalog.find((c) => c.id === d.profile.intolerance)?.name || d.profile.intolerance) : "Не указано"}</dd><dt>Источник сведений</dt><dd>Вымышленный сценарий, не клинические данные</dd></dl></div></div></div>`;
   if (state.tab === "plan") content = planPage(true);
+  if (state.tab === "record") content = recordsPage(true);
+  if (state.tab === "surveys") content = surveysPage(true);
+  if (state.tab === "assistant") content = assistantPage();
   if (state.tab === "chat") content = chatPage();
   if (state.tab === "audit")
     content = `<div class="card"><h2>Журнал действий</h2><p class="caption">Сохранённые события в хронологическом порядке, новые сверху. Это журнал демо, без гарантии неизменяемости.</p>${state.audit.length ? state.audit.map((a) => `<div class="journal-item"><time>${e(date(a.created_at))}</time><h3>${e(a.detail)}</h3><p>${e(a.actor_name)} · ${e(a.action)}</p></div>`).join("") : '<div class="empty">События появятся после действий в приложении</div>'}</div>`;
@@ -366,7 +372,7 @@ function chatThread() {
 function chatPage() {
   const d = state.detail,
     partner = state.user.role === "doctor" ? d.patient : d.doctor;
-  return `<div class="card chat-card"><div class="chat-heading">${avatar(partner.name, "lilac")}<div><h3>${e(partner.name)}</h3><p>${state.user.role === "doctor" ? "Пациент" : "Ведущий врач"} · синтетический диалог</p></div></div><div class="chat-thread" id="chat-thread" aria-label="Переписка">${chatThread()}</div><form class="chat-compose" id="message-form"><label class="visually-hidden" for="message-body">Сообщение</label><textarea id="message-body" name="body" required maxlength="1000" rows="2" placeholder="Написать сообщение…"></textarea><button class="button primary" type="submit" aria-label="Отправить сообщение">${icon("send")}<span>Отправить</span></button></form></div><p class="caption">Не экстренный канал. Доставка внутри открытого приложения, без push и SMS. Последние 100 сообщений; новые появляются автоматически.</p>`;
+  return `<div class="card chat-card"><div class="chat-heading">${avatar(partner.name, "lilac")}<div><h3>${e(partner.name)}</h3><p>${state.user.role === "doctor" ? "Пациент" : "Ведущий врач"} · синтетический диалог</p></div></div><div class="chat-thread" id="chat-thread" aria-label="Переписка">${chatThread()}</div><form class="chat-compose" id="message-form"><label class="visually-hidden" for="message-body">Сообщение</label><textarea id="message-body" name="body" required maxlength="1000" rows="2" placeholder="Написать сообщение…"></textarea><button class="button primary" type="submit" aria-label="Отправить сообщение">${icon("send")}<span>Отправить</span></button></form></div><p class="caption">Не экстренный канал. Обновляется в открытой вкладке; push подключается в настройках. SMS нет. Последние 100 сообщений; новые появляются автоматически.</p>`;
 }
 function messagesPage() {
   if (state.user.role === "patient")
@@ -410,7 +416,7 @@ function aboutPage() {
       "Клинический компас",
       "Мобильное пространство для демонстрации сопровождения пациента.",
     ) +
-    `<div class="card"><h2>Установка на телефон</h2><p class="caption">Нужен HTTPS-адрес сервера. Android: Chrome → меню → «Установить приложение». iPhone: Safari → «Поделиться» → «На экран Домой». По локальному HTTP можно проверить интерфейс, установка требует HTTPS.</p><div class="divider"></div><h2>Что здесь вымышлено</h2><p class="caption">Все профили и истории, правила S-01–S-04, условные индексы и варианты ДЕМО-Альфа / Бета / Гамма. Это не настоящие препараты, не шкалы и не рекомендации по лечению.</p><h2>Границы демо</h2><p class="caption">Раздельные аккаунты и серверные права демонстрируют разграничение доступа. Демо-пароль публичный, поэтому приложение не подходит для реальных персональных или медицинских данных. Нет внешней экстренной доставки, клинической валидации или подтверждения соответствия требованиям к медицинским системам.</p><h2>Без сети</h2><p class="caption">Кэшируется только интерфейс. Записи, сессии и сообщения не сохраняются в браузерное хранилище. Без сервера работа с данными недоступна.</p><p class="urgent">При непосредственной опасности обратитесь в местные экстренные службы. Не ждите ответа в приложении.</p></div>`
+    `<div class="card"><h2>Установка на телефон</h2><p class="caption">Нужен HTTPS-адрес сервера. Android: Chrome → меню → «Установить приложение». iPhone: Safari → «Поделиться» → «На экран Домой». По локальному HTTP можно проверить интерфейс, установка требует HTTPS.</p><div class="divider"></div><h2>Что здесь вымышлено</h2><p class="caption">Все профили и истории, правила S-01–S-04, условные индексы и варианты ДЕМО-Альфа / Бета / Гамма. Это не настоящие препараты, не шкалы и не рекомендации по лечению.</p><h2>Границы демо</h2><p class="caption">Раздельные аккаунты и серверные права демонстрируют разграничение доступа. Демо-пароль публичный, поэтому приложение не подходит для реальных персональных или медицинских данных. Push подключается отдельно и не гарантирует экстренную доставку. Нет клинической валидации или подтверждения соответствия требованиям к медицинским системам.</p><h2>Без сети</h2><p class="caption">По вашему выбору можно сохранить зашифрованную PIN-кодом копию назначений и записей в разделе «Ещё». Без чата и токенов сессии, только для просмотра. Без сохранённой копии доступна лишь оболочка.</p><p class="urgent">При непосредственной опасности обратитесь в местные экстренные службы. Не ждите ответа в приложении.</p></div>`
   );
 }
 function render() {
@@ -421,15 +427,15 @@ function render() {
         ["overview", "home", "Обзор"],
         ["patients", "users", "Пациенты"],
         ["messages", "chat", "Сообщения"],
-        ["scenarios", "book", "Сценарии"],
-        ["about", "info", "О проекте"],
+        ["schedule", "clock", "Расписание"],
+        ["settings", "info", "Ещё"],
       ]
     : [
         ["overview", "home", "Мой день"],
         ["diary", "book", "Дневник"],
         ["plan", "leaf", "Мой план"],
         ["messages", "chat", "Сообщения"],
-        ["about", "info", "О проекте"],
+        ["settings", "info", "Ещё"],
       ];
   $("#navigation").innerHTML = nav
     .map(
@@ -452,6 +458,12 @@ function render() {
     messages: messagesPage,
     scenarios: scenariosPage,
     about: aboutPage,
+    schedule: schedulePage,
+    settings: settingsPage,
+    surveys: surveysPage,
+    medications: medicationsPage,
+    records: recordsPage,
+    builder: builderPage,
   };
   $("#content").innerHTML = (views[state.page] || overview)();
   if ($("#chat-thread"))
@@ -466,11 +478,33 @@ async function load() {
     state.selected = patients[0]?.id;
   if (!state.selected) return;
   const selected = state.selected;
-  const [detail, messages, journal] = await Promise.all([
+  const [
+    detail,
+    messages,
+    journal,
+    appointments,
+    slots,
+    templates,
+    integrations,
+    aiRuns,
+    escalations,
+  ] = await Promise.all([
     api("/api/patients/" + selected),
     api("/api/patients/" + selected + "/messages"),
     state.user.role === "doctor"
       ? api("/api/patients/" + selected + "/audit")
+      : Promise.resolve([]),
+    api("/api/appointments"),
+    api("/api/appointments/slots"),
+    state.user.role === "doctor"
+      ? api("/api/surveys/templates")
+      : Promise.resolve([]),
+    api("/api/integrations"),
+    state.user.role === "doctor"
+      ? api("/api/patients/" + selected + "/assistant")
+      : Promise.resolve([]),
+    state.user.role === "doctor"
+      ? api("/api/escalations")
       : Promise.resolve([]),
   ]);
   if (
@@ -479,10 +513,17 @@ async function load() {
     selected !== state.selected
   )
     return;
+  state.appointments = appointments;
+  state.slots = slots.slots;
+  state.templates = templates;
+  state.integrations = integrations;
+  state.aiRuns = aiRuns;
+  state.escalations = escalations;
   state.detail = detail;
   state.messages = messages;
   state.audit = journal;
   render();
+  OfflineVault.refresh(state).catch(() => {});
   if ($("#chat-thread")) await acknowledgeMessages(selected);
 }
 function renderLogin(error = "") {
@@ -825,8 +866,18 @@ async function pollNotifications(initial = false) {
           )
           .join("")
       : '<div class="empty">Новых уведомлений пока нет</div>';
-    if (!initial && result.items[0]?.id && previous !== result.items[0].id)
-      $("#update-banner").hidden = false;
+    if (!initial && result.items[0]?.id && previous !== result.items[0].id) {
+      if (
+        !busy &&
+        ["overview", "patients"].includes(state.page) &&
+        !["INPUT", "TEXTAREA", "SELECT"].includes(
+          document.activeElement?.tagName,
+        )
+      ) {
+        await load();
+        $("#update-banner").hidden = true;
+      } else $("#update-banner").hidden = false;
+    }
     $("#sync-label").textContent = "На связи";
   } catch (error) {
     if (state.user) $("#sync-label").textContent = "Нет связи с сервером";
@@ -855,7 +906,9 @@ $("#cancel-resolution").onclick = () => {
 $("#logout").onclick = async () => {
   if (busy) return;
   try {
+    await disableDevicePush();
     await api("/api/auth/logout", {});
+    await OfflineVault.clear();
     clearSession();
     renderLogin();
     toast("Вы вышли из аккаунта");
@@ -931,6 +984,6 @@ async function boot() {
     } else renderLogin("Сервер недоступен. Для входа требуется соединение.");
   }
 }
-boot();
+// care.js selects the authenticated or public intake entry point.
 if ("serviceWorker" in navigator)
   navigator.serviceWorker.register("/sw.js").catch(() => {});
