@@ -1,0 +1,253 @@
+"""Cross-role checks for every additional section of the supplied mockup."""
+
+import os
+from pathlib import Path
+import shutil
+import socket
+import subprocess
+import tempfile
+import time
+import urllib.request
+from playwright.sync_api import sync_playwright, expect
+
+ROOT = Path(__file__).resolve().parents[1]
+ART = Path(tempfile.gettempdir()) / "compass-artifacts"
+ART.mkdir(exist_ok=True)
+with tempfile.TemporaryDirectory() as temp:
+    with socket.socket() as sock:
+        sock.bind(("127.0.0.1", 0))
+        port = sock.getsockname()[1]
+    env = {
+        **os.environ,
+        "COMPASS_DB": str(Path(temp) / "test.db"),
+        "PORT": str(port),
+        "COMPASS_DISABLE_WORKER": "1",
+        "COMPASS_AI_API_KEY": "",
+        "COMPASS_TELEGRAM_BOT_TOKEN": "",
+    }
+    server = subprocess.Popen(
+        [str(ROOT / ".venv/bin/python"), "app.py"],
+        cwd=ROOT,
+        env=env,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    try:
+        url = f"http://127.0.0.1:{port}"
+        for _ in range(100):
+            try:
+                urllib.request.urlopen(url + "/api/health", timeout=1).close()
+                break
+            except OSError:
+                time.sleep(0.1)
+        with sync_playwright() as pw:
+            browser = pw.chromium.launch(
+                executable_path=os.environ.get("CHROMIUM_PATH")
+                or shutil.which("chromium"),
+                args=["--no-sandbox"],
+            )
+            errors = []
+
+            def user(account):
+                c = browser.new_context(
+                    viewport={"width": 390, "height": 844},
+                    reduced_motion="reduce",
+                    timezone_id="Europe/Moscow",
+                )
+                page = c.new_page()
+                page.on("pageerror", lambda e: errors.append(str(e)))
+                page.goto(url)
+                page.locator("#username").fill(account)
+                page.locator("#password").fill("compass-demo")
+                page.locator("#login-form button").click()
+                expect(page.locator("#app-shell")).to_be_visible()
+                page.wait_for_function("() => !busy && state.user !== null")
+                return page
+
+            pat, doc, rel = user("patient-a"), user("doctor"), user("relative")
+
+            def nav(page, name):
+                page.evaluate("p=>navigate(p)", name)
+                page.wait_for_function("() => !busy")
+
+            def tab(page, group, key):
+                page.locator(
+                    f'[data-ext=sub][data-group="{group}"][data-key="{key}"]'
+                ).click()
+
+            def submit(page, form):
+                page.locator(form).locator("button[type=submit]").click()
+                page.wait_for_function("() => !busy")
+
+            nav(pat, "diary")
+            tab(pat, "diary", "notes")
+            f = pat.locator(".entry-form[data-kind=note]")
+            f.locator("[name=text]").fill("private-browser-marker")
+            submit(pat, ".entry-form[data-kind=note]")
+            expect(pat.locator("#content")).to_contain_text("private-browser-marker")
+            nav(pat, "learn")
+            tab(pat, "learn", "thought")
+            pat.locator("[name=situation]").fill("Синтетическая ситуация E2E")
+            submit(pat, ".entry-form[data-kind=thought]")
+            tab(pat, "learn", "course")
+            pat.locator(".course-item").first.locator("summary").click()
+            pat.locator(".course-item").first.get_by_role(
+                "button", name="Отметить прочитанным"
+            ).click()
+            pat.wait_for_function("() => !busy")
+            tab(pat, "learn", "articles")
+            expect(pat.locator(".course-item")).to_have_count(6)
+            tab(pat, "learn", "books")
+            expect(pat.get_by_role("heading", name="Литература")).to_be_visible()
+            nav(pat, "diary")
+            tab(pat, "diary", "scales")
+            pat.locator("[data-ext=assessment][data-key=gad7]").click()
+            for i in range(7):
+                pat.locator(f"#assessment-form [name=q{i}]").select_option("1")
+            submit(pat, "#assessment-form")
+            expect(pat.locator("#content")).to_contain_text(
+                "Обсудите результат со специалистом"
+            )
+            nav(pat, "messages")
+            tab(pat, "doctor", "mail")
+            pat.locator("#letter-form [name=subject]").fill("Письмо E2E")
+            pat.locator("#letter-form [name=body]").fill("Синтетический вопрос")
+            submit(pat, "#letter-form")
+            nav(doc, "letters")
+            expect(doc.locator("#content")).to_contain_text("Письмо E2E")
+            doc.locator(".letter-reply-form [name=body]").fill("Ответ E2E")
+            submit(doc, ".letter-reply-form")
+            nav(pat, "messages")
+            expect(pat.locator("#content")).to_contain_text("Ответ E2E")
+            nav(doc, "patients")
+            doc.locator(".patient-card").filter(has_text="Александра").get_by_role(
+                "button", name="Открыть карточку"
+            ).click()
+            expect(doc.locator("#content")).to_contain_text(
+                "Синтетическая ситуация E2E"
+            )
+            assert "private-browser-marker" not in doc.locator("#content").inner_text()
+            doc.locator("[data-action=tab][data-tab=scales]").click()
+            expect(doc.locator("#content")).to_contain_text("Сумма: 7")
+            doc.locator("[data-ext=assessment][data-key=hama]").click()
+            for i in range(14):
+                doc.locator(f"#assessment-form [name=q{i}]").select_option("1")
+            submit(doc, "#assessment-form")
+            expect(doc.locator("#content")).to_contain_text("Сумма: 14")
+            doc.locator("[data-action=tab][data-tab=safetyplan]").click()
+            for key in ("signs", "self", "distract", "people", "pros", "safe"):
+                doc.locator(f"#safety-plan-form [name={key}]").fill("План E2E: " + key)
+            submit(doc, "#safety-plan-form")
+            doc.get_by_text("Предложить новое соглашение", exact=True).click()
+            submit(doc, "#agreement-form")
+            nav(pat, "help")
+            tab(pat, "help", "plan")
+            expect(pat.locator("#content")).to_contain_text("План E2E: signs")
+            pat.get_by_role("button", name="Ознакомился(ась) с условиями").click()
+            expect(pat.locator("#content")).to_contain_text("Пациент ознакомился")
+            tab(pat, "help", "games")
+            pat.get_by_role("button", name="Пузырёк 1", exact=True).click()
+            expect(pat.locator("#bubble-count")).to_contain_text("1")
+            pat.get_by_role("button", name="Шарик в лунку", exact=True).click()
+            expect(pat.locator("#ball-board")).to_be_visible()
+            pat.locator("[data-ext=ball-move][data-key=right]").click()
+            expect(pat.locator("#game-ball")).to_have_attribute("cx", "28")
+            tab(pat, "help", "calm")
+            pat.get_by_role("button", name="Начать дыхание", exact=True).click()
+            expect(pat.locator("#breath-phase")).to_contain_text("Вдох")
+            pat.get_by_role("button", name="Остановить", exact=True).click()
+            tab(pat, "help", "streak")
+            pat.locator("#streak-form [name=days]").fill("5")
+            submit(pat, "#streak-form")
+            expect(pat.locator("#content")).to_contain_text("Лучший результат: 5")
+            tab(pat, "help", "sos")
+            button = pat.locator("[data-ext=sos]")
+            button.scroll_into_view_if_needed()
+            box = button.bounding_box()
+            pat.mouse.move(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
+            pat.mouse.down()
+            pat.wait_for_timeout(1700)
+            pat.mouse.up()
+            pat.wait_for_function("() => !busy")
+            expect(pat.locator("#content")).to_contain_text("Запрос сохранён")
+            rel.reload()
+            expect(rel.locator("#content")).to_contain_text("Александра")
+            expect(rel.get_by_role("heading", name="Запрос поддержки")).to_be_visible()
+            rel.get_by_role("button", name="Отметить просмотренным").click()
+            expect(rel.locator("#content")).to_contain_text("вы отметили просмотр")
+            nav(pat, "consents")
+            pat.locator("[data-pref=research]").check()
+            pat.wait_for_function("() => !busy")
+            pat.locator("[data-pref=wear]").check()
+            pat.wait_for_function("() => !busy")
+            pat.locator("[data-pref=emias]").check()
+            pat.wait_for_function("() => !busy")
+            nav(pat, "move")
+            expect(pat.locator("#content")).to_contain_text(
+                "Синтетический пример включён"
+            )
+            pat.locator("[data-ext=exercise-start][data-key=desk]").click()
+            for _ in range(3):
+                pat.locator("[data-ext=exercise-next]").click()
+            pat.locator("[data-ext=exercise-done]").click()
+            expect(pat.locator(".activity-row")).to_contain_text("Разминка за столом")
+            nav(doc, "research")
+            expect(doc.locator("tbody")).to_contain_text("PK-")
+            with doc.expect_download() as download:
+                doc.get_by_role("link", name="Скачать CSV").click()
+            assert download.value.suggested_filename == "synthetic-research.csv"
+            nav(doc, "reference")
+            doc.locator("#compatibility-form [name=egfr]").fill("20")
+            submit(doc, "#compatibility-form")
+            expect(doc.locator("#compatibility-result")).to_contain_text(
+                "Есть учебные ограничения"
+            )
+            for key in ("scales", "rules", "literature"):
+                tab(doc, "reference", key)
+                assert doc.locator("#content").inner_text()
+            nav(doc, "news")
+            doc.get_by_role("button", name="Мероприятия", exact=True).click()
+            expect(doc.locator("#content article.card")).to_have_count(1)
+            nav(doc, "forum")
+            doc.get_by_text("Новая тема", exact=True).click()
+            doc.locator("#forum-form [name=title]").fill("Тема E2E")
+            doc.locator("#forum-form [name=body]").fill(
+                "<script>window.pwned=true</script> Синтетический вопрос"
+            )
+            submit(doc, "#forum-form")
+            doc.locator("#forum-reply-form [name=body]").fill("Обсуждение E2E")
+            submit(doc, "#forum-reply-form")
+            expect(doc.locator("#content")).to_contain_text("Обсуждение E2E")
+            assert doc.evaluate("window.pwned") is None
+            nav(pat, "consents")
+            pat.locator("[data-pref=relative_sos]").uncheck()
+            pat.wait_for_function("() => !busy")
+            rel.reload()
+            expect(rel.locator("#content")).to_contain_text("отозвал его")
+            for width in (320, 390, 430, 1280):
+                for page, sections in (
+                    (doc, ("reference", "news", "forum", "research", "tour")),
+                    (pat, ("consents", "diary", "learn", "move", "help")),
+                    (rel, ("overview", "learn", "contacts")),
+                ):
+                    page.set_viewport_size({"width": width, "height": 844})
+                    for section in sections:
+                        nav(page, section)
+                        assert page.evaluate(
+                            "document.documentElement.scrollWidth<=innerWidth"
+                        ), (width, section)
+            doc.set_viewport_size({"width": 390, "height": 844})
+            nav(doc, "forum")
+            doc.locator("[data-ext=forum-back]").click()
+            doc.screenshot(path=str(ART / "psicompas-forum.png"), full_page=True)
+            rel.set_viewport_size({"width": 390, "height": 844})
+            nav(rel, "learn")
+            rel.screenshot(path=str(ART / "psicompas-relative.png"), full_page=True)
+            assert not errors, errors
+            browser.close()
+            print(
+                "PASS: all prototype sections, 3 separate roles, notes/thoughts/privacy, GAD/PHQ/HAM forms, letters/replies, safety plan/agreement, SOS hold and relative revocation, games/breathing, exercises, consents/research CSV, calculator/news/forum, 4 widths"
+            )
+    finally:
+        server.terminate()
+        server.wait(timeout=10)

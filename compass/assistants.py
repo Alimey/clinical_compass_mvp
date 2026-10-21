@@ -105,6 +105,10 @@ def register_assistants(app, patient, require_role, payload, text, write_once):
             "SELECT created_at,mood,anxiety,adherence,adverse_effects,note FROM reports WHERE patient_id=? ORDER BY id DESC LIMIT 14",
             (ident,),
         )
+        from compass.sections import preferences
+
+        if not preferences(ident)["share_mood"]:
+            context["reports"] = []
         context["encounters"] = rows(
             "SELECT created_at,summary,plan FROM encounters WHERE patient_id=? ORDER BY id DESC LIMIT 3",
             (ident,),

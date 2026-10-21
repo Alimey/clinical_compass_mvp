@@ -6,7 +6,8 @@
       name="viewport"
       content="width=device-width,initial-scale=1,viewport-fit=cover"
     />
-    <meta name="theme-color" content="#14675d" />
+    <meta name="theme-color" content="#0b6390" />
+    <meta name="apple-mobile-web-app-title" content="ПсиКомпас" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta
       name="description"
@@ -16,10 +17,14 @@
     <link rel="icon" href="/static/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/static/icon-192.png" />
     <link rel="stylesheet" href="/static/style.css" />
+    <link rel="stylesheet" href="/static/psicompas.css" />
     <script src="/static/offline.js" defer></script>
     <script src="/static/app.js" defer></script>
     <script src="/static/care.js" defer></script>
-    <title>Клинический компас · демо</title>
+    <script src="/static/psicompas.js" defer></script>
+    <script src="/static/prototype-content.js" defer></script>
+    <script src="/static/sections.js" defer></script>
+    <title>ПсиКомпас · демо</title>
   </head>
   <body>
     <div id="login-screen" hidden></div>
@@ -41,12 +46,36 @@
       </aside>
       <div class="workspace">
         <header class="topbar">
-          <div>
-            <span id="breadcrumb" class="muted"></span
-            ><span class="top-demo">DEMO</span>
-          </div>
+          <a
+            class="app-brand"
+            href="#page=overview"
+            data-action="nav"
+            data-page="overview"
+            aria-label="ПсиКомпас — на главную"
+            ><img
+              class="compass-logo"
+              src="/static/icon.svg"
+              alt=""
+              width="30"
+              height="30" /><span>ПсиКомпас<small id="breadcrumb"></small></span
+          ></a>
           <div class="header-actions">
-            <span id="sync-label" class="sync-label">На связи</span
+            <button
+              id="theme-toggle"
+              class="icon-button"
+              aria-label="Сменить цветовую тему"
+              title="Сменить цветовую тему"
+            >
+              ◐</button
+            ><button
+              id="more-button"
+              class="icon-button"
+              data-action="nav"
+              data-page="settings"
+              aria-label="Ещё"
+              title="Настройки"
+            >
+              ⋯</button
             ><button id="install" class="button quiet" hidden>Установить</button
             ><button
               id="notifications-button"
@@ -61,6 +90,12 @@
             <button id="logout" class="icon-button" aria-label="Выйти"></button>
           </div>
         </header>
+        <div class="app-status">
+          <span
+            ><i></i
+            ><span id="sync-label" class="sync-label">На связи</span></span
+          ><span id="session-role">Синтетическое демо</span>
+        </div>
         <div class="demo-strip">
           <span class="small-dot"></span> Вымышленные пациенты, правила и
           варианты сопровождения. Не для реального лечения.

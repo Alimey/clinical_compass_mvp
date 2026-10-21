@@ -1,10 +1,18 @@
 "use strict";
-const CACHE = "compass-shell-v3";
+const CACHE = "compass-shell-v4";
 const SHELL = [
   "/",
   "/static/style.css",
   "/static/app.js",
   "/static/care.js",
+  "/static/psicompas.js",
+  "/static/psicompas.css",
+  "/static/sections.js",
+  "/static/prototype-content.js",
+  "/static/fonts/montserrat-cyrillic-400-normal.woff2",
+  "/static/fonts/montserrat-cyrillic-600-normal.woff2",
+  "/static/fonts/montserrat-latin-400-normal.woff2",
+  "/static/fonts/montserrat-latin-600-normal.woff2",
   "/static/offline.js",
   "/static/manifest.webmanifest",
   "/static/icon.svg",
@@ -64,7 +72,7 @@ self.addEventListener("push", (event) => {
     data = event.data?.json() || {};
   } catch {}
   event.waitUntil(
-    self.registration.showNotification("Клинический компас", {
+    self.registration.showNotification("ПсиКомпас", {
       body: "В приложении новое событие. Откройте его для просмотра.",
       icon: "/static/icon-192.png",
       badge: "/static/icon-192.png",

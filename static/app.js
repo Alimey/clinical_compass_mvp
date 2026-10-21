@@ -156,8 +156,8 @@ function chart(reports, compact = false) {
       values.length === 1 ? 250 : 40 + (i * 440) / (values.length - 1),
     y = (n) => 165 - Math.max(0, Math.min(10, Number(n) || 0)) * 13;
   const graphs = [
-    ["mood", "#539d80"],
-    ["anxiety", "#b7a3d0"],
+    ["mood", "#0b8cc4"],
+    ["anxiety", "#d06a2b"],
   ]
     .map(
       ([field, color]) =>
@@ -271,7 +271,7 @@ function reportList(reports) {
   return reports
     .map(
       (r) =>
-        `<article class="report-item"><div class="report-meta"><time>${e(date(r.created_at))}</time><span class="chip ${r.safety_signal ? "red" : "neutral"}">${r.safety_signal ? "Сигнал безопасности" : "Самоотчёт"}</span></div><div class="report-values">Настроение <strong>${e(r.mood)}/10</strong> Тревога <strong>${e(r.anxiety)}/10</strong></div><p class="report-text">Соблюдение плана: ${e(r.adherence)}</p>${r.adverse_effects || r.note ? `<details><summary>Подробнее о записи</summary><p class="report-text">${r.adverse_effects ? "Самочувствие: " + e(r.adverse_effects) + "<br>" : ""}${r.note ? "Комментарий: " + e(r.note) : ""}</p></details>` : ""}</article>`,
+        `<article class="report-item"><div class="report-meta"><time>${e(date(r.created_at))}</time><span class="chip ${r.safety_signal ? "red" : "neutral"}">${r.safety_signal ? "Сигнал безопасности" : "Самоотчёт"}</span></div><div class="report-values">Настроение <strong>${e(r.mood)}/10</strong> Тревога <strong>${e(r.anxiety)}/10</strong></div>${r.sleep != null || r.energy != null ? `<p class="caption">Сон: ${r.sleep == null ? "—" : e(r.sleep) + "/10"} · Энергия: ${r.energy == null ? "—" : e(r.energy) + "/10"}</p>` : ""}<p class="report-text">Соблюдение плана: ${e(r.adherence)}</p>${r.adverse_effects || r.note ? `<details><summary>Подробнее о записи</summary><p class="report-text">${r.adverse_effects ? "Самочувствие: " + e(r.adverse_effects) + "<br>" : ""}${r.note ? "Комментарий: " + e(r.note) : ""}</p></details>` : ""}</article>`,
     )
     .join("");
 }
@@ -321,6 +321,7 @@ function doctorCard() {
   if (state.tab === "chat") content = chatPage();
   if (state.tab === "audit")
     content = `<div class="card"><h2>Журнал действий</h2><p class="caption">Сохранённые события в хронологическом порядке, новые сверху. Это журнал демо, без гарантии неизменяемости.</p>${state.audit.length ? state.audit.map((a) => `<div class="journal-item"><time>${e(date(a.created_at))}</time><h3>${e(a.detail)}</h3><p>${e(a.actor_name)} · ${e(a.action)}</p></div>`).join("") : '<div class="empty">События появятся после действий в приложении</div>'}</div>`;
+  if (state.tab === "overview") content += wellbeingSummary();
   return `<button class="back-link" data-action="nav" data-page="patients">${icon("back")}Все пациенты</button><div class="profile-banner">${avatar(p.name, "mint", "large")}<div><p class="eyebrow">КАРТОЧКА ПАЦИЕНТА · #${p.id}</p><h1>${e(p.name)}</h1><p>${e(d.profile.age || "—")} лет · ${e(d.profile.occupation || "Демо-профиль")}</p></div>${badge(state.patients.find((x) => x.id === p.id) || {})}</div><div class="tabs" aria-label="Разделы карточки">${tabs.map(([id, title]) => `<button data-action="tab" data-tab="${id}" class="${state.tab === id ? "active" : ""}" aria-pressed="${state.tab === id}">${title}</button>`).join("")}</div>${content}`;
 }
 function planPage(doctor = false) {
@@ -424,20 +425,29 @@ function render() {
   const doctor = state.user.role === "doctor";
   const nav = doctor
     ? [
-        ["overview", "home", "Обзор"],
         ["patients", "users", "Пациенты"],
-        ["messages", "chat", "Сообщения"],
-        ["schedule", "clock", "Расписание"],
-        ["settings", "info", "Ещё"],
+        ["letters", "chat", "Письма"],
+        ["reference", "book", "Справочник"],
+        ["news", "info", "Новости"],
+        ["forum", "users", "Форум"],
       ]
     : [
         ["overview", "home", "Мой день"],
         ["diary", "book", "Дневник"],
-        ["plan", "leaf", "Мой план"],
+        ["move", "heart", "Движение"],
+        ["learn", "leaf", "Знания"],
+        ["help", "heart", "Помощь"],
         ["messages", "chat", "Сообщения"],
-        ["settings", "info", "Ещё"],
       ];
-  $("#navigation").innerHTML = nav
+  const roleNav =
+    state.user.role === "relative"
+      ? [
+          ["overview", "heart", "Сигналы"],
+          ["learn", "book", "Как помочь"],
+          ["contacts", "chat", "Куда звонить"],
+        ]
+      : nav;
+  $("#navigation").innerHTML = roleNav
     .map(
       ([page, glyph, title]) =>
         `<button class="nav-item ${state.page === page || (state.page === "card" && page === "patients") ? "active" : ""}" data-action="nav" data-page="${page}" ${state.page === page ? 'aria-current="page"' : ""}>${icon(glyph)}<span>${title}</span></button>`,
@@ -450,12 +460,12 @@ function render() {
   $("#account-avatar").textContent = initials(state.user.name);
   $("#account-avatar").title = state.user.name;
   const views = {
-    overview,
+    overview: state.user.role === "relative" ? relativePage : overview,
     patients: patientsPage,
     card: doctorCard,
-    diary: diaryPage,
+    diary: extendedDiaryPage,
     plan: planPage,
-    messages: messagesPage,
+    messages: extendedMessagesPage,
     scenarios: scenariosPage,
     about: aboutPage,
     schedule: schedulePage,
@@ -464,13 +474,37 @@ function render() {
     medications: medicationsPage,
     records: recordsPage,
     builder: builderPage,
+    move: extendedMovementPage,
+    learn:
+      state.user.role === "relative"
+        ? relativeLearningPage
+        : extendedLearningPage,
+    help: extendedHelpPage,
+    tree: treePage,
+    consents: consentsPage,
+    letters: lettersPage,
+    reference: referencePage,
+    news: newsPage,
+    forum: forumPage,
+    research: researchPage,
+    contacts: contactsPage,
+    tour: tourPage,
   };
   $("#content").innerHTML = (views[state.page] || overview)();
+  decoratePsicompas();
   if ($("#chat-thread"))
     $("#chat-thread").scrollTop = $("#chat-thread").scrollHeight;
 }
 async function load() {
   const version = ++selectionVersion;
+  if (state.user?.role === "relative") {
+    const data = await api("/api/relative");
+    if (version === selectionVersion && state.user?.role === "relative") {
+      state.relative = data;
+      render();
+    }
+    return;
+  }
   const patients = await api("/api/patients");
   if (!state.user || version !== selectionVersion) return;
   state.patients = patients;
@@ -488,6 +522,11 @@ async function load() {
     integrations,
     aiRuns,
     escalations,
+    wellbeing,
+    workspace,
+    letters,
+    forum,
+    research,
   ] = await Promise.all([
     api("/api/patients/" + selected),
     api("/api/patients/" + selected + "/messages"),
@@ -506,6 +545,11 @@ async function load() {
     state.user.role === "doctor"
       ? api("/api/escalations")
       : Promise.resolve([]),
+    api("/api/patients/" + selected + "/wellbeing"),
+    api("/api/patients/" + selected + "/workspace"),
+    state.user.role === "doctor" ? api("/api/letters") : Promise.resolve([]),
+    state.user.role === "doctor" ? api("/api/forum") : Promise.resolve([]),
+    state.user.role === "doctor" ? api("/api/research") : Promise.resolve([]),
   ]);
   if (
     !state.user ||
@@ -519,6 +563,11 @@ async function load() {
   state.integrations = integrations;
   state.aiRuns = aiRuns;
   state.escalations = escalations;
+  state.wellbeing = wellbeing;
+  state.workspace = workspace;
+  state.letters = letters;
+  state.forum = forum;
+  state.research = research;
   state.detail = detail;
   state.messages = messages;
   state.audit = journal;
@@ -628,6 +677,7 @@ function showResolution(id, status) {
 document.addEventListener("click", async (event) => {
   const button = event.target.closest("[data-action]");
   if (!button || button.disabled) return;
+  if (button.tagName === "A") event.preventDefault();
   const { action, id, page, tab, status, choice, account, filter, mode } =
     button.dataset;
   try {
@@ -725,7 +775,7 @@ document.addEventListener("click", async (event) => {
 });
 document.addEventListener("input", (event) => {
   const { id, value } = event.target;
-  if (id === "mood" || id === "anxiety")
+  if (["mood", "anxiety", "sleep", "energy"].includes(id))
     $("#" + id + "-value").textContent = value + " / 10";
   if (id === "patient-search") {
     state.search = value;
@@ -756,6 +806,8 @@ document.addEventListener("submit", (event) => {
       adverse_effects: form.adverse_effects.value,
       note: form.note.value,
       safety_signal: form.safety_signal.checked,
+      sleep: Number(form.sleep.value),
+      energy: Number(form.energy.value),
     };
     return run(form, async () => {
       await write("/api/patients/" + state.selected + "/reports", data);

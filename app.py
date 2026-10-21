@@ -17,6 +17,8 @@ from compass.care import init_care, register_care, care_bundle
 from compass.onboarding import init_onboarding, register_onboarding, phone_number
 from compass.assistants import register_assistants
 from compass.delivery import init_delivery, register_delivery
+from compass.wellbeing import init_wellbeing, register_wellbeing
+from compass.sections import init_sections, register_sections, preferences
 
 from compass.db import audit, db, init_db, notify, now, rows
 from compass.demo import seed
@@ -51,6 +53,8 @@ def create_app(database=None, *, seed_demo=True, testing=False):
         init_care(seed_demo)
         init_onboarding()
         init_delivery()
+        init_wellbeing()
+        init_sections(seed_demo)
 
     @app.before_request
     def authenticate():
@@ -291,18 +295,21 @@ def create_app(database=None, *, seed_demo=True, testing=False):
             if g.user["role"] == "doctor"
             else ("u.id", g.user["id"])
         )
-        return jsonify(
-            rows(
-                f"""SELECT u.id,u.name,p.age,p.occupation,p.goal,
-            (SELECT COUNT(*) FROM alerts a WHERE a.patient_id=u.id AND a.status='new') AS unread,
+        result = rows(
+            f"""SELECT u.id,u.name,p.age,p.occupation,p.goal,
+            ((SELECT COUNT(*) FROM alerts a WHERE a.patient_id=u.id AND a.status='new') + (SELECT COUNT(*) FROM support_events s WHERE s.patient_id=u.id AND s.doctor_read_at IS NULL)) AS unread,
             (SELECT COUNT(*) FROM messages m WHERE m.patient_id=u.id AND m.sender_id!=? AND m.read_at IS NULL) AS unread_messages,
             (SELECT mood FROM reports r WHERE r.patient_id=u.id ORDER BY id DESC LIMIT 1) AS mood,
             (SELECT anxiety FROM reports r WHERE r.patient_id=u.id ORDER BY id DESC LIMIT 1) AS anxiety,
             (SELECT created_at FROM reports r WHERE r.patient_id=u.id ORDER BY id DESC LIMIT 1) AS last_report
             FROM users u LEFT JOIN profiles p ON p.patient_id=u.id WHERE u.role='patient' AND {condition}=? ORDER BY u.id""",
-                (g.user["id"], value),
-            )
+            (g.user["id"], value),
         )
+        if g.user["role"] == "doctor":
+            for record in result:
+                if not preferences(record["id"])["share_mood"]:
+                    record["mood"] = record["anxiety"] = record["last_report"] = None
+        return jsonify(result)
 
     @app.get("/api/patients/<int:ident>")
     def detail(ident):
@@ -311,6 +318,9 @@ def create_app(database=None, *, seed_demo=True, testing=False):
             "SELECT * FROM reports WHERE patient_id=? ORDER BY id DESC LIMIT 100",
             (ident,),
         )
+        shared_reports = g.user["role"] == "patient" or preferences(ident)["share_mood"]
+        if not shared_reports:
+            reports = []
         recent = reports[:7]
         applicable = [r for r in recent if r["adherence"] != "Не применимо"]
         adherence = (
@@ -339,9 +349,14 @@ def create_app(database=None, *, seed_demo=True, testing=False):
             patient=account,
             profile=profile[0] if profile else {},
             reports=reports,
-            reports_total=db()
-            .execute("SELECT COUNT(*) FROM reports WHERE patient_id=?", (ident,))
-            .fetchone()[0],
+            reports_shared=shared_reports,
+            reports_total=(
+                db()
+                .execute("SELECT COUNT(*) FROM reports WHERE patient_id=?", (ident,))
+                .fetchone()[0]
+                if shared_reports
+                else 0
+            ),
             adherence=adherence,
             doctor=doctor,
             alerts=rows(
@@ -377,11 +392,16 @@ def create_app(database=None, *, seed_demo=True, testing=False):
         if data.get("adherence") not in ("Да", "Частично", "Нет", "Не применимо"):
             raise ValueError("Выберите соблюдение рекомендаций")
         adverse, note = text(data, "adverse_effects"), text(data, "note")
+        for key in ("sleep", "energy"):
+            if data.get(key) is not None and (
+                type(data[key]) is not int or not 0 <= data[key] <= 10
+            ):
+                raise ValueError("Сон и энергия: целые числа от 0 до 10")
 
         def action():
             stamp = now()
             cur = db().execute(
-                "INSERT INTO reports(patient_id,created_at,mood,anxiety,adherence,adverse_effects,safety_signal,note) VALUES(?,?,?,?,?,?,?,?)",
+                "INSERT INTO reports(patient_id,created_at,mood,anxiety,adherence,adverse_effects,safety_signal,note,sleep,energy) VALUES(?,?,?,?,?,?,?,?,?,?)",
                 (
                     ident,
                     stamp,
@@ -391,6 +411,8 @@ def create_app(database=None, *, seed_demo=True, testing=False):
                     adverse,
                     int(data["safety_signal"]),
                     note,
+                    data.get("sleep"),
+                    data.get("energy"),
                 ),
             )
             report_id = cur.lastrowid
@@ -725,6 +747,8 @@ def create_app(database=None, *, seed_demo=True, testing=False):
     register_onboarding(app, require_role, payload, text, write_once)
     register_assistants(app, patient, require_role, payload, text, write_once)
     register_delivery(app, require_role, payload)
+    register_wellbeing(app, patient, require_role, payload, write_once)
+    register_sections(app, patient, require_role, payload, text, write_once)
     return app
 
 

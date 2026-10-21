@@ -74,6 +74,9 @@ with tempfile.TemporaryDirectory() as temp:
                 ).click()
 
             def nav(page, name):
+                if name == "Ещё" and page.locator("#more-button").is_visible():
+                    page.locator("#more-button").click()
+                    return
                 page.locator("#navigation").get_by_role(
                     "button", name=name, exact=True
                 ).click()

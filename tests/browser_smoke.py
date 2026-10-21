@@ -125,6 +125,7 @@ with tempfile.TemporaryDirectory() as temp:
             expect(doctor.locator(".plan-current")).to_contain_text("ДЕМО-Альфа")
             doctor.get_by_role("button", name="Журнал", exact=True).click()
             expect(doctor.locator("#content")).to_contain_text("proposal.accepted")
+            patient.get_by_role("button", name="Ещё", exact=True).click()
             patient.get_by_role("button", name="Мой план", exact=True).click()
             expect(patient.locator(".plan-current")).to_contain_text("ДЕМО-Альфа")
             patient.get_by_role("button", name="Сообщения", exact=True).click()

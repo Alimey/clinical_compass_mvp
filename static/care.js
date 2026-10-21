@@ -222,6 +222,7 @@ function settingsPage() {
           ["surveys", "book", "Опросы"],
           ["medications", "leaf", "Таблетница"],
           ["records", "chart", "Моя карта"],
+          ["plan", "leaf", "Мой план"],
           ["schedule", "clock", "Расписание"],
         ]
     )
@@ -641,9 +642,3 @@ document.addEventListener("submit", (event) => {
     });
   }
 });
-if (
-  location.hash.startsWith("#join=") ||
-  location.hash.startsWith("#activate=")
-)
-  showIntake();
-else boot();
