@@ -2841,6 +2841,113 @@ dialog .caption {
     font-size: 9px;
   }
 }
+/* The home tree is an inline SVG: no downloads or network-driven frames. */
+.welcome-garden > .home-tree-scene {
+  position: absolute;
+  right: -5%;
+  bottom: 10px;
+  width: 46%;
+  max-width: 310px;
+  margin: 0;
+  display: grid;
+  justify-items: center;
+}
+.home-tree-scene .care-tree {
+  position: static;
+  width: 100%;
+  max-width: none;
+  height: auto;
+  max-height: 220px;
+  overflow: visible;
+  pointer-events: none;
+}
+.animated-tree .tree-crown {
+  transform-origin: 150px 278px;
+  animation: tree-sway 6s ease-in-out infinite;
+}
+.animated-tree .tree-blossom {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: tree-bloom 7s ease-in-out infinite;
+}
+.animated-tree .tree-blossom:nth-child(3n) {
+  animation-delay: -2s;
+}
+.animated-tree .tree-blossom:nth-child(3n + 1) {
+  animation-delay: -4s;
+}
+.animated-tree .tree-petal {
+  opacity: 0;
+  animation: tree-petal-fall 9s linear infinite;
+}
+.animated-tree .tree-petal:nth-last-child(2) {
+  animation-delay: -3s;
+}
+.animated-tree .tree-petal:last-child {
+  animation-delay: -6s;
+}
+.tree-motion-toggle {
+  position: relative;
+  z-index: 2;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--surface);
+  color: var(--accent);
+  min-height: 36px;
+  padding: 6px 12px;
+  font: inherit;
+  font-size: 10px;
+  cursor: pointer;
+}
+.home-tree-scene.is-paused .animated-tree * {
+  animation-play-state: paused;
+}
+@keyframes tree-sway {
+  0%,
+  100% {
+    transform: rotate(-1.3deg);
+  }
+  50% {
+    transform: rotate(1.3deg);
+  }
+}
+@keyframes tree-bloom {
+  0%,
+  100% {
+    transform: scale(0.94);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+}
+@keyframes tree-petal-fall {
+  0% {
+    transform: translate(0, 0) rotate(0);
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.7;
+  }
+  75% {
+    opacity: 0.5;
+  }
+  100% {
+    transform: translate(-28px, 125px) rotate(75deg);
+    opacity: 0;
+  }
+}
+@media (min-width: 600px) {
+  .welcome-garden > .home-tree-scene {
+    right: -1%;
+    width: 43%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tree-motion-toggle {
+    display: none;
+  }
+}
+
 .symptom-picker {
   margin: 14px 0;
 }

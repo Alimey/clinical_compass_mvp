@@ -155,7 +155,7 @@ with tempfile.TemporaryDirectory() as temp:
                 assert page.locator("#navigation").bounding_box()["width"] <= width
             page.evaluate("navigator.serviceWorker.ready")
             cached = page.evaluate(
-                """async()=>{const c=await caches.open('compass-shell-v5');return (await c.keys()).map(r=>new URL(r.url).pathname)}"""
+                """async()=>{const c=await caches.open('compass-shell-v6');return (await c.keys()).map(r=>new URL(r.url).pathname)}"""
             )
             assert (
                 "/static/psicompas.js" in cached and "/static/psicompas.css" in cached

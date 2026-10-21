@@ -77,8 +77,9 @@ const lessons = [
 ];
 let practiceSession = null;
 let practiceTicker = null;
+let homeTreePaused = false;
 
-function treeArt(points = 0) {
+function treeArt(points = 0, animated = false) {
   let seed = 17;
   const random = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
   const flowers = Array.from({ length: 54 }, (_, i) => {
@@ -86,9 +87,13 @@ function treeArt(points = 0) {
     const radius = Math.sqrt(random());
     const x = 150 + Math.cos(angle) * radius * 103;
     const y = 111 + Math.sin(angle) * radius * 76;
-    return `<g opacity="${i < Math.min(54, 9 + points * 3) ? 1 : 0.14}"><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(5 + random() * 5).toFixed(1)}" fill="${["#f2a3b9", "#fbd3de", "#e77f9e"][i % 3]}"/><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2" fill="#e77f9e"/></g>`;
+    return `<g class="tree-blossom" opacity="${i < Math.min(54, 9 + points * 3) ? 1 : 0.14}"><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(5 + random() * 5).toFixed(1)}" fill="${["#f2a3b9", "#fbd3de", "#e77f9e"][i % 3]}"/><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2" fill="#e77f9e"/></g>`;
   }).join("");
-  return `<svg class="care-tree" viewBox="0 0 300 300" role="img" aria-label="Цветущее дерево заботы"><ellipse cx="150" cy="283" rx="72" ry="7" fill="var(--line)"/><g fill="none" stroke="var(--trunk)" stroke-linecap="round"><path stroke-width="12" d="M150 278Q155 230 148 186Q138 140 153 92"/><path stroke-width="7" d="M150 216Q108 184 89 144M148 188Q183 165 211 123M147 161Q115 135 110 89M150 142Q174 123 183 76"/><path stroke-width="4" d="M122 193L76 177M102 167L106 124M176 171L222 165M186 151L181 111M140 147L152 112M120 125L87 110"/></g>${flowers}</svg>`;
+  return `<svg class="care-tree${animated ? " animated-tree" : ""}" viewBox="0 0 300 300" role="img" aria-label="Цветущее дерево заботы"><ellipse cx="150" cy="283" rx="72" ry="7" fill="var(--line)"/><g class="tree-crown">${animated ? '<ellipse cx="150" cy="115" rx="109" ry="85" fill="#f2a3b9" opacity=".1"/>' : ""}<g fill="none" stroke="var(--trunk)" stroke-linecap="round"><path stroke-width="12" d="M150 278Q155 230 148 186Q138 140 153 92"/><path stroke-width="7" d="M150 216Q108 184 89 144M148 188Q183 165 211 123M147 161Q115 135 110 89M150 142Q174 123 183 76"/><path stroke-width="4" d="M122 193L76 177M102 167L106 124M176 171L222 165M186 151L181 111M140 147L152 112M120 125L87 110"/></g>${flowers}</g>${animated ? '<g class="tree-petal"><ellipse cx="218" cy="102" rx="4" ry="7" fill="#e77f9e"/></g><g class="tree-petal"><ellipse cx="83" cy="125" rx="4" ry="6" fill="#f2a3b9"/></g><g class="tree-petal"><ellipse cx="175" cy="83" rx="3" ry="6" fill="#e77f9e"/></g>' : ""}</svg>`;
+}
+
+function homeTree() {
+  return `<figure class="home-tree-scene${homeTreePaused ? " is-paused" : ""}">${treeArt(carePoints(), true)}<button type="button" class="tree-motion-toggle" data-ui="tree-motion" aria-pressed="${homeTreePaused}" aria-label="Приостановить анимацию дерева">${homeTreePaused ? "Продолжить" : "Пауза"}</button></figure>`;
 }
 function careIllustration() {
   return `<svg class="care-illustration" viewBox="0 0 300 240" aria-hidden="true"><ellipse cx="168" cy="214" rx="108" ry="12" fill="var(--accent)" opacity=".06"/><path d="M51 120c-6-61 54-92 110-91 64 1 119 47 106 106-13 58-101 79-153 61-31-10-59-36-63-76Z" fill="var(--accent)" opacity=".07"/><rect x="189" y="30" width="78" height="46" rx="16" fill="var(--surface)"/><path d="m204 65-5 15 24-9" fill="var(--surface)"/><path d="M206 53h10l5-10 7 22 8-14h14" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M85 205c-7-21-11-45-2-67 4-12 12-20 25-24l26-2c21 7 34 28 36 50l3 43Z" fill="var(--accent)"/><path d="m112 115-17 25 21 43 26-48-13-22" fill="var(--surface)"/><path d="M114 98v21c1 11 16 11 18 0V98" fill="#dfb99e"/><ellipse cx="122" cy="78" rx="25" ry="31" fill="#ebcbb4"/><path d="M97 84c-15-29 0-56 24-55 28 1 37 20 30 50-10-1-14-16-15-22-8 10-22 14-38 13Z" fill="#244653"/><path d="M111 85h1m20 0h1" stroke="#244653" stroke-width="3" stroke-linecap="round"/><path d="M117 98q7 5 13-1" fill="none" stroke="#ad7662" stroke-width="2" stroke-linecap="round"/><path d="m100 170 33-5 28 22-34 12-30-14" fill="#ebcbb4"/><rect x="128" y="153" width="54" height="66" rx="5" transform="rotate(-14 128 153)" fill="var(--surface)"/><path d="m143 169 24-6m-21 17 24-6m-21 17 18-5" stroke="var(--accent)" opacity=".35" stroke-width="3" stroke-linecap="round"/><path d="M69 213h115" stroke="var(--accent)" stroke-width="7" stroke-linecap="round"/><path d="M230 209v-49m0 24c-21-4-29-16-27-26 17-2 28 11 27 26Zm0-12c2-21 13-30 26-28 1 16-11 27-26 28Z" fill="var(--accent)" opacity=".45"/><path d="M211 202h37l-6 17h-25Z" fill="var(--accent)" opacity=".6"/><circle cx="62" cy="80" r="17" fill="var(--surface)"/><path d="M55 80h14m-7-7v14" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/></svg>`;
@@ -160,7 +165,7 @@ patientOverview = function () {
   ];
   return `<div class="patient-dashboard"><div class="today-heading"><div><p class="eyebrow">${e(day)}</p><h1>Здравствуйте, ${e(name)}</h1><p class="muted">Небольшие шаги. Каждый день.</p></div><button class="help-pill" data-action="nav" data-page="help">Помощь</button></div>
     <div class="quick-grid home-actions" aria-label="Быстрые действия">${actions.map(([page, glyph, label]) => `<button class="quick-card" data-action="nav" data-page="${page}"><span class="action-circle">${icon(glyph)}</span><strong>${label}</strong></button>`).join("")}</div>
-    <section class="welcome-garden"><div><span class="eyebrow">ВРЕМЯ ДЛЯ СЕБЯ</span><h2>Забота рядом.<br>В вашем ритме.</h2><p>Замечайте своё состояние и оставайтесь на связи со специалистом.</p><button class="button primary" data-action="nav" data-page="tree">Моё дерево ${icon("arrow")}</button></div>${careIllustration()}</section>
+    <section class="welcome-garden"><div><span class="eyebrow">ВРЕМЯ ДЛЯ СЕБЯ</span><h2>Забота рядом.<br>В вашем ритме.</h2><p>Замечайте своё состояние и оставайтесь на связи со специалистом.</p><button class="button primary" data-action="nav" data-page="tree">Моё дерево ${icon("arrow")}</button></div>${homeTree()}</section>
     ${appointmentStrip()}
     ${pending.length ? `<section class="notice info survey-reminder"><div><span class="eyebrow">ОТ СПЕЦИАЛИСТА</span><h2>${pending.length === 1 ? "Вас ждёт опрос" : "Вас ждут опросы"}</h2><p>${e(pending[0].title)} · до ${e(clinicDate(pending[0].due_at))}</p></div><button class="button primary" data-action="nav" data-page="surveys">Назначенные опросы · ${pending.length} ${icon("arrow")}</button></section>` : ""}
     ${medicationPreview()}
@@ -594,7 +599,14 @@ document.addEventListener("click", async (event) => {
   const action = button.dataset.ui;
   const key = button.dataset.key;
   try {
-    if (action === "install") {
+    if (action === "tree-motion") {
+      homeTreePaused = !homeTreePaused;
+      button
+        .closest(".home-tree-scene")
+        .classList.toggle("is-paused", homeTreePaused);
+      button.setAttribute("aria-pressed", String(homeTreePaused));
+      button.textContent = homeTreePaused ? "Продолжить" : "Пауза";
+    } else if (action === "install") {
       if (pendingInstall) await $("#install").onclick();
       else
         toast(

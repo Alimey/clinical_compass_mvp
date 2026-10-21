@@ -66,6 +66,43 @@ with tempfile.TemporaryDirectory() as temp:
             expect(
                 page.get_by_role("heading", name="Здравствуйте, Александра")
             ).to_be_visible()
+            crown = page.locator(".animated-tree .tree-crown")
+            motion = page.get_by_role("button", name="Приостановить анимацию дерева")
+            expect(page.locator(".animated-tree")).to_be_visible()
+            assert crown.evaluate("el => getComputedStyle(el).animationName") == "none"
+            expect(motion).to_be_hidden()
+            page.emulate_media(reduced_motion="no-preference")
+            expect(motion).to_be_visible()
+            assert (
+                crown.evaluate("el => getComputedStyle(el).animationName")
+                == "tree-sway"
+            )
+            assert crown.evaluate(
+                """async el => {
+                    const animation = el.getAnimations()[0];
+                    await animation.ready;
+                    const before = animation.currentTime;
+                    await new Promise(resolve => requestAnimationFrame(
+                        () => requestAnimationFrame(resolve)));
+                    return animation.currentTime > before;
+                }"""
+            )
+            # Once loaded, both the animation and its local control work offline.
+            context.set_offline(True)
+            motion.click()
+            expect(motion).to_have_attribute("aria-pressed", "true")
+            assert (
+                crown.evaluate("el => getComputedStyle(el).animationPlayState")
+                == "paused"
+            )
+            motion.click()
+            expect(motion).to_have_attribute("aria-pressed", "false")
+            assert (
+                crown.evaluate("el => getComputedStyle(el).animationPlayState")
+                == "running"
+            )
+            context.set_offline(False)
+            page.emulate_media(reduced_motion="reduce")
             for width in (320, 390, 430, 768, 1024, 1280, 1440, 1920):
                 page.set_viewport_size({"width": width, "height": 900})
                 assert page.evaluate(
@@ -110,9 +147,24 @@ with tempfile.TemporaryDirectory() as temp:
                     ).first.bounding_box()
                     assert first["width"] >= 44, (width, first)
                 if width in (390, 1440):
+                    page.evaluate("scrollTo(0,0)")
                     page.screenshot(
                         path=str(ART / f"responsive-home-{width}.png"), full_page=True
                     )
+                    page.emulate_media(reduced_motion="no-preference")
+                    tree_box = page.locator(
+                        ".home-tree-scene .care-tree"
+                    ).bounding_box()
+                    garden_box = page.locator(".welcome-garden").bounding_box()
+                    assert tree_box["y"] >= garden_box["y"], (
+                        width,
+                        tree_box,
+                        garden_box,
+                    )
+                    page.locator(".welcome-garden").screenshot(
+                        path=str(ART / f"tree-home-{width}.png"), animations="disabled"
+                    )
+                    page.emulate_media(reduced_motion="reduce")
             page.set_viewport_size({"width": 1440, "height": 1000})
             page.locator("#navigation [data-page=messages]").click()
             expect(page.locator("#message-form")).to_be_visible()
@@ -158,7 +210,7 @@ with tempfile.TemporaryDirectory() as temp:
             assert not errors, errors
             browser.close()
             print(
-                "PASS: full-width shell, real desktop columns and sidebar, tablet/phone navigation, 8 widths, login/chat, theme switching and desktop messaging"
+                "PASS: animated home tree and offline pause, reduced motion, full-width shell, desktop columns and sidebar, tablet/phone navigation, 8 widths, login/chat, theme switching and desktop messaging"
             )
     finally:
         server.terminate()
