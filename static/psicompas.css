@@ -128,30 +128,18 @@ html {
 }
 body {
   min-height: 100dvh;
-  padding: 16px 0 100px;
+  padding: 0 0 calc(84px + env(safe-area-inset-bottom));
   color: var(--ink);
   line-height: 1.5;
-  background:
-    linear-gradient(
-        112deg,
-        transparent 58%,
-        var(--band-2) 58% 64%,
-        var(--cyan) 64% 67%,
-        transparent 67% 71%,
-        var(--band-2) 71% 74%,
-        transparent 74%
-      )
-      top/100% 210px no-repeat,
-    linear-gradient(var(--band), var(--band)) top/100% 210px no-repeat,
-    var(--bg);
+  background: var(--bg);
 }
 #app-shell {
-  max-width: 480px;
-  margin: 0 auto;
-  border: 6px solid var(--surface);
-  border-radius: 28px;
+  max-width: none;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
   background: var(--bg);
-  box-shadow: var(--shadow);
+  box-shadow: none;
 }
 .workspace {
   margin: 0;
@@ -1699,6 +1687,1159 @@ dialog .caption {
   border-radius: 14px;
   touch-action: none;
   margin: 12px 0;
+}
+
+/* Responsive care interface: one application, fluid desktop and mobile layouts. */
+:root {
+  --soft-shadow: 0 8px 30px #0b426508;
+}
+.topbar {
+  min-height: 94px;
+  padding: max(18px, env(safe-area-inset-top)) 18px 24px;
+  border: 0;
+  border-radius: 0 0 32% 9% / 0 0 18px 12px;
+  background: linear-gradient(115deg, var(--band), var(--band-2));
+}
+.app-brand {
+  font-weight: 600;
+}
+.topbar .compass-logo {
+  border-radius: 50%;
+}
+.topbar .icon-button {
+  border-radius: 50%;
+}
+.topbar .icon-button:hover {
+  background: #ffffff24;
+}
+.header-user {
+  display: none;
+}
+.app-status {
+  background: transparent;
+  border: 0;
+  padding: 9px 18px 3px;
+  font-size: 9px;
+}
+.demo-strip {
+  background: transparent;
+  padding: 5px 18px 8px;
+  font-size: 9px;
+}
+#content {
+  padding: 18px 18px 30px;
+}
+.card,
+.stat-card,
+.quick-card,
+.message-list-card,
+.scenario-card,
+.option-card {
+  border-radius: 22px;
+  box-shadow: var(--soft-shadow);
+}
+.card {
+  padding: 20px;
+}
+.card + .card {
+  margin-top: 16px;
+}
+.button,
+.button.small {
+  border-radius: 13px;
+  font-weight: 600;
+}
+.button.primary {
+  box-shadow: 0 5px 14px #0b639014;
+}
+.caption {
+  font-size: 12px;
+}
+.page-heading .muted {
+  font-size: 13px;
+}
+.eyebrow {
+  letter-spacing: 1.1px;
+}
+.patient-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.patient-dashboard > * {
+  margin: 0;
+  min-width: 0;
+}
+.patient-dashboard .today-heading {
+  margin: 0;
+}
+.today-heading h1 {
+  font-size: 22px;
+  letter-spacing: -0.55px;
+}
+.today-heading .muted {
+  font-size: 12px;
+  margin-top: 5px;
+}
+.help-pill {
+  border-radius: 30px;
+  min-height: 40px;
+}
+.home-actions.quick-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 17px 10px;
+  margin: 1px 0 3px;
+}
+.home-actions .quick-card {
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  text-align: center;
+}
+.home-actions .quick-card strong {
+  font-size: 10px;
+  font-weight: 400;
+}
+.action-circle {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-ink);
+  box-shadow:
+    0 0 0 5px var(--surface),
+    0 5px 14px #0b639019;
+}
+.home-actions .action-circle .icon {
+  width: 24px;
+  height: 24px;
+  color: currentColor;
+  stroke-width: 1.5;
+}
+.home-actions .quick-card:hover .action-circle {
+  transform: translateY(-2px);
+}
+.home-shortcuts {
+  margin: 0;
+}
+.home-shortcuts .button {
+  min-height: 40px;
+  font-size: 10px;
+  border-radius: 30px;
+}
+.welcome-garden {
+  min-height: 232px;
+  border: 0;
+  border-radius: 24px;
+  background: var(--accent-soft);
+  padding: 24px 20px;
+  box-shadow: var(--soft-shadow);
+}
+.welcome-garden > div {
+  max-width: 63%;
+}
+.welcome-garden .eyebrow {
+  font-size: 8px;
+}
+.welcome-garden h2 {
+  font-size: 21px;
+  letter-spacing: -0.6px;
+  line-height: 1.4;
+}
+.welcome-garden p {
+  max-width: 210px;
+  font-size: 11px;
+  margin-bottom: 14px;
+}
+.welcome-garden .button {
+  font-size: 11px;
+  padding: 9px 12px;
+  min-height: 40px;
+  border-radius: 24px;
+}
+.care-illustration {
+  width: 100%;
+  height: auto;
+}
+.welcome-garden > .care-illustration {
+  position: absolute;
+  bottom: -2px;
+  right: -32px;
+  width: 205px;
+  pointer-events: none;
+}
+.appointment-section .section-heading {
+  margin: 0 0 8px;
+}
+.appointment-section .section-heading h2 {
+  font-size: 15px;
+}
+.appointment-section .section-heading .button {
+  font-size: 10px;
+  padding-right: 0;
+}
+.appointment-strip {
+  padding-top: 4px;
+}
+.appointment-tile {
+  border-radius: 20px;
+  min-width: 260px;
+  padding: 16px;
+  box-shadow: var(--soft-shadow);
+}
+.appointment-date {
+  border-radius: 15px;
+  width: 48px;
+  height: 58px;
+}
+.survey-reminder {
+  border: 0;
+  padding: 20px;
+  border-radius: 22px;
+  background: var(--accent-soft);
+}
+.survey-reminder .eyebrow {
+  font-size: 9px;
+}
+.survey-reminder h2 {
+  margin: 4px 0;
+}
+.survey-reminder p {
+  font-size: 11px;
+}
+.survey-reminder .button {
+  font-size: 11px;
+  border-radius: 24px;
+}
+.mood-card .mood-faces {
+  margin: 20px 0;
+}
+.mood-card .caption {
+  margin-bottom: 0;
+}
+.specialist-card .patient-row {
+  padding-top: 0;
+}
+.specialist-card .avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+}
+.patient-info strong {
+  font-size: 13px;
+}
+.patient-info small {
+  font-size: 11px;
+}
+.dose-tile {
+  border-radius: 16px;
+}
+.dose-tile strong {
+  font-size: 13px;
+}
+.dose-tile span {
+  font-size: 11px;
+}
+.home-trend .trend {
+  width: 100%;
+  max-height: 260px;
+}
+.chat-card {
+  padding: 0;
+  border-radius: 24px;
+}
+.chat-heading {
+  background: var(--accent-soft);
+  padding: 18px;
+  border: 0;
+}
+.chat-heading .avatar {
+  border-radius: 50%;
+}
+.chat-thread {
+  background: var(--surface-2);
+  padding: 20px 16px;
+}
+.message-bubble {
+  border: 0;
+  box-shadow: 0 4px 12px #0b426505;
+  padding: 12px 15px;
+  border-radius: 18px 18px 18px 5px;
+}
+.own .message-bubble {
+  border-radius: 18px 18px 5px 18px;
+}
+.chat-compose {
+  padding: 14px;
+  gap: 10px;
+  background: var(--surface);
+}
+.chat-compose textarea {
+  border-radius: 22px;
+  padding: 12px 16px;
+  background: var(--surface-2);
+}
+.chat-compose .button {
+  border-radius: 50%;
+  width: 46px;
+  height: 46px;
+  flex-shrink: 0;
+}
+.chat-compose .button span {
+  display: none;
+}
+#navigation {
+  width: 100%;
+  max-width: none;
+  bottom: 0;
+  border-radius: 24px 24px 0 0;
+  padding: 6px max(4px, env(safe-area-inset-right))
+    max(8px, env(safe-area-inset-bottom));
+  box-shadow: 0 -5px 28px #0b42650b;
+}
+#navigation .nav-item {
+  padding: 10px 1px 6px;
+}
+#navigation .nav-item.active {
+  box-shadow: none;
+}
+#navigation .nav-item.active:before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  width: 22px;
+  height: 3px;
+  background: var(--cyan);
+  border-radius: 5px;
+}
+#workspace-tools {
+  display: none;
+}
+.login-layout {
+  width: 100%;
+  max-width: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.login-form-side {
+  max-width: 560px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 32px 24px;
+}
+.login-form-side h1 {
+  font-size: 32px;
+}
+.login-form-side .brand {
+  margin-bottom: 28px;
+}
+.demo-login {
+  border-radius: 16px;
+}
+.login-art {
+  background: var(--accent-soft);
+  border-radius: 32px 32px 0 0;
+}
+.login-art .care-illustration {
+  max-width: 240px;
+}
+.login-art h2 {
+  max-width: 360px;
+}
+.offline-layout,
+.intake-layout {
+  max-width: 760px;
+}
+
+@media (min-width: 600px) and (max-width: 1023px) {
+  #content {
+    padding: 24px 30px 40px;
+  }
+  .topbar {
+    padding-left: 30px;
+    padding-right: 30px;
+  }
+  .app-status,
+  .demo-strip {
+    padding-left: 30px;
+    padding-right: 30px;
+  }
+  .home-actions.quick-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    margin: 8px 0;
+  }
+  .patient-dashboard {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+  }
+  .patient-dashboard > .today-heading,
+  .patient-dashboard > .home-shortcuts,
+  .patient-dashboard > .home-actions,
+  .patient-dashboard > .welcome-garden,
+  .patient-dashboard > .survey-reminder,
+  .patient-dashboard > .home-trend {
+    grid-column: 1/-1;
+  }
+  .welcome-garden {
+    min-height: 250px;
+  }
+  .welcome-garden h2 {
+    font-size: 28px;
+  }
+  .welcome-garden p {
+    max-width: 340px;
+    font-size: 13px;
+  }
+  .welcome-garden > .care-illustration {
+    width: 310px;
+    right: 10px;
+  }
+  .patient-dashboard > .appointment-section {
+    grid-column: 1/-1;
+  }
+  .patient-dashboard > .specialist-card {
+    grid-column: 1/-1;
+  }
+  .patient-grid,
+  .scenario-grid,
+  .catalog-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .quick-grid:not(.home-actions) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .header-user {
+    display: block;
+    font-size: 12px;
+    margin-right: 12px;
+  }
+  .login-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    min-height: 100dvh;
+  }
+  .login-art {
+    border-radius: 32px 0 0 32px;
+  }
+}
+
+@media (min-width: 1024px) {
+  html {
+    scroll-padding-top: 130px;
+  }
+  body {
+    padding: 0;
+  }
+  #app-shell {
+    width: 100%;
+    min-height: 100dvh;
+  }
+  .sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    display: flex;
+    flex-direction: column;
+    width: 236px;
+    padding: 30px 18px 20px;
+    z-index: 40;
+    border-right: 1px solid var(--line);
+    background: var(--surface);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .sidebar > .brand {
+    display: flex;
+    font-size: 19px;
+    gap: 11px;
+    padding: 0 7px;
+    color: var(--accent);
+  }
+  .sidebar .brand .compass-logo {
+    width: 40px;
+    height: 40px;
+  }
+  .sidebar .brand small {
+    font-size: 9px;
+    margin-top: 4px;
+  }
+  .workspace-label {
+    display: block;
+    font-size: 9px;
+    margin: 38px 14px 16px;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+  .workspace {
+    margin-left: 236px;
+    min-height: 100dvh;
+  }
+  #navigation {
+    position: static;
+    transform: none;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    gap: 6px;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    padding: 0;
+  }
+  #navigation .nav-item,
+  #workspace-tools .nav-item {
+    flex: none;
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 13px;
+    border-radius: 14px;
+    font-size: 12px;
+    padding: 14px;
+    min-height: 50px;
+    text-align: left;
+  }
+  #navigation .nav-item.active,
+  #workspace-tools .nav-item.active {
+    color: var(--accent);
+    background: var(--accent-soft);
+    box-shadow: none;
+    font-weight: 600;
+  }
+  #navigation .nav-item.active:before {
+    display: none;
+  }
+  #navigation .nav-item:hover,
+  #workspace-tools .nav-item:hover {
+    background: var(--surface-2);
+  }
+  #navigation .nav-item svg,
+  #workspace-tools .nav-item svg {
+    width: 21px;
+    height: 21px;
+  }
+  #workspace-tools {
+    display: grid;
+    gap: 5px;
+    margin-top: 22px;
+    padding-top: 18px;
+    border-top: 1px solid var(--line);
+  }
+  .sidebar-foot {
+    display: block;
+    margin-top: auto;
+    padding: 20px 10px 0;
+  }
+  .sidebar-foot p {
+    font-size: 9px;
+    line-height: 1.7;
+    margin: 20px 0 0;
+    color: var(--muted);
+  }
+  #sidebar-account {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    color: var(--ink);
+  }
+  #sidebar-account .avatar {
+    width: 37px;
+    height: 37px;
+    border-radius: 50%;
+    font-size: 11px;
+  }
+  #sidebar-account strong {
+    display: block;
+    font-size: 10px;
+    line-height: 1.5;
+  }
+  #sidebar-account small {
+    display: block;
+    color: var(--muted);
+    font-size: 9px;
+  }
+  .topbar {
+    min-height: 106px;
+    padding: 24px 34px 30px;
+    border-radius: 0 0 6% 3% / 0 0 22px 16px;
+  }
+  .app-brand {
+    font-size: 20px;
+    gap: 12px;
+  }
+  .app-brand .compass-logo {
+    width: 38px;
+    height: 38px;
+  }
+  .app-brand small {
+    font-size: 11px;
+  }
+  .header-actions {
+    gap: 7px;
+  }
+  .header-user {
+    display: block;
+    font-size: 12px;
+    margin-right: 10px;
+  }
+  .topbar .avatar {
+    display: grid;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: #ffffff24;
+    color: white;
+  }
+  .topbar .icon-button {
+    width: 40px;
+    height: 44px;
+  }
+  .app-status {
+    padding: 12px 34px 2px;
+    font-size: 10px;
+  }
+  .demo-strip {
+    padding: 6px 34px 0;
+    font-size: 10px;
+  }
+  #content {
+    width: 100%;
+    max-width: 1800px;
+    margin: 0 auto;
+    padding: 28px 34px 52px;
+  }
+  .page-heading {
+    margin-bottom: 24px;
+    align-items: center;
+    flex-wrap: nowrap;
+  }
+  h1,
+  .page-heading h1 {
+    font-size: 29px;
+  }
+  h2,
+  .card-heading h2 {
+    font-size: 17px;
+  }
+  h3 {
+    font-size: 14px;
+  }
+  p {
+    font-size: 13px;
+  }
+  .page-heading .muted {
+    font-size: 13px;
+  }
+  .heading-actions .button {
+    font-size: 12px;
+    padding: 10px 14px;
+    min-height: 44px;
+  }
+  .card {
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .card + .card {
+    margin-top: 20px;
+  }
+  .card-heading {
+    margin-bottom: 16px;
+  }
+  .button,
+  .button.small {
+    font-size: 12px;
+    padding: 11px 16px;
+  }
+  .two-columns {
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+    gap: 22px;
+    align-items: start;
+  }
+  .two-columns > .card + .card {
+    margin: 0 0 20px;
+  }
+  .stats-grid {
+    gap: 18px;
+    margin-bottom: 24px;
+  }
+  .stat-card {
+    padding: 22px 20px;
+    gap: 8px;
+  }
+  .stat-label {
+    font-size: 11px;
+  }
+  .stat-number {
+    font-size: 32px;
+  }
+  .stat-number small {
+    font-size: 12px;
+  }
+  .stat-card p {
+    font-size: 10px;
+  }
+  .stat-icon {
+    display: grid;
+    flex-shrink: 0;
+    width: 34px;
+    height: 34px;
+  }
+  .quick-grid:not(.home-actions) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+  }
+  .quick-card {
+    padding: 22px;
+  }
+  .quick-card strong {
+    font-size: 13px;
+  }
+  .quick-card small {
+    font-size: 11px;
+  }
+  .patient-grid,
+  .scenario-grid,
+  .catalog-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+  }
+  .patient-card .profile-top {
+    margin-bottom: 16px;
+  }
+  .patient-card h3 {
+    font-size: 16px;
+  }
+  .mini-metrics {
+    padding: 18px 0;
+  }
+  .mini-metrics small {
+    font-size: 11px;
+  }
+  .profile-banner {
+    gap: 18px;
+    margin-bottom: 24px;
+  }
+  .profile-banner h1 {
+    font-size: 27px;
+  }
+  .profile-banner .avatar.large {
+    width: 64px;
+    height: 64px;
+    font-size: 20px;
+  }
+  .profile-banner .chip {
+    margin-left: auto;
+  }
+  .tabs {
+    gap: 5px;
+    padding: 5px;
+    margin-bottom: 22px;
+  }
+  .tabs button {
+    padding: 11px 16px;
+    font-size: 12px;
+  }
+  .section-tabs {
+    width: fit-content;
+    max-width: 100%;
+  }
+  .section-tabs button {
+    flex: none;
+  }
+  .form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+  .form-footer {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .form-footer small {
+    max-width: 280px;
+  }
+  .question-row {
+    grid-template-columns: minmax(0, 1fr) 150px 38px;
+  }
+  .question-label {
+    grid-column: auto;
+  }
+  .question-type {
+    grid-column: auto;
+  }
+  .profile-measures {
+    grid-template-columns: 1fr 1fr 2fr;
+    gap: 20px;
+  }
+  .profile-measures > span:last-child {
+    grid-column: auto;
+  }
+  .list-toolbar {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .search-field {
+    width: 340px;
+    max-width: 100%;
+  }
+  .rule-table td,
+  .rule-table th {
+    padding: 13px 10px;
+    font-size: 12px;
+  }
+  .report-values,
+  .report-meta {
+    font-size: 12px;
+    gap: 15px;
+  }
+  .report-item {
+    padding: 18px 0;
+  }
+  .record-shortcuts {
+    margin: 20px 0;
+  }
+  .patient-dashboard {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 22px;
+    align-items: stretch;
+  }
+  .patient-dashboard > .today-heading,
+  .patient-dashboard > .home-actions,
+  .patient-dashboard > .home-shortcuts,
+  .patient-dashboard > .survey-reminder,
+  .patient-dashboard > .home-trend {
+    grid-column: 1/-1;
+  }
+  .patient-dashboard > .today-heading h1 {
+    font-size: 29px;
+  }
+  .patient-dashboard > .home-shortcuts {
+    justify-content: flex-end;
+    margin-top: -4px;
+  }
+  .home-shortcuts .button {
+    padding: 8px 14px;
+    font-size: 11px;
+  }
+  .home-actions.quick-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 24px;
+    padding: 4px 0;
+  }
+  .home-actions .quick-card {
+    padding: 0;
+  }
+  .home-actions .quick-card strong {
+    font-size: 12px;
+  }
+  .action-circle {
+    width: 60px;
+    height: 60px;
+  }
+  .home-actions .action-circle .icon {
+    width: 27px;
+    height: 27px;
+  }
+  .patient-dashboard > .welcome-garden {
+    grid-column: span 7;
+  }
+  .welcome-garden {
+    padding: 30px 26px;
+    min-height: 260px;
+  }
+  .welcome-garden h2 {
+    font-size: 27px;
+  }
+  .welcome-garden p {
+    max-width: 280px;
+    font-size: 12px;
+  }
+  .welcome-garden > div {
+    max-width: 64%;
+  }
+  .welcome-garden > .care-illustration {
+    width: 250px;
+    right: -40px;
+  }
+  .patient-dashboard > .appointment-section {
+    grid-column: span 5;
+    border-radius: 24px;
+    background: var(--surface);
+    padding: 22px;
+    box-shadow: var(--soft-shadow);
+  }
+  .patient-dashboard .appointment-section .section-heading {
+    align-items: center;
+    margin: 0 0 14px;
+  }
+  .patient-dashboard .appointment-strip {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 0;
+  }
+  .patient-dashboard .appointment-tile {
+    min-width: 0;
+    width: 100%;
+    padding: 14px;
+    background: var(--surface-2);
+    box-shadow: none;
+  }
+  .patient-dashboard .survey-reminder {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+  }
+  .patient-dashboard > .medication-card,
+  .patient-dashboard > .mood-card,
+  .patient-dashboard > .specialist-card {
+    grid-column: span 4;
+    margin: 0;
+    padding: 22px;
+  }
+  .mood-card .mood-faces {
+    margin: 22px 0;
+  }
+  .mood-face span {
+    font-size: 8px;
+  }
+  .specialist-card .patient-info {
+    min-width: 100px;
+  }
+  .home-trend .trend {
+    max-height: 280px;
+  }
+  .chat-card {
+    padding: 0;
+  }
+  .chat-heading {
+    padding: 22px 26px;
+  }
+  .chat-heading h3 {
+    font-size: 16px;
+  }
+  .chat-thread {
+    height: clamp(340px, 53dvh, 620px);
+    padding: 28px;
+    gap: 18px;
+  }
+  .message {
+    max-width: min(72%, 600px);
+  }
+  .message-bubble {
+    font-size: 14px;
+    padding: 14px 18px;
+  }
+  .message-meta {
+    font-size: 10px;
+  }
+  .chat-compose {
+    padding: 18px 24px;
+  }
+  .chat-compose .button {
+    width: 50px;
+    height: 50px;
+  }
+  .notification-panel {
+    top: 95px;
+    left: auto;
+    right: 24px;
+    transform: none;
+    width: 420px;
+    max-height: calc(100dvh - 125px);
+    padding: 22px;
+  }
+  #toast {
+    bottom: 24px;
+    max-width: 520px;
+    left: calc(50% + 118px);
+  }
+  .connection-banner,
+  .update-banner {
+    padding-left: 34px;
+    padding-right: 34px;
+  }
+  .login-layout {
+    display: grid;
+    grid-template-columns: minmax(420px, 1fr) minmax(0, 1fr);
+    min-height: 100dvh;
+  }
+  .login-form-side {
+    max-width: 570px;
+    padding: 44px 48px;
+  }
+  .login-form-side h1 {
+    font-size: 39px;
+  }
+  .login-form-side > p {
+    font-size: 13px;
+  }
+  .login-art {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100dvh;
+    padding: 50px;
+    border-radius: 0 0 0 80px;
+    background: linear-gradient(135deg, var(--band), var(--band-2));
+  }
+  .login-art .care-illustration {
+    max-width: 440px;
+  }
+  .login-art h2 {
+    color: white;
+    max-width: 420px;
+    font-size: 36px;
+    line-height: 1.35;
+    margin: 8px 0 20px;
+  }
+  .login-art .eyebrow,
+  .login-art p {
+    color: #ffffffd9;
+    font-size: 13px;
+  }
+  .login-art .eyebrow {
+    font-size: 10px;
+  }
+  .demo-login strong {
+    font-size: 13px;
+  }
+  .demo-login small {
+    font-size: 11px;
+  }
+  .offline-layout,
+  .intake-layout {
+    padding: 40px;
+    margin: 40px auto;
+    border-radius: 26px;
+  }
+  body[data-page="news"] #content,
+  body[data-page="settings"] #content,
+  body[data-page="help"] #content {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+    align-items: start;
+  }
+  body[data-page="news"] #content > :not(article),
+  body[data-page="settings"] #content > .page-heading,
+  body[data-page="settings"] #content > .quick-grid,
+  body[data-page="settings"] #content > .button,
+  body[data-page="help"] #content > .tabs,
+  body[data-page="help"] #content > .page-heading,
+  body[data-page="help"] #content > .lesson-option,
+  body[data-page="help"] #content > .notice {
+    grid-column: 1/-1;
+  }
+  body[data-page="news"] #content > .card,
+  body[data-page="settings"] #content > .card,
+  body[data-page="help"] #content > .card {
+    margin: 0;
+  }
+  .tree-card {
+    max-width: 860px;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 36px;
+  }
+  .tree-card .button {
+    width: auto;
+    margin: 12px 4px 0;
+  }
+}
+
+@media (min-width: 1440px) {
+  .sidebar {
+    width: 260px;
+    padding: 34px 22px 24px;
+  }
+  .workspace {
+    margin-left: 260px;
+  }
+  #content {
+    padding-left: 44px;
+    padding-right: 44px;
+  }
+  .topbar {
+    padding-left: 44px;
+    padding-right: 44px;
+  }
+  .app-status,
+  .demo-strip {
+    padding-left: 44px;
+    padding-right: 44px;
+  }
+  .welcome-garden {
+    min-height: 275px;
+    padding: 34px;
+  }
+  .welcome-garden h2 {
+    font-size: 32px;
+  }
+  .welcome-garden > .care-illustration {
+    width: 310px;
+    right: -10px;
+  }
+  .welcome-garden p {
+    max-width: 330px;
+    font-size: 13px;
+  }
+  #toast {
+    left: calc(50% + 130px);
+  }
+}
+
+@media (max-width: 360px) {
+  .topbar {
+    padding-left: 14px;
+    padding-right: 12px;
+  }
+  #content {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+  .today-heading h1 {
+    font-size: 19px;
+  }
+  .card {
+    padding: 17px;
+  }
+  .welcome-garden {
+    padding: 20px 16px;
+    min-height: 240px;
+  }
+  .welcome-garden h2 {
+    font-size: 19px;
+  }
+  .welcome-garden > .care-illustration {
+    width: 175px;
+    right: -30px;
+  }
+  .home-actions .quick-card strong {
+    font-size: 9px;
+  }
+  .home-shortcuts .button {
+    padding-left: 9px;
+    padding-right: 9px;
+    font-size: 9px;
+  }
 }
 .symptom-picker {
   margin: 14px 0;

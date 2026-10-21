@@ -31,17 +31,22 @@
     <div id="app-shell" hidden>
       <aside class="sidebar">
         <a class="brand" href="#" aria-label="На главную"
-          ><span class="brand-mark">✦</span
-          ><span
-            >Клинический<br />компас<small>Пространство заботы</small></span
-          ></a
+          ><img
+            class="compass-logo"
+            src="/static/icon.svg"
+            alt=""
+            width="42"
+            height="42"
+          /><span>ПсиКомпас<small>Пространство заботы</small></span></a
         >
         <div class="workspace-label">МОЁ ПРОСТРАНСТВО</div>
         <nav id="navigation" aria-label="Основная навигация"></nav>
+        <nav id="workspace-tools" aria-label="Инструменты пространства"></nav>
         <div class="sidebar-foot">
-          <span class="small-dot"></span> Синтетическое демо<br /><small
-            >Каждое решение — за врачом</small
-          >
+          <div id="sidebar-account"></div>
+          <p class="caption">
+            Синтетическое демо<br />Каждое решение — за специалистом
+          </p>
         </div>
       </aside>
       <div class="workspace">
@@ -60,6 +65,7 @@
               height="30" /><span>ПсиКомпас<small id="breadcrumb"></small></span
           ></a>
           <div class="header-actions">
+            <span id="header-user" class="header-user"></span>
             <button
               id="theme-toggle"
               class="icon-button"

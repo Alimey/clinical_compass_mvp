@@ -90,6 +90,9 @@ function treeArt(points = 0) {
   }).join("");
   return `<svg class="care-tree" viewBox="0 0 300 300" role="img" aria-label="Цветущее дерево заботы"><ellipse cx="150" cy="283" rx="72" ry="7" fill="var(--line)"/><g fill="none" stroke="var(--trunk)" stroke-linecap="round"><path stroke-width="12" d="M150 278Q155 230 148 186Q138 140 153 92"/><path stroke-width="7" d="M150 216Q108 184 89 144M148 188Q183 165 211 123M147 161Q115 135 110 89M150 142Q174 123 183 76"/><path stroke-width="4" d="M122 193L76 177M102 167L106 124M176 171L222 165M186 151L181 111M140 147L152 112M120 125L87 110"/></g>${flowers}</svg>`;
 }
+function careIllustration() {
+  return `<svg class="care-illustration" viewBox="0 0 300 240" aria-hidden="true"><ellipse cx="168" cy="214" rx="108" ry="12" fill="var(--accent)" opacity=".06"/><path d="M51 120c-6-61 54-92 110-91 64 1 119 47 106 106-13 58-101 79-153 61-31-10-59-36-63-76Z" fill="var(--accent)" opacity=".07"/><rect x="189" y="30" width="78" height="46" rx="16" fill="var(--surface)"/><path d="m204 65-5 15 24-9" fill="var(--surface)"/><path d="M206 53h10l5-10 7 22 8-14h14" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M85 205c-7-21-11-45-2-67 4-12 12-20 25-24l26-2c21 7 34 28 36 50l3 43Z" fill="var(--accent)"/><path d="m112 115-17 25 21 43 26-48-13-22" fill="var(--surface)"/><path d="M114 98v21c1 11 16 11 18 0V98" fill="#dfb99e"/><ellipse cx="122" cy="78" rx="25" ry="31" fill="#ebcbb4"/><path d="M97 84c-15-29 0-56 24-55 28 1 37 20 30 50-10-1-14-16-15-22-8 10-22 14-38 13Z" fill="#244653"/><path d="M111 85h1m20 0h1" stroke="#244653" stroke-width="3" stroke-linecap="round"/><path d="M117 98q7 5 13-1" fill="none" stroke="#ad7662" stroke-width="2" stroke-linecap="round"/><path d="m100 170 33-5 28 22-34 12-30-14" fill="#ebcbb4"/><rect x="128" y="153" width="54" height="66" rx="5" transform="rotate(-14 128 153)" fill="var(--surface)"/><path d="m143 169 24-6m-21 17 24-6m-21 17 18-5" stroke="var(--accent)" opacity=".35" stroke-width="3" stroke-linecap="round"/><path d="M69 213h115" stroke="var(--accent)" stroke-width="7" stroke-linecap="round"/><path d="M230 209v-49m0 24c-21-4-29-16-27-26 17-2 28 11 27 26Zm0-12c2-21 13-30 26-28 1 16-11 27-26 28Z" fill="var(--accent)" opacity=".45"/><path d="M211 202h37l-6 17h-25Z" fill="var(--accent)" opacity=".6"/><circle cx="62" cy="80" r="17" fill="var(--surface)"/><path d="M55 80h14m-7-7v14" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/></svg>`;
+}
 function carePoints() {
   const days = new Set(
     (state.detail?.reports || []).map((r) => clinicDay(r.created_at)),
@@ -112,7 +115,7 @@ function medicationPreview() {
   const active = c.prescriptions.filter(
     (p) => p.active && p.starts_on <= c.today && p.ends_on >= c.today,
   );
-  return `<section class="card"><div class="card-heading"><h2>Мои препараты</h2><button class="text-button" data-action="nav" data-page="medications">График приёма</button></div><p class="caption">Вымышленные ДЕМО-варианты</p>${
+  return `<section class="card medication-card"><div class="card-heading"><h2>Мои препараты</h2><button class="text-button" data-action="nav" data-page="medications">График приёма</button></div><p class="caption">Вымышленные ДЕМО-варианты</p>${
     active.length
       ? active
           .slice(0, 2)
@@ -147,15 +150,23 @@ patientOverview = function () {
     timeZone: "Europe/Moscow",
   });
   const name = state.user.name.split(" ")[0];
-  return `<div class="today-heading"><div><p class="eyebrow">${e(day)}</p><h1>Здравствуйте, ${e(name)}</h1><p class="muted">Небольшие шаги. Каждый день.</p></div><button class="help-pill" data-action="nav" data-page="help">Помощь</button></div>
-    <section class="welcome-garden"><div><span class="eyebrow">ВАШЕ ПРОСТРАНСТВО</span><h2>У каждого дня<br>свой ритм</h2><p>Побудьте немного на своей стороне.</p><button class="text-button" data-action="nav" data-page="tree">Моё дерево ${icon("arrow")}</button></div>${treeArt(carePoints())}</section>
+  const actions = [
+    ["schedule", "clock", "Встречи"],
+    ["surveys", "book", "Опросы"],
+    ["diary", "sun", "Дневник"],
+    ["medications", "leaf", "Таблетница"],
+    ["records", "chart", "Моя карта"],
+    ["messages", "chat", "Чат"],
+  ];
+  return `<div class="patient-dashboard"><div class="today-heading"><div><p class="eyebrow">${e(day)}</p><h1>Здравствуйте, ${e(name)}</h1><p class="muted">Небольшие шаги. Каждый день.</p></div><button class="help-pill" data-action="nav" data-page="help">Помощь</button></div>
+    <div class="quick-grid home-actions" aria-label="Быстрые действия">${actions.map(([page, glyph, label]) => `<button class="quick-card" data-action="nav" data-page="${page}"><span class="action-circle">${icon(glyph)}</span><strong>${label}</strong></button>`).join("")}</div>
+    <section class="welcome-garden"><div><span class="eyebrow">ВРЕМЯ ДЛЯ СЕБЯ</span><h2>Забота рядом.<br>В вашем ритме.</h2><p>Замечайте своё состояние и оставайтесь на связи со специалистом.</p><button class="button primary" data-action="nav" data-page="tree">Моё дерево ${icon("arrow")}</button></div>${careIllustration()}</section>
     ${appointmentStrip()}
-    ${pending.length ? `<section class="notice info"><span class="eyebrow">ОТ СПЕЦИАЛИСТА</span><h2>${pending.length === 1 ? "Вас ждёт опрос" : "Вас ждут опросы"}</h2><p>${e(pending[0].title)} · до ${e(clinicDate(pending[0].due_at))}</p><button class="button primary" data-action="nav" data-page="surveys">Назначенные опросы · ${pending.length} ${icon("arrow")}</button></section>` : ""}
+    ${pending.length ? `<section class="notice info survey-reminder"><div><span class="eyebrow">ОТ СПЕЦИАЛИСТА</span><h2>${pending.length === 1 ? "Вас ждёт опрос" : "Вас ждут опросы"}</h2><p>${e(pending[0].title)} · до ${e(clinicDate(pending[0].due_at))}</p></div><button class="button primary" data-action="nav" data-page="surveys">Назначенные опросы · ${pending.length} ${icon("arrow")}</button></section>` : ""}
     ${medicationPreview()}
-    <section class="card"><h2>Как настроение?</h2><p class="caption">Выберите, как чувствуете себя сейчас</p>${moodFaces(-1, true)}<button class="button primary full" data-ui="open-diary">Заполнить дневник ${icon("arrow")}</button></section>
-    <div class="quick-grid"><button class="quick-card" data-action="nav" data-page="surveys">${icon("book")}<strong>Опросы</strong><small>${pending.length} ожидают ответа</small></button><button class="quick-card" data-action="nav" data-page="records">${icon("chart")}<strong>Анализы и посещения</strong><small>${c.labs.length} результатов · ${c.encounters.length} посещений</small></button><button class="quick-card" data-action="nav" data-page="plan">${icon("leaf")}<strong>Мой план</strong><small>Решения специалиста</small></button><button class="quick-card" data-action="nav" data-page="medications">${icon("check")}<strong>Таблетница</strong><small>Отметки и история</small></button></div>
-    <section class="card"><div class="card-heading"><h2>Моя динамика</h2><button class="text-button" data-action="history">История</button></div>${chart(state.detail.reports)}</section>
-    <section class="card">${specialistContact()}<button class="button full" data-action="nav" data-page="messages">${icon("chat")}Написать врачу</button></section>`;
+    <section class="card mood-card"><h2>Как настроение?</h2><p class="caption">Минута внимания к себе</p>${moodFaces(-1, true)}<button class="button primary full" data-ui="open-diary">Заполнить дневник ${icon("arrow")}</button></section>
+    <section class="card specialist-card">${specialistContact()}<p class="caption">Вопросы и наблюдения можно обсудить в переписке.</p><button class="button full" data-action="nav" data-page="messages">${icon("chat")}Написать врачу</button></section>
+    <section class="card home-trend"><div class="card-heading"><h2>Моя динамика</h2><button class="text-button" data-action="history">История</button></div>${chart(state.detail.reports)}</section></div>`;
 };
 function specialistContact() {
   const doctor = state.detail.doctor;
@@ -343,14 +354,33 @@ renderLogin = function (error = "") {
   if (title) title.innerHTML = "Забота рядом.<br>Каждый день.";
   const art = $(".login-art");
   if (art)
-    art.innerHTML = `${treeArt(12)}<h2>В своём ритме</h2><p>Замечать изменения.<br>Оставаться на связи.</p>`;
+    art.innerHTML = `${careIllustration()}<p class="eyebrow">ПРОСТРАНСТВО ЗАБОТЫ</p><h2>Рядом. Даже между встречами.</h2><p>Замечать изменения.<br>Оставаться на связи.</p>`;
 };
 function decoratePsicompas() {
   const doctor = isDoctor();
   $("#session-role").textContent =
     `${doctor ? "Специалист" : "Пациент"} · демо`;
   $("#more-button").hidden = false;
-  document.body.dataset.role = doctor ? "doctor" : "patient";
+  document.body.dataset.role = state.user.role;
+  document.body.dataset.page = state.page;
+  $("#content").dataset.view = state.page;
+  $("#header-user").textContent = state.user.name;
+  $("#sidebar-account").innerHTML =
+    `${avatar(state.user.name, "blue")}<span><strong>${e(state.user.name)}</strong><small>${doctor ? "Специалист" : state.user.role === "relative" ? "Близкий" : "Пациент"}</small></span>`;
+  $("#workspace-tools").innerHTML = (
+    state.user.role === "relative"
+      ? [["settings", "info", "Настройки"]]
+      : [
+          ...(doctor ? [["overview", "home", "Главная"]] : []),
+          ["schedule", "clock", "Мои встречи"],
+          ["settings", "info", "Настройки"],
+        ]
+  )
+    .map(
+      ([page, glyph, label]) =>
+        `<button class="nav-item ${state.page === page ? "active" : ""}" data-action="nav" data-page="${page}" ${state.page === page ? 'aria-current="page"' : ""}>${icon(glyph)}<span>${label}</span></button>`,
+    )
+    .join("");
   const parent = {
     surveys: "diary",
     records: "messages",
@@ -548,6 +578,8 @@ clearSession = function () {
   pausePractice();
   practiceSession = null;
   baseClearSession();
+  $("#sidebar-account").replaceChildren();
+  $("#header-user").textContent = "";
   state.wellbeing = null;
   state.lesson = null;
   state.calendarMonth = null;

@@ -939,7 +939,7 @@ decoratePsicompas = function () {
   sectionDecorate();
   if (state.user.role === "relative")
     $("#session-role").textContent = "Близкий · демо";
-  if (isDoctor() && ["overview", "card"].includes(state.page)) {
+  if (isDoctor() && state.page === "card") {
     const item = $('#navigation [data-page="patients"]');
     if (item) {
       item.classList.add("active");
