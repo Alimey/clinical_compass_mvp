@@ -227,18 +227,9 @@ function activityCalendar() {
     .join("")}</div></div>`;
 }
 function movementExperience() {
-  const count = state.wellbeing?.tree_blossoms || 0;
   const selected = state.activityDay || care().today;
-  return (
-    heading(
-      "ДВИЖЕНИЕ",
-      "Моё дерево и активность",
-      "Без спешки. Выбирайте подходящие занятия.",
-    ) +
-    `<section class="card interactive-garden"><div><p class="eyebrow">МАЛЕНЬКИЕ РАДОСТИ</p><h2>Прикоснитесь — и дерево расцветёт</h2><p>Цветы можно добавлять просто так. Выполнять задания для этого не нужно.</p><p class="caption">Это игра и символ заботы, а не оценка здоровья.</p><p id="tree-bloom-status" role="status">Добавлено касаниями: ${count}</p></div><button class="tree-touch" data-experience="tree-bloom" aria-label="Добавить цветок на дерево" ${count >= 120 ? "disabled" : ""}>${treeArt(carePoints(), true)}</button></section>
-    <section class="card"><div class="card-heading"><h2>Календарь активности</h2><span class="chip neutral">МСК</span></div><p class="caption">Точка — запланированное занятие, зелёная — есть отметка о выполнении.</p><div id="activity-calendar-panel">${activityCalendar()}</div></section>
-    <section class="card"><h2>Добавить упражнение</h2><div class="movement-exercise-list">${prototypeContent.exercises.map((item) => `<article class="movement-exercise"><div class="routine-icon">${icon("run")}</div><div><h3>${e(item.name)}</h3><p class="caption">${item.min} мин · ${e(item.desc)}</p><details><summary>Как выполнять</summary><ol>${item.steps.map((s) => `<li><strong>${e(s[0])}.</strong> ${e(s[1])}</li>`).join("")}</ol></details><form class="activity-plan-form" data-key="${item.id}"><label>Дата<input type="date" name="day" required value="${selected}"></label><button class="button primary" type="submit">В календарь</button></form></div></article>`).join("")}</div></section>${wearableCard()}`
-  );
+  return `<section class="card simple-tree"><button class="tree-touch" data-experience="tree-bloom" aria-label="Добавить цветок на дерево">${treeArt(carePoints(), true)}</button></section><div id="weekly-activity">${weeklyActivity()}</div><section class="card"><div class="card-heading"><h2>Календарь активности</h2><span class="chip neutral">МСК</span></div><p class="caption">Точка — запланированное занятие, зелёная — есть отметка о выполнении.</p><div id="activity-calendar-panel">${activityCalendar()}</div></section>
+    <section class="card"><h2>Добавить упражнение</h2><div class="movement-exercise-list">${prototypeContent.exercises.map((item) => `<article class="movement-exercise"><div class="routine-icon">${icon("run")}</div><div><h3>${e(item.name)}</h3><p class="caption">${item.min} мин · ${e(item.desc)}</p><details><summary>Как выполнять</summary><ol>${item.steps.map((s) => `<li><strong>${e(s[0])}.</strong> ${e(s[1])}</li>`).join("")}</ol></details><form class="activity-plan-form" data-key="${item.id}"><label>Дата<input type="date" name="day" required value="${selected}"></label><button class="button primary" type="submit">В календарь</button></form></div></article>`).join("")}</div></section>${wearableCard()}`;
 }
 function doctorCalendar() {
   const items = (state.appointments || [])
@@ -290,12 +281,7 @@ function calmPractices() {
       desc: "Заземление 5–4–3–2–1",
       glyph: "leaf",
     },
-    {
-      key: "breathing",
-      title: "Спокойная пауза",
-      desc: "Минута в привычном ритме",
-      glyph: "heart",
-    },
+
     ...prototypeContent.exercises.map((i) => ({
       key: i.id,
       title: i.name,
@@ -303,14 +289,14 @@ function calmPractices() {
       glyph: "run",
     })),
   ];
-  return `<div class="practice-list">${choices.map((item) => `<details class="card practice-accordion" data-practice="${item.key}"><summary><span class="routine-icon">${icon(item.glyph)}</span><span><strong>${e(item.title)}</strong><small>${e(item.desc)}</small></span>${icon("plus")}</summary><div class="practice-expansion"><div class="practice-ready"><div class="ready-halo" aria-hidden="true">${icon(item.glyph)}</div><h3>Вы готовы приступить к упражнению?</h3><p class="caption">Устройтесь удобно. Можно остановиться в любой момент.</p><button class="button primary" data-experience="practice-begin" data-key="${item.key}">Да, начать</button></div><div class="practice-workspace" hidden>${practiceWorkspace(item.key)}</div></div></details>`).join("")}</div><section class="card"><h2>Мои занятия</h2><div id="practice-history">${practiceHistory()}</div></section>`;
+  return `<div class="practice-list">${choices.map((item) => `<details class="card practice-accordion" data-practice="${item.key}"><summary><span class="routine-icon">${icon(item.glyph)}</span><span><strong>${e(item.title)}</strong><small>${e(item.desc)}</small></span>${icon("plus")}</summary><div class="practice-expansion"><div class="practice-ready"><div class="ready-halo" aria-hidden="true">${icon(item.glyph)}</div><h3>Вы готовы приступить к упражнению?</h3><p class="caption">Устройтесь удобно. Можно остановиться в любой момент.</p><button class="button primary" data-experience="practice-begin" data-key="${item.key}">Да, начать</button></div><div class="practice-workspace" hidden>${practiceWorkspace(item.key)}</div></div></details>`).join("")}</div><section class="card"><h2>Выполнено упражнений: <output id="practice-count">${state.wellbeing?.practice_count || 0}</output></h2><div id="practice-history">${practiceHistory()}</div></section>`;
 }
 function practiceWorkspace(key) {
   if (key === "rhythm")
     return `<label class="consent-switch"><input type="checkbox" id="breath-voice" ${breathingVoice ? "checked" : ""}><span>Голос · если поддерживается браузером</span></label><div class="breath-space"><div class="breathing-orb"><span id="breath-phase">Готовы?</span></div></div><p class="caption">Вдох 4, необязательная пауза 2, выдох 6. Можно пропустить задержку и дышать привычно. При дискомфорте остановитесь.</p><button class="button" data-experience="breath-control">Остановить</button>`;
   if (key === "grounding")
-    return `<ol class="grounding-steps">${groundingSteps.map(([title, text], i) => `<li ${i === 0 ? 'aria-current="step"' : ""}><h3>${title}</h3><p>${text}</p></li>`).join("")}</ol><button class="button primary" data-experience="ground-step">Следующий шаг</button><button class="button" data-experience="practice-save" data-key="grounding" hidden>Отметить выполненным</button>`;
-  return `<div class="guided-step"></div><p class="exercise-clock guided-clock" aria-live="off"></p><div class="proposal-actions"><button class="button" data-experience="guided-pause">Пауза</button>${key !== "breathing" ? '<button class="button" data-experience="guided-next">Дальше</button>' : ""}<button class="button primary" data-experience="practice-save" data-key="${key}" hidden>Отметить выполненным</button></div><p class="caption">Двигайтесь в комфортном диапазоне; остановитесь при боли или дискомфорте. Отметка выполнения — самоотчёт.</p>`;
+    return `<ol class="grounding-steps">${groundingSteps.map(([title, text], i) => `<li ${i ? "hidden" : 'aria-current="step"'}><h3>${title}</h3><p>${text}</p></li>`).join("")}</ol><button class="button primary" data-experience="ground-step">Далее</button>`;
+  return `<div class="guided-step"></div><p class="exercise-clock guided-clock" aria-live="off"></p><div class="proposal-actions"><button class="button" data-experience="guided-pause">Пауза</button><button class="button" data-experience="guided-next">Дальше</button></div><p class="caption">Двигайтесь в комфортном диапазоне; остановитесь при боли или дискомфорте.</p>`;
 }
 function stopGuidedExercise() {
   clearInterval(guidedTicker);
@@ -334,11 +320,12 @@ function updateGuidedExercise() {
     ? `<p class="eyebrow">ШАГ ${session.step + 1} ИЗ ${item.steps.length}</p><h3>${e(step[0])}</h3><p>${e(step[1])}</p>`
     : "<h3>Минута для себя</h3><p>Дышите в привычном ритме, без усилия и задержек. Можно просто наблюдать за кругом.</p>";
   const last = !item || session.step === item.steps.length - 1;
-  session.root.querySelector('[data-experience="practice-save"]').hidden = !(
-    last && left === 0
-  );
   const next = session.root.querySelector('[data-experience="guided-next"]');
   if (next) next.hidden = last;
+  if (last && left === 0) {
+    stopGuidedExercise();
+    completePractice(session.root, session.key);
+  }
 }
 function beginGuidedExercise(key, root) {
   stopGuidedExercise();
@@ -368,6 +355,7 @@ function stopwatchValue() {
   return `${days} дн. ${String(Math.floor(seconds / 3600)).padStart(2, "0")}:${String(Math.floor((seconds % 3600) / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
 }
 function decorateExperience() {
+  updatePatientScreen();
   $("#patient-safety-bar").hidden =
     state.user.role !== "patient" ||
     (state.page === "help" && sub("help", "now") === "sos");
@@ -388,11 +376,20 @@ function decorateExperience() {
     }, 1000);
 }
 async function refreshActivities() {
-  state.wellbeing = await api(`/api/patients/${state.selected}/wellbeing`);
+  const owner = state.user?.id,
+    selected = state.selected;
+  const result = await api(`/api/patients/${selected}/wellbeing`);
+  if (state.user?.id !== owner || state.selected !== selected) return;
+  state.wellbeing = result;
   if ($("#activity-calendar-panel"))
     $("#activity-calendar-panel").innerHTML = activityCalendar();
   if ($("#practice-history"))
     $("#practice-history").innerHTML = practiceHistory();
+  if ($("#practice-count"))
+    $("#practice-count").textContent = String(
+      state.wellbeing.practice_count || 0,
+    );
+  if ($("#weekly-activity")) $("#weekly-activity").innerHTML = weeklyActivity();
 }
 
 document.addEventListener(
@@ -432,31 +429,15 @@ document.addEventListener("click", async (event) => {
       if (history.state?.compassBack) history.back();
       else await navigate("overview");
     } else if (action === "tree-bloom") {
-      if (flowerBusy) return;
-      const owner = state.user.id;
-      flowerBusy = true;
-      button.disabled = true;
-      try {
-        const response = await write(
-          `/api/patients/${state.selected}/tree`,
-          {},
-        );
-        if (state.user?.id !== owner || state.user.role !== "patient") return;
-        state.wellbeing.tree_blossoms = response.blossoms;
-        if (!document.contains(button)) return;
-        button.innerHTML = treeArt(carePoints(), true);
-        button.classList.remove("just-bloomed");
-        void button.offsetWidth;
-        button.classList.add("just-bloomed");
-        $("#tree-bloom-status").textContent =
-          `Добавлено касаниями: ${response.blossoms}${response.blossoms >= 120 ? " · дерево полностью расцвело" : ""}`;
-      } finally {
-        flowerBusy = false;
-        button.disabled = (state.wellbeing?.tree_blossoms || 0) >= 120;
-      }
+      plantFlower(event, button);
     } else if (action === "month" || action === "calendar-day") {
       const group = button.dataset.group,
-        prefix = group === "doctor" ? "doctor" : "activity";
+        prefix =
+          group === "doctor"
+            ? "doctor"
+            : group === "diary"
+              ? "calendar"
+              : "activity";
       if (action === "month") {
         const [year, month] = (
           state[prefix + "Month"] ||
@@ -470,6 +451,10 @@ document.addEventListener("click", async (event) => {
           .toISOString()
           .slice(0, 7);
       } else state[prefix + "Day"] = button.dataset.day;
+      if (group === "diary") {
+        $("#daily-calendar").innerHTML = patientDailyCalendar();
+        return;
+      }
       $(
         group === "doctor"
           ? "#doctor-calendar-panel"
@@ -493,6 +478,10 @@ document.addEventListener("click", async (event) => {
       }
     } else if (action === "practice-begin") {
       const root = button.closest("[data-practice]");
+      delete root.dataset.completion;
+      root.dataset.session = newPracticeId();
+      root.querySelector(".practice-workspace").innerHTML =
+        practiceWorkspace(key);
       root.querySelector(".practice-ready").hidden = true;
       root.querySelector(".practice-workspace").hidden = false;
       if (key === "rhythm") {
@@ -505,11 +494,11 @@ document.addEventListener("click", async (event) => {
       } else if (key === "grounding") {
         root.dataset.step = "0";
         root.querySelectorAll(".grounding-steps li").forEach((li, i) => {
+          li.hidden = i !== 0;
           if (i === 0) li.setAttribute("aria-current", "step");
           else li.removeAttribute("aria-current");
         });
         root.querySelector('[data-experience="ground-step"]').hidden = false;
-        root.querySelector('[data-experience="practice-save"]').hidden = true;
       } else beginGuidedExercise(key, root);
     } else if (action === "breath-control") {
       const root = button.closest("[data-practice]");
@@ -527,17 +516,16 @@ document.addEventListener("click", async (event) => {
         .querySelector(".breathing-orb")
         .classList.toggle("running", !!breathingTicker);
     } else if (action === "ground-step") {
-      const root = button.closest("[data-practice]");
-      const step = Math.min(5, Number(root.dataset.step) + 1);
+      const root = button.closest("[data-practice]"),
+        step = Math.min(5, Number(root.dataset.step) + 1);
       root.dataset.step = String(step);
-      root.querySelectorAll(".grounding-steps li").forEach((li, i) => {
-        li.classList.toggle("completed", i < step);
-        if (i === step) li.setAttribute("aria-current", "step");
-        else li.removeAttribute("aria-current");
-      });
-      button.hidden = step === 5;
-      root.querySelector('[data-experience="practice-save"]').hidden =
-        step !== 5;
+      if (step === 5) {
+        await completePractice(root, "grounding");
+      } else {
+        root.querySelectorAll(".grounding-steps li").forEach((li, i) => {
+          li.hidden = i !== step;
+        });
+      }
     } else if (action === "guided-pause" && guidedExercise) {
       if (guidedExercise.paused) {
         guidedExercise.end = Date.now() + guidedExercise.left * 1000;

@@ -19,6 +19,7 @@ from compass.assistants import register_assistants
 from compass.delivery import init_delivery, register_delivery
 from compass.wellbeing import init_wellbeing, register_wellbeing
 from compass.sections import init_sections, register_sections, preferences
+from compass.insights import init_insights, register_insights
 
 from compass.db import audit, db, init_db, notify, now, rows
 from compass.demo import seed
@@ -55,6 +56,7 @@ def create_app(database=None, *, seed_demo=True, testing=False):
         init_delivery()
         init_wellbeing()
         init_sections(seed_demo)
+        init_insights()
 
     @app.before_request
     def authenticate():
@@ -754,6 +756,7 @@ def create_app(database=None, *, seed_demo=True, testing=False):
     register_delivery(app, require_role, payload)
     register_wellbeing(app, patient, require_role, payload, write_once)
     register_sections(app, patient, require_role, payload, text, write_once)
+    register_insights(app, patient, require_role, payload)
     return app
 
 

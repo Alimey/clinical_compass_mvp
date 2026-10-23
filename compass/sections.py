@@ -182,6 +182,22 @@ def register_sections(app, patient, require_role, payload, text, write_once):
         agreement = rows("SELECT * FROM care_agreements WHERE patient_id=?", (ident,))
         return jsonify(
             server_now=now(),
+            scale_series=(
+                [
+                    {
+                        "id": s["id"],
+                        "kind": s["kind"],
+                        "score": s["score"],
+                        "created_at": s["created_at"],
+                    }
+                    for s in rows(
+                        "SELECT id,kind,score,created_at FROM assessments WHERE patient_id=? ORDER BY id DESC LIMIT 100",
+                        (ident,),
+                    )
+                ]
+                if owner
+                else []
+            ),
             preferences=public_prefs,
             entries=[entry(r) for r in entries],
             assessments=scales,

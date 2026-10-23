@@ -67,38 +67,16 @@ with tempfile.TemporaryDirectory() as temp:
                 page.get_by_role("heading", name="Здравствуйте, Александра")
             ).to_be_visible()
             crown = page.locator(".animated-tree .tree-crown")
-            motion = page.get_by_role("button", name="Приостановить анимацию дерева")
             expect(page.locator(".animated-tree")).to_be_visible()
-            assert crown.evaluate("el => getComputedStyle(el).animationName") == "none"
-            expect(motion).to_be_hidden()
+            expect(page.locator(".tree-motion-toggle")).to_have_count(0)
+            assert crown.evaluate("el=>getComputedStyle(el).animationName") == "none"
             page.emulate_media(reduced_motion="no-preference")
-            expect(motion).to_be_visible()
             assert (
-                crown.evaluate("el => getComputedStyle(el).animationName")
-                == "tree-sway"
+                crown.evaluate("el=>getComputedStyle(el).animationName") == "tree-sway"
             )
-            assert crown.evaluate(
-                """async el => {
-                    const animation = el.getAnimations()[0];
-                    await animation.ready;
-                    const before = animation.currentTime;
-                    await new Promise(resolve => requestAnimationFrame(
-                        () => requestAnimationFrame(resolve)));
-                    return animation.currentTime > before;
-                }"""
-            )
-            # Once loaded, both the animation and its local control work offline.
             context.set_offline(True)
-            motion.click()
-            expect(motion).to_have_attribute("aria-pressed", "true")
             assert (
-                crown.evaluate("el => getComputedStyle(el).animationPlayState")
-                == "paused"
-            )
-            motion.click()
-            expect(motion).to_have_attribute("aria-pressed", "false")
-            assert (
-                crown.evaluate("el => getComputedStyle(el).animationPlayState")
+                crown.evaluate("el=>getComputedStyle(el).animationPlayState")
                 == "running"
             )
             context.set_offline(False)
@@ -131,7 +109,7 @@ with tempfile.TemporaryDirectory() as temp:
                     assert appointments["x"] > hero["x"] + hero["width"] - 1
                     page.locator("#workspace-tools [data-page=settings]").click()
                     expect(
-                        page.get_by_role("heading", name="Настройки и инструменты")
+                        page.get_by_role("heading", name="Уведомления и установка PWA")
                     ).to_be_visible()
                     page.locator(".app-brand[data-page=overview]").click()
                     expect(
@@ -210,7 +188,7 @@ with tempfile.TemporaryDirectory() as temp:
             assert not errors, errors
             browser.close()
             print(
-                "PASS: animated home tree and offline pause, reduced motion, full-width shell, desktop columns and sidebar, tablet/phone navigation, 8 widths, login/chat, theme switching and desktop messaging"
+                "PASS: animated home tree offline, reduced motion, full-width shell, desktop columns and sidebar, tablet/phone navigation, 8 widths, login/chat, theme switching and desktop messaging"
             )
     finally:
         server.terminate()

@@ -1,12 +1,14 @@
 """Self-reported wellbeing activities; no clinical scoring or device measurements."""
 
 from datetime import date, datetime
+import math
 from zoneinfo import ZoneInfo
 
 from flask import abort, g, jsonify
 from compass.db import audit, db, now, rows
 
 ACTIVITIES = {
+    "breathing-rhythm": ("practice", "Дыхание 4 · 2 · 6", 60),
     "breathing": ("practice", "Спокойная пауза", 60),
     "grounding": ("practice", "Пять вещей вокруг", 60),
     "morning": ("practice", "Утренняя зарядка", 420),
@@ -40,6 +42,12 @@ def init_wellbeing():
             patient_id INTEGER PRIMARY KEY REFERENCES users(id),
             blossoms INTEGER NOT NULL DEFAULT 0
         );
+        CREATE TABLE IF NOT EXISTS tree_flowers (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            patient_id INTEGER NOT NULL REFERENCES users(id),
+            x REAL NOT NULL, y REAL NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS ix_tree_flowers_patient ON tree_flowers(patient_id,id);
         CREATE TABLE IF NOT EXISTS activity_plans (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             patient_id INTEGER NOT NULL REFERENCES users(id),
@@ -78,6 +86,16 @@ def register_wellbeing(app, patient, require_role, payload, write_once):
             activities=activities,
             lessons=lessons,
             tree_blossoms=tree[0]["blossoms"] if tree else 0,
+            tree_flowers=rows(
+                "SELECT id,x,y FROM tree_flowers WHERE patient_id=? ORDER BY id",
+                (ident,),
+            ),
+            practice_count=db()
+            .execute(
+                "SELECT COUNT(*) FROM wellbeing_activities WHERE patient_id=? AND kind='practice'",
+                (ident,),
+            )
+            .fetchone()[0],
             plans=plans,
         )
 
@@ -86,6 +104,14 @@ def register_wellbeing(app, patient, require_role, payload, write_once):
         patient(ident)
         require_role("patient")
         data = payload()
+        x, y = data.get("x", 150), data.get("y", 110)
+        if any(
+            type(value) not in (int, float)
+            or not math.isfinite(value)
+            or not 0 <= value <= 300
+            for value in (x, y)
+        ):
+            raise ValueError("Проверьте место касания дерева")
 
         def save():
             db().execute(
@@ -96,7 +122,17 @@ def register_wellbeing(app, patient, require_role, payload, write_once):
             count = rows(
                 "SELECT blossoms FROM care_trees WHERE patient_id=?", (ident,)
             )[0]["blossoms"]
-            return {"blossoms": count}, 200
+            cur = db().execute(
+                "INSERT INTO tree_flowers(patient_id,x,y) VALUES(?,?,?)", (ident, x, y)
+            )
+            db().execute(
+                "DELETE FROM tree_flowers WHERE patient_id=? AND id NOT IN (SELECT id FROM tree_flowers WHERE patient_id=? ORDER BY id DESC LIMIT 120)",
+                (ident, ident),
+            )
+            return {
+                "blossoms": count,
+                "flower": {"id": cur.lastrowid, "x": x, "y": y},
+            }, 200
 
         return write_once(data, save)
 

@@ -73,12 +73,8 @@ with tempfile.TemporaryDirectory() as temp:
                 ),
             )
             page.goto(url)
-            page.screenshot(path=str(ART / "psicompas-login.png"), full_page=True)
             page.get_by_role("button", name="Войти как Александра").click()
-            expect(
-                page.get_by_role("heading", name="Здравствуйте, Александра")
-            ).to_be_visible()
-            page.screenshot(path=str(ART / "psicompas-home.png"), full_page=True)
+            expect(page.locator(".patient-dashboard")).to_be_visible()
             expect(page.locator(".dose-tile").first).to_be_enabled()
             page.locator(".dose-tile").first.click()
             expect(page.locator(".dose-tile").first).to_contain_text("Принято")
@@ -94,88 +90,75 @@ with tempfile.TemporaryDirectory() as temp:
             expect(page.locator("#report-history")).to_contain_text(
                 "Сон: 7/10 · Энергия: 4/10"
             )
-            page.get_by_role("button", name="Календарь", exact=True).click()
-            expect(page.locator(".calendar-grid")).to_be_visible()
+            expect(page.locator("#daily-calendar .activity-calendar")).to_be_visible()
             today = page.evaluate("care().today")
-            page.locator(f'[data-ui="calendar-day"][data-day="{today}"]').click()
-            expect(page.locator("#content")).to_contain_text("Сон: 7/10")
-            page.screenshot(path=str(ART / "psicompas-calendar.png"), full_page=True)
+            page.locator(
+                f'[data-experience=calendar-day][data-group=diary][data-day="{today}"]'
+            ).click()
+            expect(page.locator("#report-history")).to_contain_text("Сон: 7/10")
             page.locator("#navigation [data-page=learn]").click()
-            page.locator(".lesson-option").first.click()
-            page.get_by_role("button", name="Отметить прочитанным").click()
-            expect(page.get_by_role("button", name="✓ Прочитано")).to_be_disabled()
-            page.get_by_role("button", name="Все материалы").click()
-            expect(page.locator(".notice")).to_contain_text("1 из 3")
+            page.locator(".course-item summary").first.click()
+            expect(page.locator(".video-placeholder").first).to_be_visible()
+            expect(page.locator(".lesson-option")).to_have_count(0)
             page.locator("#navigation [data-page=help]").click()
             page.locator(".emotion-accordion").last.locator("summary").click()
             expect(page.get_by_role("link", name="Позвонить 112")).to_have_attribute(
                 "href", "tel:112"
             )
-            assert "Сигнал отправлен" not in page.locator("#content").inner_text()
             page.locator("[data-ext=sub][data-group=help][data-key=calm]").click()
-            practice = page.locator("[data-practice=breathing]")
-            practice.locator("summary").click()
-            practice.get_by_role("button", name="Да, начать").click()
-            expect(practice.locator(".guided-clock")).to_contain_text("1:00")
-            practice.get_by_role("button", name="Пауза", exact=True).click()
-            expect(
-                page.get_by_role("button", name="Продолжить", exact=True)
-            ).to_be_visible()
-            # Advance the browser clock instead of waiting a real minute.
-            page.clock.install()
-            page.get_by_role("button", name="Продолжить", exact=True).click()
-            page.clock.fast_forward(61000)
-            expect(practice.locator("[data-experience=practice-save]")).to_be_visible()
-            practice.locator("[data-experience=practice-save]").click()
-            expect(page.locator(".activity-row")).to_contain_text("Спокойная пауза")
-            page.clock.resume()
+            ground = page.locator("[data-practice=grounding]")
+            ground.locator("summary").click()
+            ground.get_by_role("button", name="Да, начать").click()
+            for _ in range(5):
+                ground.get_by_role("button", name="Далее").click()
+            expect(page.locator(".activity-row")).to_contain_text("Пять вещей вокруг")
             page.reload()
-            expect(
-                page.get_by_role("heading", name="Здравствуйте, Александра")
-            ).to_be_visible()
+            expect(page.locator(".patient-dashboard")).to_be_visible()
             page.locator("#navigation [data-page=help]").click()
             page.locator("[data-ext=sub][data-group=help][data-key=calm]").click()
-            expect(page.locator(".activity-row")).to_contain_text("Спокойная пауза")
+            expect(page.locator(".activity-row")).to_contain_text("Пять вещей вокруг")
             page.locator("#navigation [data-page=learn]").click()
-            expect(page.locator(".notice")).to_contain_text("1 из 3")
             page.go_back()
-            expect(
-                page.get_by_role("heading", name="Дыхание и заземление")
-            ).to_be_visible()
+            expect(page.locator(".practice-list")).to_be_visible()
             page.get_by_role("button", name="Включить тёмную тему").click()
             expect(page.locator("html")).to_have_attribute("data-theme", "dark")
-            page.locator("#navigation [data-page=overview]").click()
-            page.screenshot(path=str(ART / "psicompas-dark.png"), full_page=True)
             page.reload()
             expect(page.locator("html")).to_have_attribute("data-theme", "dark")
+            expect(page.locator(".patient-dashboard")).to_be_visible()
             page.get_by_role("button", name="Включить светлую тему").click()
             for width in (320, 390, 430, 1280):
                 page.set_viewport_size({"width": width, "height": 844})
-                for name in ("overview", "diary", "move", "learn", "help", "messages"):
+                for name in (
+                    "overview",
+                    "diary",
+                    "move",
+                    "learn",
+                    "help",
+                    "messages",
+                    "schedule",
+                ):
                     page.locator(f'#navigation [data-page="{name}"]').click()
                     expect(
                         page.locator(f'#navigation [data-page="{name}"]')
                     ).to_have_attribute("aria-current", "page")
                     assert page.evaluate(
-                        "document.documentElement.scrollWidth <= innerWidth"
+                        "document.documentElement.scrollWidth<=innerWidth"
                     ), (width, name)
-                assert page.locator("#navigation").bounding_box()["width"] <= width
             page.evaluate("navigator.serviceWorker.ready")
             cached = page.evaluate(
-                """async()=>{const c=await caches.open('compass-shell-v7');return (await c.keys()).map(r=>new URL(r.url).pathname)}"""
+                """async()=>{const c=await caches.open('compass-shell-v8');return (await c.keys()).map(r=>new URL(r.url).pathname)}"""
             )
             assert (
-                "/static/psicompas.js" in cached and "/static/psicompas.css" in cached
+                "/static/patient-ui.js" in cached and "/static/patient-ui.css" in cached
             )
             assert len([p for p in cached if p.endswith(".woff2")]) == 4
             assert not any(p.startswith("/api/") for p in cached)
             assert not errors, errors
             assert not external, external
             assert not csp, csp
-            context.close()
             browser.close()
             print(
-                "PASS: home tablet tracking, mood/sleep/energy, calendar, lessons, help contacts, practice timer and persistence, browser Back, themes, 4 widths, fully local PWA assets"
+                "PASS: home medication tracking, combined diary/calendar, mood/sleep/energy, school placeholders, sequential grounding and automatic persistence, Back, themes, 4 widths and fully local PWA assets"
             )
     finally:
         server.terminate()

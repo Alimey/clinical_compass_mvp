@@ -30,6 +30,7 @@ const paths = {
   plus: "M12 5v14M5 12h14",
   leaf: "M20 3C8 2 2 9 5 16s15 6 15-13ZM5 19 15 9",
   run: "M15 4h.01M17 4a2 2 0 1 1-4 0 2 2 0 0 1 4 0ZM4 11l4-3 4 2 3-3 4 3h3M12 10l-3 5-5 5M10 14l5 2-1 6M3 15h3",
+  gear: "M9 3h6l1 3 3 1 2 5-2 5-3 1-1 3H9l-1-3-3-1-2-5 2-5 3-1 1-3ZM16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0",
   info: "M12 11v6M12 7h.01M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0",
   alert: "m12 3 10 18H2L12 3ZM12 9v5M12 17h.01",
   sun: "M12 3v2M12 19v2M3 12h2M19 12h2M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0",
@@ -57,12 +58,10 @@ const patientNavigation = [
   ["move", "run", "Движение"],
   ["learn", "leaf", "Знания"],
   ["help", "heart", "Помощь"],
-  ["messages", "chat", "Сообщения"],
+  ["messages", "chat", "Врач"],
+  ["schedule", "clock", "Консультации"],
 ];
-const patientTools = [
-  ["schedule", "clock", "Мои встречи"],
-  ["settings", "info", "Настройки"],
-];
+const patientTools = [["settings", "gear", "Настройки"]];
 function observationLabel(patient) {
   return patient?.observed_since
     ? "Наблюдается с " +
@@ -508,7 +507,11 @@ function render() {
     contacts: contactsPage,
     tour: tourPage,
   };
-  $("#content").innerHTML = (views[state.page] || overview)();
+  const markup = (views[state.page] || overview)();
+  $("#content").innerHTML =
+    state.user.role === "patient"
+      ? `<div class="patient-page">${markup}</div>`
+      : markup;
   decoratePsicompas();
   if ($("#chat-thread"))
     $("#chat-thread").scrollTop = $("#chat-thread").scrollHeight;
@@ -679,10 +682,10 @@ async function navigate(page, id) {
       surveys: ["diary", "diary", "scales"],
       medications: ["diary", "diary", "meds"],
       plan: ["diary", "diary", "meds"],
-      records: ["messages", "doctor", "records"],
+      records: ["messages", "doctor", "chat"],
       consents: ["settings", "settings", "consents"],
       about: ["settings", "settings", "about"],
-      tour: ["settings", "settings", "tour"],
+      tour: ["settings", "settings", "general"],
     }[page];
     if (alias) {
       page = alias[0];
@@ -850,6 +853,8 @@ document.addEventListener("submit", (event) => {
     return run(form, async () => {
       await write("/api/patients/" + state.selected + "/reports", data);
       state.diary = "history";
+      state.calendarDay = care().today;
+      state.calendarMonth = care().today.slice(0, 7);
       await load();
       toast(
         data.safety_signal

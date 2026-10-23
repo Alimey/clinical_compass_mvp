@@ -47,70 +47,7 @@ function entryForm(kind, fields, shared = true) {
   return `<form class="entry-form" data-kind="${kind}">${fields.map(([name, label, type = "text"]) => `<label>${label}${type === "textarea" ? `<textarea name="${name}" maxlength="1000" rows="3" ${name === fields[0][0] ? "required" : ""}></textarea>` : `<input name="${name}" type="${type}" maxlength="1000" ${name === fields[0][0] ? "required" : ""}>`}</label>`).join("")}<label class="consent-switch"><input name="shared" type="checkbox" ${shared ? "checked" : ""}><span>Показать специалисту</span></label><button class="button primary" type="submit">Сохранить запись</button></form>`;
 }
 function extendedDiaryPage() {
-  const active = sub("diary", "daily");
-  const tabs = sectionTabs(
-    "diary",
-    [
-      ["daily", "Дневник"],
-      ["charts", "Графики"],
-      ["meds", "Препараты"],
-      ["scales", "Шкалы"],
-      ["notes", "Записи"],
-    ],
-    "daily",
-  );
-  if (active === "daily") return tabs + diaryPage();
-  if (active === "charts")
-    return (
-      heading(
-        "МОЙ ДНЕВНИК",
-        "Самочувствие в динамике",
-        "Собственные оценки, без автоматического диагноза.",
-      ) +
-      tabs +
-      `<section class="card"><p class="caption">Доступ специалиста к дневнику: ${pref().share_mood ? "разрешён" : "отозван"}</p><button class="button" data-action="nav" data-page="consents">Мои согласия</button></section><section class="card"><h2>Настроение и тревога</h2>${chart(state.detail.reports)}</section><section class="card"><h2>Сон и энергия</h2>${additionalChart()}</section><section class="card"><h2>Жалобы в записях</h2>${
-        state.detail.reports
-          .filter((r) => r.adverse_effects)
-          .slice(0, 14)
-          .map(
-            (r) =>
-              `<div class="report-item"><small class="caption">${e(clinicDate(r.created_at))}</small><p>${e(r.adverse_effects)}</p></div>`,
-          )
-          .join("") || '<p class="muted">Жалоб пока не отмечено.</p>'
-      }</section>`
-    );
-  if (active === "meds")
-    return (
-      tabs +
-      planPage() +
-      medicationsPage() +
-      `<section class="card"><h2>Другой препарат · самоотметка</h2><p class="caption">В демонстрации вводите только вымышленные названия. Это не назначение специалиста.</p>${entryForm(
-        "other_med",
-        [
-          ["name", "Вымышленное название"],
-          ["note", "Что хотите сообщить", "textarea"],
-        ],
-      )}${entriesList("other_med")}</section>`
-    );
-  if (active === "scales") return tabs + assessmentPage(false) + surveysPage();
-  return (
-    heading(
-      "МОЙ ДНЕВНИК",
-      "Записи и питание",
-      "Можно выбрать, какой записью поделиться со специалистом.",
-    ) +
-    tabs +
-    `<section class="card"><h2>Дневник питания</h2><p class="caption">Без подсчёта калорий и веса.</p>${entryForm(
-      "food",
-      [
-        ["time", "Время", "time"],
-        ["meal", "Приём пищи"],
-        ["what", "Что ели"],
-        ["appetite", "Аппетит"],
-        ["feeling", "В каком состоянии"],
-      ],
-    )}${entriesList("food")}</section><section class="card"><h2>Заметки</h2>${entryForm("note", [["text", "Что хочется записать", "textarea"]], false)}${entriesList("note")}</section><section class="card"><h2>Дневник мыслей</h2><button class="button" data-ext="thought-open">Открыть упражнение ${icon("arrow")}</button></section>`
-  );
+  return patientDiaryScreen();
 }
 const sectionPatientHome = patientOverview;
 patientOverview = function () {
@@ -195,6 +132,8 @@ function literature(who) {
     )}<p class="caption">Список из макета команды. Содержимое внешних источников здесь не проверялось.</p></section>`;
 }
 function coursePage(items, prefix) {
+  if (state.user.role === "patient" && prefix === "course")
+    return schoolVideos(items);
   const progress =
     state.user.role === "relative"
       ? state.relative?.progress || []
@@ -203,6 +142,15 @@ function coursePage(items, prefix) {
   return `<section class="card"><h2>${prefix === "relative" ? "Как поддержать близкого" : "Школа пациента"}</h2><p class="caption">${items.filter((l) => read.has(prefix + "-" + l.id)).length} из ${items.length} занятий пройдено</p>${items.map((l) => `<details class="course-item"><summary>${read.has(prefix + "-" + l.id) ? "✓ " : ""}${e(l.t)} · ${l.min} мин</summary>${l.pts.map((p) => `<p>${e(p)}</p>`).join("")}<button class="button" data-ext="resource-read" data-key="${prefix + "-" + l.id}" ${read.has(prefix + "-" + l.id) ? "disabled" : ""}>Отметить прочитанным</button></details>`).join("")}</section>`;
 }
 function extendedLearningPage() {
+  return stripHeading(learningContent());
+}
+function extendedHelpPage() {
+  return stripHeading(helpContent());
+}
+function extendedMessagesPage() {
+  return isDoctor() ? messagesContent() : stripHeading(messagesContent());
+}
+function learningContent() {
   const active = sub("learn", "course");
   const tabs = sectionTabs(
     "learn",
@@ -277,8 +225,7 @@ function extendedLearningPage() {
       "Пять занятий из макета и короткие практические материалы.",
     ) +
     tabs +
-    coursePage(prototypeContent.course, "course") +
-    learningPage()
+    coursePage(prototypeContent.course, "course")
   );
 }
 
@@ -331,7 +278,7 @@ const emotionSteps = {
     "Откройте согласованный план безопасности. Не оставайтесь с этим в одиночку.",
   ],
 };
-function extendedHelpPage() {
+function helpContent() {
   const active = sub("help", "now");
   const tabs = sectionTabs(
     "help",
@@ -382,15 +329,7 @@ function extendedHelpPage() {
     heading("САМОПОМОЩЬ", "Как вы сейчас?", "") +
     tabs +
     `<div class="emotion-list">${Object.entries(emotionSteps)
-      .map(
-        ([key, steps]) =>
-          `<details class="card emotion-accordion"><summary>${steps[0]}${icon("plus")}</summary><ol>${steps
-            .slice(1)
-            .map((s) => `<li>${e(s)}</li>`)
-            .join(
-              "",
-            )}</ol>${key === "harm" ? '<a class="button danger" href="tel:112">Позвонить 112</a>' : ""}</details>`,
-      )
+      .map(([key, steps]) => crisisSteps(key, steps))
       .join("")}</div>`
   );
 }
@@ -441,7 +380,7 @@ function consentsPage() {
   );
 }
 
-function extendedMessagesPage() {
+function messagesContent() {
   if (isDoctor()) return messagesPage();
   const active = sub("doctor", "chat");
   const tabs = sectionTabs(
@@ -450,12 +389,11 @@ function extendedMessagesPage() {
       ["chat", "Чат"],
       ["mail", "Письма"],
       ["ai", "Помощник"],
-      ["records", "Моя карта"],
     ],
     "chat",
   );
   if (active === "chat") return tabs + messagesPage();
-  if (active === "records") return tabs + recordsPage();
+
   if (active === "mail")
     return (
       heading(
@@ -649,16 +587,15 @@ settingsPage = function () {
         ["general", "Настройки"],
         ["consents", "Мои согласия"],
         ["about", "О проекте"],
-        ["tour", "Сценарий"],
       ],
       "general",
     );
     return (
       tabs +
       (
-        { consents: consentsPage, about: aboutPage, tour: tourPage }[
+        { consents: patientConsentScreen, about: aboutPage }[
           sub("settings", "general")
-        ] || sectionSettings
+        ] || patientSettingsGeneral
       )()
     );
   }
@@ -822,6 +759,8 @@ decoratePsicompas = function () {
 };
 const sectionClear = clearSession;
 clearSession = function () {
+  pendingFlowers.clear();
+  ++insightRequest;
   stopGuidedExercise();
   clearInterval(streakTicker);
   flowerBusy = false;
@@ -849,6 +788,7 @@ clearSession = function () {
     "compatibilityPatient",
     "compatibilityProfile",
     "counterClockOffset",
+    "graphInsight",
   ])
     delete state[key];
 };
@@ -861,7 +801,15 @@ function stopBreathing() {
   } catch {}
 }
 function tickBreathing() {
-  const elapsed = ((Date.now() - breathingStarted) / 1000) % 12;
+  const total = (Date.now() - breathingStarted) / 1000;
+  if (total >= 60) {
+    stopBreathing();
+    const root = $('[data-practice="rhythm"]');
+    if (root && !root.querySelector(".practice-workspace").hidden)
+      completePractice(root, "breathing-rhythm");
+    return;
+  }
+  const elapsed = total % 12;
   const phase = elapsed < 4 ? 0 : elapsed < 6 ? 1 : 2;
   const text = ["Вдох", "Пауза", "Выдох"][phase];
   if ($("#breath-phase")) $("#breath-phase").textContent = text;

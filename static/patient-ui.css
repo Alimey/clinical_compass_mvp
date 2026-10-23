@@ -1,0 +1,365 @@
+/* Keep patient sub-tabs and content in a single, predictable reading order. */
+body[data-role="patient"] #content {
+  display: block;
+}
+.patient-page {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+}
+.patient-page > .card,
+.patient-page > .tabs {
+  margin: 0;
+}
+.patient-page > .tabs {
+  display: flex;
+  align-self: stretch;
+  width: 100%;
+  box-sizing: border-box;
+}
+.patient-page > .tabs button {
+  flex: 1 0 auto;
+}
+.patient-page .sos-large,
+.patient-safety-bar .global-sos {
+  background: #bd3548;
+  border-color: #bd3548;
+  color: #fff;
+}
+.patient-page > section,
+.patient-page > form,
+.patient-page > div {
+  min-width: 0;
+}
+.patient-page .page-heading {
+  margin: 0;
+}
+.patient-page .simple-tree {
+  display: block;
+  background: var(--accent-soft);
+  padding: 10px;
+}
+.simple-tree .tree-touch {
+  max-width: 300px;
+}
+.patient-page .weekly-activity {
+  margin: 0;
+}
+.weekly-activity strong {
+  color: #25815c;
+  font-size: 14px;
+}
+.weekly-activity progress {
+  display: block;
+  width: 100%;
+  height: 12px;
+  border: 0;
+  border-radius: 20px;
+  overflow: hidden;
+  background: var(--surface-2);
+  accent-color: #25815c;
+}
+.weekly-activity progress::-webkit-progress-bar {
+  background: var(--surface-2);
+}
+.weekly-activity progress::-webkit-progress-value {
+  background: #25815c;
+  border-radius: 20px;
+}
+.weekly-activity progress::-moz-progress-bar {
+  background: #25815c;
+  border-radius: 20px;
+}
+#daily-calendar .month-panel {
+  max-width: 460px;
+  margin: 0 auto;
+}
+.daily-saved {
+  margin-top: 16px;
+  font-size: 12px;
+}
+.daily-saved .report-item {
+  border: 0;
+  margin-top: 10px;
+}
+.daily-saved .saved-day {
+  padding: 10px 0;
+}
+.patient-page #report-form {
+  max-width: none;
+}
+.patient-trend {
+  width: 100%;
+  height: auto;
+  display: block;
+  margin: 10px 0;
+}
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin: 16px 0 0;
+}
+.chart-legend span {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 11px;
+  color: var(--muted);
+}
+.graph-insight li {
+  line-height: 1.7;
+  margin: 8px 0;
+  font-size: 13px;
+}
+.graph-insight ul {
+  padding-left: 20px;
+}
+.complaints-calendar {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 20px 0 4px;
+}
+.complaint-week > span {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 7px;
+}
+.complaint-week > div {
+  display: grid;
+  grid-template-columns: repeat(14, minmax(0, 1fr));
+  gap: 4px;
+}
+.complaint-day {
+  min-width: 0;
+  min-height: 30px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font: inherit;
+  font-size: 9px;
+  cursor: pointer;
+  padding: 0;
+}
+.complaint-day.adverse {
+  background: #f6dcc6;
+  color: #96512d;
+}
+.complaint-day.body {
+  background: #d4e9f6;
+  color: #12618b;
+}
+.complaint-day.urgent {
+  background: #f8d8dc;
+  color: #a32e45;
+}
+.scale-series + .scale-series {
+  margin-top: 20px;
+}
+.scale-series h3 {
+  font-size: 13px;
+}
+.medication-schedule table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+}
+.medication-schedule th {
+  text-align: left;
+  font-size: 11px;
+  text-transform: uppercase;
+  color: var(--muted);
+  vertical-align: top;
+  font-weight: 600;
+}
+.medication-schedule thead small {
+  display: block;
+  margin-top: 6px;
+  font-size: 10px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+.medication-schedule th,
+.medication-schedule td {
+  border-bottom: 1px solid var(--line);
+  padding: 12px 8px;
+}
+.medication-schedule td:nth-child(n + 2):nth-last-child(n + 3) {
+  white-space: nowrap;
+}
+.medication-schedule td:last-child {
+  overflow-wrap: anywhere;
+}
+.medication-schedule td {
+  font-size: 12px;
+  vertical-align: top;
+}
+.medication-schedule tr:last-child th,
+.medication-schedule tr:last-child td {
+  border-bottom: 0;
+}
+.medication-schedule tbody th {
+  white-space: nowrap;
+  font-weight: 400;
+  color: var(--ink);
+  font-size: 12px;
+}
+.dose-check {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  min-width: 28px;
+  min-height: 34px;
+  padding: 0 4px;
+  font-size: 20px;
+  cursor: pointer;
+}
+.dose-check.taken {
+  color: #198069;
+}
+.dose-check.skipped {
+  color: #bb4054;
+}
+.dose-check:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+.dose-check:focus-visible {
+  outline: 2px solid var(--accent);
+  border-radius: 6px;
+}
+.dose-divider {
+  color: var(--muted);
+  font-size: 12px;
+}
+.video-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  max-width: 640px;
+  aspect-ratio: 16/9;
+  border-radius: 18px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  margin: 16px auto 0;
+}
+.video-placeholder > span {
+  font-size: 42px;
+}
+.video-placeholder strong {
+  font-size: 14px;
+}
+.video-placeholder small {
+  font-size: 11px;
+}
+.school-videos .course-item:first-child {
+  margin-top: 0;
+}
+.patient-page .practice-list,
+.patient-page .emotion-list {
+  margin: 0;
+}
+.patient-page .safety-plan-steps {
+  display: flex;
+  flex-direction: column;
+}
+.patient-page .safety-plan-steps li {
+  width: 100%;
+  box-sizing: border-box;
+}
+.patient-page .emotion-step {
+  padding-top: 20px;
+}
+.emotion-current {
+  font-size: 14px;
+  line-height: 1.8;
+  min-height: 60px;
+}
+.patient-page .grounding-steps {
+  margin: 0 0 18px;
+}
+.patient-page .grounding-steps li {
+  margin: 0;
+}
+.patient-page [data-practice="rhythm"] .breathing-orb {
+  transform: scale(0.78);
+}
+.patient-page [data-practice="rhythm"] .breathing-orb.running {
+  animation: patient-breath-cycle 12s linear infinite;
+}
+.practice-success {
+  text-align: center;
+  padding: 26px 16px;
+  border-radius: 20px;
+  background: var(--accent-soft);
+}
+.practice-success > span {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: var(--surface);
+  margin: 0 auto 14px;
+  color: #25815c;
+  font-size: 30px;
+}
+.practice-success h3 {
+  font-size: 20px;
+  color: var(--accent);
+}
+@keyframes patient-breath-cycle {
+  0%,
+  100% {
+    transform: scale(0.78);
+  }
+  33.333%,
+  50% {
+    transform: scale(1);
+  }
+}
+@media (min-width: 1024px) {
+  .patient-page > .card,
+  .patient-page > #weekly-activity,
+  .patient-page > .practice-list,
+  .patient-page > .emotion-list {
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .patient-page > .tabs {
+    max-width: none;
+  }
+  .patient-page .simple-tree {
+    padding: 14px;
+  }
+  #daily-calendar {
+    display: grid;
+    grid-template-columns: minmax(0, 460px) minmax(0, 1fr);
+    gap: 24px;
+    align-items: start;
+  }
+  #daily-calendar .month-panel {
+    width: 100%;
+  }
+  .daily-saved {
+    margin-top: 48px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .patient-page [data-practice="rhythm"] .breathing-orb.running {
+    animation: none;
+  }
+}
+@media (max-width: 1023px) {
+  body[data-role="patient"] #navigation [data-page="schedule"] span {
+    font-size: 8px;
+    letter-spacing: -0.15px;
+  }
+}

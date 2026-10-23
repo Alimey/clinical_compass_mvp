@@ -91,10 +91,7 @@ with tempfile.TemporaryDirectory() as temp:
             submit(pat, ".entry-form[data-kind=thought]")
             tab(pat, "learn", "course")
             pat.locator(".course-item").first.locator("summary").click()
-            pat.locator(".course-item").first.get_by_role(
-                "button", name="Отметить прочитанным"
-            ).click()
-            pat.wait_for_function("() => !busy")
+            expect(pat.locator(".video-placeholder").first).to_be_visible()
             tab(pat, "learn", "articles")
             expect(pat.locator(".course-item")).to_have_count(6)
             tab(pat, "learn", "books")

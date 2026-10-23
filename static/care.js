@@ -436,7 +436,7 @@ document.addEventListener("click", async (event) => {
       }
       if (action === "medication-mark") {
         await write("/api/prescriptions/" + id + "/mark", {
-          day: state.medicationDay || care().today,
+          day: button.dataset.day || care().today,
           time: button.dataset.time,
           status: button.dataset.status,
         });
