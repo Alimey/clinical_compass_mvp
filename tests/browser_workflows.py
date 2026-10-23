@@ -88,7 +88,8 @@ with tempfile.TemporaryDirectory() as temp:
 
             signin(doc, "doctor")
             expect(doc.get_by_role("heading", name="Добрый день, Анна")).to_be_visible()
-            expect(doc.locator(".appointment-tile")).to_have_count(2)
+            expect(doc.locator(".doctor-calendar-card")).to_be_visible()
+            expect(doc.locator(".activity-day .calendar-marks small")).to_have_text("2")
             doc.screenshot(path=str(ART / "overview-v3.png"), full_page=True)
             nav(doc, "Ещё")
             doc.get_by_role("button", name="Конструктор опросов", exact=True).click()

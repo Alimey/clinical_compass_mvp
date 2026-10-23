@@ -1,0 +1,565 @@
+/* Design experiments: gardens, calendars and in-place exercises. */
+.patient-dashboard .home-actions {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.home-tree-link {
+  display: block;
+  width: 100%;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.home-tree-link:focus-visible,
+.tree-touch:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 24px;
+}
+.welcome-garden .home-tree-link .care-tree {
+  position: static;
+  width: 100%;
+  height: auto;
+  max-height: 220px;
+}
+.home-tree-scene .home-tree-link {
+  line-height: 0;
+}
+.patient-safety-bar {
+  position: fixed;
+  right: 20px;
+  bottom: calc(92px + env(safe-area-inset-bottom));
+  z-index: 65;
+}
+.global-sos {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 46px;
+  border-radius: 28px;
+  padding: 10px 16px;
+  color: #fff;
+  background: #bd3548;
+  border-color: #bd3548;
+  box-shadow: 0 5px 18px #a52f4430;
+}
+.global-sos span {
+  font-size: 10px;
+}
+.global-sos strong {
+  font-size: 14px;
+}
+body[data-role="patient"] #content {
+  padding-bottom: 160px;
+}
+.page-back {
+  margin: 0 0 16px;
+}
+.interactive-garden {
+  display: grid;
+  gap: 14px;
+  align-items: center;
+  background: var(--accent-soft);
+}
+.interactive-garden h2 {
+  font-size: 23px;
+  line-height: 1.4;
+}
+.tree-touch {
+  display: block;
+  margin: auto;
+  max-width: 300px;
+  width: 100%;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.tree-touch .care-tree {
+  max-width: 300px;
+  display: block;
+}
+.tree-touch.just-bloomed .new-blossom {
+  animation: flower-appear 0.65s ease-out both;
+}
+#tree-bloom-status {
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+}
+.month-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.month-toolbar h3 {
+  text-transform: capitalize;
+  font-size: 15px;
+  margin: 0;
+}
+.calendar-and-agenda {
+  display: grid;
+  gap: 24px;
+}
+.activity-calendar {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+  align-content: start;
+}
+.activity-calendar .weekday {
+  text-align: center;
+  color: var(--muted);
+  font-size: 11px;
+  padding-bottom: 7px;
+}
+.activity-day {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 3px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--ink);
+  min-width: 0;
+  min-height: 44px;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.activity-day.today {
+  border-color: var(--accent);
+}
+.activity-day[aria-pressed="true"] {
+  background: var(--accent);
+  color: #fff;
+}
+.calendar-marks {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  height: 9px;
+}
+.calendar-marks i {
+  display: block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.calendar-marks i.done {
+  background: #25815c;
+}
+.calendar-marks small {
+  font-size: 8px;
+}
+.activity-day[aria-pressed="true"] .calendar-marks i {
+  background: #fff;
+}
+.day-agenda {
+  min-width: 0;
+  border-top: 1px solid var(--line);
+  padding-top: 18px;
+}
+.day-agenda h3 {
+  margin-bottom: 14px;
+}
+.planned-exercise {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+.planned-exercise:last-child {
+  border-bottom: 0;
+}
+.planned-exercise strong {
+  font-size: 13px;
+}
+.movement-exercise {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--line);
+}
+.movement-exercise:last-child {
+  border: 0;
+  padding-bottom: 0;
+}
+.movement-exercise > div:last-child {
+  min-width: 0;
+  flex: 1;
+}
+.movement-exercise h3 {
+  font-size: 15px;
+}
+.movement-exercise details {
+  font-size: 12px;
+}
+.movement-exercise li {
+  margin: 8px 0;
+}
+.activity-plan-form {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+.activity-plan-form label {
+  flex: 1;
+  min-width: 135px;
+  margin: 0;
+}
+.activity-plan-form .button {
+  margin: 0;
+}
+.calendar-appointment {
+  display: flex;
+  align-items: center;
+  text-align: left;
+  width: 100%;
+  gap: 13px;
+  padding: 14px 10px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+  border-radius: 12px;
+}
+.calendar-appointment:hover {
+  background: var(--accent-soft);
+}
+.calendar-appointment > span:nth-child(2) {
+  flex: 1;
+  min-width: 0;
+}
+.calendar-appointment strong {
+  display: block;
+  font-size: 13px;
+}
+.calendar-appointment small {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  margin-top: 4px;
+}
+.appointment-time {
+  font-size: 13px;
+  color: var(--accent);
+  font-weight: 600;
+}
+.practice-list,
+.emotion-list {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.practice-accordion,
+.emotion-accordion {
+  margin-bottom: 0;
+  overflow: hidden;
+}
+.practice-accordion > summary,
+.emotion-accordion > summary {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  cursor: pointer;
+  list-style: none;
+  min-height: 44px;
+}
+.practice-accordion > summary::-webkit-details-marker,
+.emotion-accordion > summary::-webkit-details-marker {
+  display: none;
+}
+.practice-accordion > summary > span:nth-child(2) {
+  flex: 1;
+  min-width: 0;
+}
+.practice-accordion summary strong {
+  display: block;
+  font-size: 14px;
+}
+.practice-accordion summary small {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 400;
+  margin-top: 5px;
+}
+.practice-accordion > summary > .icon,
+.emotion-accordion > summary > .icon {
+  margin-left: auto;
+  flex-shrink: 0;
+  transition: transform 0.25s;
+}
+.practice-accordion[open] > summary > .icon,
+.emotion-accordion[open] > summary > .icon {
+  transform: rotate(45deg);
+}
+.practice-expansion {
+  padding-top: 22px;
+  animation: practice-reveal 0.35s ease-out;
+}
+.practice-ready {
+  text-align: center;
+  padding: 22px 10px;
+  border-radius: 20px;
+  background: var(--accent-soft);
+  animation: practice-reveal 0.5s ease-out both;
+}
+.practice-ready h3 {
+  max-width: 340px;
+  margin: 16px auto 12px;
+  font-size: 20px;
+  line-height: 1.5;
+}
+.ready-halo {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  margin: auto;
+  border-radius: 50%;
+  color: var(--accent);
+  background: var(--surface);
+  box-shadow: 0 0 0 12px var(--sky);
+  animation: ready-breathe 3s ease-in-out infinite;
+}
+.ready-halo .icon {
+  width: 30px;
+  height: 30px;
+}
+.practice-workspace {
+  padding: 10px 0;
+}
+.practice-workspace p {
+  font-size: 13px;
+  line-height: 1.7;
+}
+.grounding-steps {
+  list-style: none;
+  padding: 0;
+  counter-reset: ground;
+}
+.grounding-steps li {
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  padding: 16px;
+  border-radius: 16px;
+  margin: 10px 0;
+}
+.grounding-steps li[aria-current="step"] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.grounding-steps li.completed {
+  opacity: 0.65;
+}
+.grounding-steps h3 {
+  font-size: 14px;
+}
+.grounding-steps p {
+  margin-bottom: 0;
+}
+.emotion-accordion > summary {
+  font-size: 14px;
+  font-weight: 600;
+}
+.emotion-accordion ol {
+  padding-left: 22px;
+  margin: 20px 0 6px;
+}
+.emotion-accordion li {
+  font-size: 13px;
+  padding: 7px 0 7px 3px;
+  line-height: 1.7;
+}
+.safety-plan-steps {
+  list-style: none;
+  counter-reset: safety;
+  padding: 0;
+  margin: 0;
+}
+.safety-plan-steps li {
+  position: relative;
+  counter-increment: safety;
+  padding: 4px 0 22px 50px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+}
+.safety-plan-steps li:last-child {
+  border: 0;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+.safety-plan-steps li::before {
+  content: counter(safety);
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: var(--accent);
+  background: var(--accent-soft);
+  font-size: 14px;
+  font-weight: 600;
+}
+.safety-plan-steps h3 {
+  font-size: 14px;
+  line-height: 1.6;
+}
+.safety-plan-steps p {
+  font-size: 13px;
+  margin-top: 10px;
+}
+.sos-focus {
+  text-align: center;
+}
+.sos-large {
+  display: block;
+  width: min(100%, 280px);
+  min-height: 108px;
+  margin: 24px auto;
+  border-radius: 26px;
+  background: #bd3548;
+  color: #fff;
+  border-color: #bd3548;
+  font-size: 15px;
+  box-shadow: 0 10px 28px #bd354830;
+}
+.sos-focus > .caption {
+  max-width: 480px;
+  margin: 10px auto;
+}
+.stopwatch {
+  display: block;
+  text-align: center;
+  color: var(--accent);
+  font-size: clamp(24px, 4vw, 44px);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  margin: 30px 0;
+}
+.compatibility-layout {
+  display: grid;
+  gap: 20px;
+}
+.compatibility-factors {
+  border: 0;
+  padding: 0;
+  margin: 20px 0;
+}
+.compatibility-factors legend {
+  font-weight: 600;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+.compatibility-status {
+  align-self: start;
+}
+.compatibility-status ul {
+  padding-left: 20px;
+}
+.compatibility-status li {
+  padding: 6px 0;
+  font-size: 13px;
+}
+.bubble-field {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin: 20px 0;
+}
+.bubble-field .bubble {
+  width: 100%;
+  max-width: 70px;
+  aspect-ratio: 1;
+  height: auto;
+  margin: auto;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  border: 2px solid var(--accent);
+  cursor: pointer;
+}
+.bubble-field .bubble.popped {
+  transform: scale(0.8);
+  opacity: 0.25;
+}
+@keyframes flower-appear {
+  from {
+    transform: scale(0.1);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+@keyframes practice-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes ready-breathe {
+  0%,
+  100% {
+    transform: scale(0.96);
+  }
+  50% {
+    transform: scale(1.04);
+  }
+}
+@media (min-width: 700px) {
+  .interactive-garden {
+    grid-template-columns: 1fr 300px;
+    padding: 32px;
+  }
+  .calendar-and-agenda {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .day-agenda {
+    border-top: 0;
+    border-left: 1px solid var(--line);
+    padding: 0 0 0 24px;
+  }
+  .compatibility-layout {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  }
+}
+@media (min-width: 1024px) {
+  .patient-dashboard .home-actions {
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+  }
+  .patient-safety-bar {
+    bottom: 24px;
+    right: 28px;
+  }
+  .doctor-calendar-card {
+    margin-bottom: 24px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ready-halo,
+  .practice-ready,
+  .practice-expansion,
+  .tree-touch.just-bloomed .new-blossom {
+    animation: none;
+  }
+}

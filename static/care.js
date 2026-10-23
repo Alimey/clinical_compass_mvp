@@ -34,7 +34,7 @@ overview = function () {
   return isDoctor()
     ? html.replace(
         '<div class="stats-grid">',
-        appointmentStrip() + '<div class="stats-grid">',
+        doctorCalendar() + '<div class="stats-grid">',
       )
     : html;
 };

@@ -107,13 +107,17 @@ with tempfile.TemporaryDirectory() as temp:
             page.get_by_role("button", name="Все материалы").click()
             expect(page.locator(".notice")).to_contain_text("1 из 3")
             page.locator("#navigation [data-page=help]").click()
+            page.locator(".emotion-accordion").last.locator("summary").click()
             expect(page.get_by_role("link", name="Позвонить 112")).to_have_attribute(
                 "href", "tel:112"
             )
             assert "Сигнал отправлен" not in page.locator("#content").inner_text()
-            page.get_by_role("button", name="Спокойная пауза", exact=True).click()
-            expect(page.locator("#practice-time")).to_contain_text("1:00")
-            page.get_by_role("button", name="Пауза", exact=True).click()
+            page.locator("[data-ext=sub][data-group=help][data-key=calm]").click()
+            practice = page.locator("[data-practice=breathing]")
+            practice.locator("summary").click()
+            practice.get_by_role("button", name="Да, начать").click()
+            expect(practice.locator(".guided-clock")).to_contain_text("1:00")
+            practice.get_by_role("button", name="Пауза", exact=True).click()
             expect(
                 page.get_by_role("button", name="Продолжить", exact=True)
             ).to_be_visible()
@@ -121,20 +125,23 @@ with tempfile.TemporaryDirectory() as temp:
             page.clock.install()
             page.get_by_role("button", name="Продолжить", exact=True).click()
             page.clock.fast_forward(61000)
-            expect(page.locator("#practice-save")).to_be_visible()
-            page.locator("#practice-save").click()
+            expect(practice.locator("[data-experience=practice-save]")).to_be_visible()
+            practice.locator("[data-experience=practice-save]").click()
             expect(page.locator(".activity-row")).to_contain_text("Спокойная пауза")
             page.clock.resume()
             page.reload()
             expect(
                 page.get_by_role("heading", name="Здравствуйте, Александра")
             ).to_be_visible()
-            page.locator("#navigation [data-page=move]").click()
+            page.locator("#navigation [data-page=help]").click()
+            page.locator("[data-ext=sub][data-group=help][data-key=calm]").click()
             expect(page.locator(".activity-row")).to_contain_text("Спокойная пауза")
             page.locator("#navigation [data-page=learn]").click()
             expect(page.locator(".notice")).to_contain_text("1 из 3")
             page.go_back()
-            expect(page.get_by_role("heading", name="Пауза для себя")).to_be_visible()
+            expect(
+                page.get_by_role("heading", name="Дыхание и заземление")
+            ).to_be_visible()
             page.get_by_role("button", name="Включить тёмную тему").click()
             expect(page.locator("html")).to_have_attribute("data-theme", "dark")
             page.locator("#navigation [data-page=overview]").click()
@@ -155,7 +162,7 @@ with tempfile.TemporaryDirectory() as temp:
                 assert page.locator("#navigation").bounding_box()["width"] <= width
             page.evaluate("navigator.serviceWorker.ready")
             cached = page.evaluate(
-                """async()=>{const c=await caches.open('compass-shell-v6');return (await c.keys()).map(r=>new URL(r.url).pathname)}"""
+                """async()=>{const c=await caches.open('compass-shell-v7');return (await c.keys()).map(r=>new URL(r.url).pathname)}"""
             )
             assert (
                 "/static/psicompas.js" in cached and "/static/psicompas.css" in cached

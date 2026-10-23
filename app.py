@@ -297,6 +297,11 @@ def create_app(database=None, *, seed_demo=True, testing=False):
         )
         result = rows(
             f"""SELECT u.id,u.name,p.age,p.occupation,p.goal,
+            (SELECT MIN(stamp) FROM (
+                SELECT created_at AS stamp FROM reports WHERE patient_id=u.id
+                UNION ALL SELECT created_at FROM audit WHERE patient_id=u.id AND action='intake.completed'
+                UNION ALL SELECT created_at FROM encounters WHERE patient_id=u.id
+            )) AS observed_since,
             ((SELECT COUNT(*) FROM alerts a WHERE a.patient_id=u.id AND a.status='new') + (SELECT COUNT(*) FROM support_events s WHERE s.patient_id=u.id AND s.doctor_read_at IS NULL)) AS unread,
             (SELECT COUNT(*) FROM messages m WHERE m.patient_id=u.id AND m.sender_id!=? AND m.read_at IS NULL) AS unread_messages,
             (SELECT mood FROM reports r WHERE r.patient_id=u.id ORDER BY id DESC LIMIT 1) AS mood,

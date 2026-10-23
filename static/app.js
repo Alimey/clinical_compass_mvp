@@ -29,6 +29,7 @@ const paths = {
   send: "m22 2-7 20-4-9L2 9 22 2ZM22 2 11 13",
   plus: "M12 5v14M5 12h14",
   leaf: "M20 3C8 2 2 9 5 16s15 6 15-13ZM5 19 15 9",
+  run: "M15 4h.01M17 4a2 2 0 1 1-4 0 2 2 0 0 1 4 0ZM4 11l4-3 4 2 3-3 4 3h3M12 10l-3 5-5 5M10 14l5 2-1 6M3 15h3",
   info: "M12 11v6M12 7h.01M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0",
   alert: "m12 3 10 18H2L12 3ZM12 9v5M12 17h.01",
   sun: "M12 3v2M12 19v2M3 12h2M19 12h2M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0",
@@ -50,6 +51,29 @@ const date = (v) =>
     : "Пока нет записей";
 const shortDate = (v) =>
   new Date(v).toLocaleDateString("ru-RU", { day: "numeric", month: "short" });
+const patientNavigation = [
+  ["overview", "home", "Мой день"],
+  ["diary", "book", "Дневник"],
+  ["move", "run", "Движение"],
+  ["learn", "leaf", "Знания"],
+  ["help", "heart", "Помощь"],
+  ["messages", "chat", "Сообщения"],
+];
+const patientTools = [
+  ["schedule", "clock", "Мои встречи"],
+  ["settings", "info", "Настройки"],
+];
+function observationLabel(patient) {
+  return patient?.observed_since
+    ? "Наблюдается с " +
+        new Date(patient.observed_since).toLocaleDateString("ru-RU", {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+          timeZone: "Europe/Moscow",
+        })
+    : "Дата начала наблюдения не указана";
+}
 let state = {
   user: null,
   csrf: null,
@@ -249,7 +273,7 @@ function patientCards() {
     ? list
         .map(
           (p, i) =>
-            `<article class="card patient-card"><div class="profile-top">${avatar(p.name, i % 2 ? "lilac" : "mint")}<div><h3>${e(p.name)}</h3><p class="caption">${e(p.age || "—")} лет · ${e(p.occupation || "Демо-профиль")}</p></div></div>${badge(p)}<div class="mini-metrics"><div><small>Настроение</small><strong>${p.mood ?? "—"}<span> / 10</span></strong></div><div><small>Тревога</small><strong>${p.anxiety ?? "—"}<span> / 10</span></strong></div></div><p class="caption">Последняя запись: ${e(date(p.last_report))}</p><button class="button full" data-action="patient" data-id="${p.id}">Открыть карточку ${icon("arrow")}</button></article>`,
+            `<article class="card patient-card"><div class="profile-top">${avatar(p.name, i % 2 ? "lilac" : "mint")}<div><h3>${e(p.name)}</h3><p class="caption">${e(p.age || "—")} лет · ${p.observed_since ? "Наблюдается с " + e(shortDate(p.observed_since)) + " " + new Date(p.observed_since).getFullYear() : "Дата начала наблюдения не указана"}</p></div></div>${badge(p)}<div class="mini-metrics"><div><small>Настроение</small><strong>${p.mood ?? "—"}<span> / 10</span></strong></div><div><small>Тревога</small><strong>${p.anxiety ?? "—"}<span> / 10</span></strong></div></div><p class="caption">Последняя запись: ${e(date(p.last_report))}</p><button class="button full" data-action="patient" data-id="${p.id}">Открыть карточку ${icon("arrow")}</button></article>`,
         )
         .join("")
     : '<div class="empty">Пациенты не найдены. Измените поиск или фильтр.</div>';
@@ -322,7 +346,7 @@ function doctorCard() {
   if (state.tab === "audit")
     content = `<div class="card"><h2>Журнал действий</h2><p class="caption">Сохранённые события в хронологическом порядке, новые сверху. Это журнал демо, без гарантии неизменяемости.</p>${state.audit.length ? state.audit.map((a) => `<div class="journal-item"><time>${e(date(a.created_at))}</time><h3>${e(a.detail)}</h3><p>${e(a.actor_name)} · ${e(a.action)}</p></div>`).join("") : '<div class="empty">События появятся после действий в приложении</div>'}</div>`;
   if (state.tab === "overview") content += wellbeingSummary();
-  return `<button class="back-link" data-action="nav" data-page="patients">${icon("back")}Все пациенты</button><div class="profile-banner">${avatar(p.name, "mint", "large")}<div><p class="eyebrow">КАРТОЧКА ПАЦИЕНТА · #${p.id}</p><h1>${e(p.name)}</h1><p>${e(d.profile.age || "—")} лет · ${e(d.profile.occupation || "Демо-профиль")}</p></div>${badge(state.patients.find((x) => x.id === p.id) || {})}</div><div class="tabs" aria-label="Разделы карточки">${tabs.map(([id, title]) => `<button data-action="tab" data-tab="${id}" class="${state.tab === id ? "active" : ""}" aria-pressed="${state.tab === id}">${title}</button>`).join("")}</div>${content}`;
+  return `<button class="back-link" data-action="nav" data-page="patients">${icon("back")}Все пациенты</button><div class="profile-banner">${avatar(p.name, "mint", "large")}<div><p class="eyebrow">КАРТОЧКА ПАЦИЕНТА · #${p.id}</p><h1>${e(p.name)}</h1><p>${e(d.profile.age || "—")} лет · ${e(observationLabel(state.patients.find((x) => x.id === p.id)))}</p></div>${badge(state.patients.find((x) => x.id === p.id) || {})}</div><div class="tabs" aria-label="Разделы карточки">${tabs.map(([id, title]) => `<button data-action="tab" data-tab="${id}" class="${state.tab === id ? "active" : ""}" aria-pressed="${state.tab === id}">${title}</button>`).join("")}</div>${content}`;
 }
 function planPage(doctor = false) {
   const d = state.detail,
@@ -431,20 +455,13 @@ function render() {
         ["news", "info", "Новости"],
         ["forum", "users", "Форум"],
       ]
-    : [
-        ["overview", "home", "Мой день"],
-        ["diary", "book", "Дневник"],
-        ["move", "heart", "Движение"],
-        ["learn", "leaf", "Знания"],
-        ["help", "heart", "Помощь"],
-        ["messages", "chat", "Сообщения"],
-      ];
+    : patientNavigation;
   const roleNav =
     state.user.role === "relative"
       ? [
           ["overview", "heart", "Сигналы"],
           ["learn", "book", "Как помочь"],
-          ["contacts", "chat", "Куда звонить"],
+          ["contacts", "chat", "Полезные контакты"],
         ]
       : nav;
   $("#navigation").innerHTML = roleNav
@@ -456,7 +473,8 @@ function render() {
   $("#breadcrumb").textContent =
     state.page === "card"
       ? "Карточка пациента"
-      : nav.find((n) => n[0] === state.page)?.[2] || "Обзор";
+      : [...roleNav, ...patientTools].find((n) => n[0] === state.page)?.[2] ||
+        "Обзор";
   $("#account-avatar").textContent = initials(state.user.name);
   $("#account-avatar").title = state.user.name;
   const views = {
@@ -565,6 +583,9 @@ async function load() {
   state.escalations = escalations;
   state.wellbeing = wellbeing;
   state.workspace = workspace;
+  state.counterClockOffset = workspace.server_now
+    ? Date.now() - Date.parse(workspace.server_now)
+    : 0;
   state.letters = letters;
   state.forum = forum;
   state.research = research;
@@ -652,6 +673,23 @@ async function run(form, task) {
 }
 async function navigate(page, id) {
   if (busy) return;
+  if (state.user?.role === "patient") {
+    const alias = {
+      tree: ["move"],
+      surveys: ["diary", "diary", "scales"],
+      medications: ["diary", "diary", "meds"],
+      plan: ["diary", "diary", "meds"],
+      records: ["messages", "doctor", "records"],
+      consents: ["settings", "settings", "consents"],
+      about: ["settings", "settings", "about"],
+      tour: ["settings", "settings", "tour"],
+    }[page];
+    if (alias) {
+      page = alias[0];
+      if (alias[1])
+        state.sectionTabs = { ...state.sectionTabs, [alias[1]]: alias[2] };
+    }
+  }
   $("#notifications-panel").hidden = true;
   $("#notifications-button").setAttribute("aria-expanded", "false");
   state.page = page;

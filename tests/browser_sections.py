@@ -148,20 +148,20 @@ with tempfile.TemporaryDirectory() as temp:
             tab(pat, "help", "games")
             pat.get_by_role("button", name="Пузырёк 1", exact=True).click()
             expect(pat.locator("#bubble-count")).to_contain_text("1")
-            pat.get_by_role("button", name="Шарик в лунку", exact=True).click()
-            expect(pat.locator("#ball-board")).to_be_visible()
-            pat.locator("[data-ext=ball-move][data-key=right]").click()
-            expect(pat.locator("#game-ball")).to_have_attribute("cx", "28")
+            expect(
+                pat.get_by_role("button", name="Шарик в лунку", exact=True)
+            ).to_have_count(0)
             tab(pat, "help", "calm")
-            pat.get_by_role("button", name="Начать дыхание", exact=True).click()
+            rhythm = pat.locator("[data-practice=rhythm]")
+            rhythm.locator("summary").click()
+            rhythm.get_by_role("button", name="Да, начать").click()
             expect(pat.locator("#breath-phase")).to_contain_text("Вдох")
             pat.get_by_role("button", name="Остановить", exact=True).click()
             tab(pat, "help", "streak")
-            pat.locator("#streak-form [name=days]").fill("5")
-            submit(pat, "#streak-form")
-            expect(pat.locator("#content")).to_contain_text("Лучший результат: 5")
+            pat.get_by_role("button", name="Начать отсчёт").click()
+            expect(pat.locator("#streak-display")).to_contain_text("0 дн.")
             tab(pat, "help", "sos")
-            button = pat.locator("[data-ext=sos]")
+            button = pat.locator("[data-ext=sos]:visible")
             button.scroll_into_view_if_needed()
             box = button.bounding_box()
             pat.mouse.move(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
@@ -186,11 +186,12 @@ with tempfile.TemporaryDirectory() as temp:
             expect(pat.locator("#content")).to_contain_text(
                 "Синтетический пример включён"
             )
-            pat.locator("[data-ext=exercise-start][data-key=desk]").click()
-            for _ in range(3):
-                pat.locator("[data-ext=exercise-next]").click()
-            pat.locator("[data-ext=exercise-done]").click()
-            expect(pat.locator(".activity-row")).to_contain_text("Разминка за столом")
+            plan = pat.locator(".activity-plan-form[data-key=desk]")
+            plan.get_by_role("button", name="В календарь").click()
+            pat.locator(".planned-exercise").get_by_role(
+                "button", name="Выполнено", exact=True
+            ).click()
+            expect(pat.locator(".planned-exercise")).to_contain_text("✓ Выполнено")
             nav(doc, "research")
             expect(doc.locator("tbody")).to_contain_text("PK-")
             with doc.expect_download() as download:
@@ -200,7 +201,7 @@ with tempfile.TemporaryDirectory() as temp:
             doc.locator("#compatibility-form [name=egfr]").fill("20")
             submit(doc, "#compatibility-form")
             expect(doc.locator("#compatibility-result")).to_contain_text(
-                "Есть учебные ограничения"
+                "Нужна дополнительная проверка"
             )
             for key in ("scales", "rules", "literature"):
                 tab(doc, "reference", key)

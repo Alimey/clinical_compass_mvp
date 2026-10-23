@@ -18,11 +18,13 @@
     <link rel="apple-touch-icon" href="/static/icon-192.png" />
     <link rel="stylesheet" href="/static/style.css" />
     <link rel="stylesheet" href="/static/psicompas.css" />
+    <link rel="stylesheet" href="/static/experience.css" />
     <script src="/static/offline.js" defer></script>
     <script src="/static/app.js" defer></script>
     <script src="/static/care.js" defer></script>
     <script src="/static/psicompas.js" defer></script>
     <script src="/static/prototype-content.js" defer></script>
+    <script src="/static/experience.js" defer></script>
     <script src="/static/sections.js" defer></script>
     <title>ПсиКомпас · демо</title>
   </head>
@@ -114,6 +116,15 @@
           <span>Есть новые события</span
           ><button class="button quiet" data-action="refresh">
             Обновить данные
+          </button>
+        </div>
+        <div id="patient-safety-bar" class="patient-safety-bar" hidden>
+          <button
+            class="button danger hold-sos global-sos"
+            data-ext="sos"
+            aria-label="SOS: удерживайте полторы секунды"
+          >
+            <strong>SOS</strong><span>Удерживайте 1,5 сек.</span>
           </button>
         </div>
         <main id="content" tabindex="-1"></main>

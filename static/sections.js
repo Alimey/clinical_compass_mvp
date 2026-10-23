@@ -82,6 +82,7 @@ function extendedDiaryPage() {
   if (active === "meds")
     return (
       tabs +
+      planPage() +
       medicationsPage() +
       `<section class="card"><h2>Другой препарат · самоотметка</h2><p class="caption">В демонстрации вводите только вымышленные названия. Это не назначение специалиста.</p>${entryForm(
         "other_med",
@@ -115,7 +116,7 @@ const sectionPatientHome = patientOverview;
 patientOverview = function () {
   return sectionPatientHome().replace(
     '<section class="welcome-garden">',
-    `<div class="home-shortcuts"><button class="button" data-action="nav" data-page="consents">${icon("shield")}Мои согласия</button><button class="button danger hold-sos" data-ext="sos">Удерживайте · SOS</button></div><section class="welcome-garden">`,
+    `<div class="home-shortcuts"><button class="button" data-action="nav" data-page="consents">${icon("shield")}Мои согласия</button></div><section class="welcome-garden">`,
   );
 };
 const sectionDiary = diaryPage;
@@ -281,66 +282,15 @@ function extendedLearningPage() {
   );
 }
 
-let exerciseSession = null,
-  exerciseTicker = null,
-  breathingTicker = null;
+let breathingTicker = null;
 let breathingStarted = 0,
   breathingVoice = false,
   lastBreathPhase = -1;
 function extendedMovementPage() {
-  if (exerciseSession) {
-    const item = prototypeContent.exercises.find(
-      (i) => i.id === exerciseSession.key,
-    );
-    const step = item.steps[exerciseSession.step];
-    return (
-      heading(
-        item.name,
-        step[0],
-        `${exerciseSession.step + 1} из ${item.steps.length}`,
-      ) +
-      `<section class="card"><p>${e(step[1])}</p><p class="exercise-clock" id="exercise-time">${exerciseTime()}</p><div class="proposal-actions"><button class="button" data-ext="exercise-prev" ${exerciseSession.step === 0 ? "disabled" : ""}>Назад</button><button class="button primary" data-ext="${exerciseSession.step === item.steps.length - 1 ? "exercise-done" : "exercise-next"}">${exerciseSession.step === item.steps.length - 1 ? "Готово" : "Дальше"}</button><button class="button quiet" data-ext="exercise-close">Все упражнения</button></div><p class="caption">Двигайтесь в комфортном диапазоне, остановитесь при боли или дискомфорте. Отметка о выполнении — самоотчёт.</p></section>`
-    );
-  }
-  const points = carePoints();
-  const week = (state.wellbeing?.activities || [])
-    .filter((a) => Date.now() - new Date(a.created_at).getTime() < 7 * 86400000)
-    .reduce((n, a) => n + a.duration_seconds / 60, 0);
-  return (
-    heading(
-      "ДВИЖЕНИЕ",
-      "В своём ритме",
-      "Прогулки, зарядки и небольшие паузы.",
-    ) +
-    `<section class="card"><div class="garden-row">${treeArt(points)}<div><h2>Моё дерево</h2><p class="caption">Отметки добавляют цветы. Пропуски их не отнимают.</p><button class="button" data-action="nav" data-page="tree">Открыть дерево</button></div></div></section><section class="card"><h2>Активность за неделю</h2><strong>${Math.round(week)} мин отмечено</strong><p class="caption">Время по выбранным занятиям, не показание датчика и не персональная норма.</p></section><section class="card"><h2>Упражнения</h2>${prototypeContent.exercises.map((i) => `<button class="lesson-option card" data-ext="exercise-start" data-key="${i.id}"><span><strong>${e(i.name)} · ${i.min} мин</strong><small>${e(i.desc)}</small></span>${icon("arrow")}</button>`).join("")}</section>${wearableCard()}${movementPage()}`
-  );
+  return movementExperience();
 }
 function wearableCard() {
   return `<section class="card"><h2>Часы и фитнес-браслеты</h2><span class="chip neutral">${pref().wear ? "Синтетический пример включён" : "Устройство не подключено"}</span>${pref().wear ? `<div class="demo-measures">${pref().wear_steps ? "<span>Шаги<strong>6 420</strong>Активность: 24 мин</span>" : ""}${pref().wear_sleep ? "<span>Сон<strong>7,2 ч</strong>Синтетический пример</span>" : ""}${pref().wear_hr ? "<span>Пульс<strong>72</strong>Синтетический пример</span>" : ""}</div>` : ""}<p class="caption">Экран Health / Health Connect из макета сохранён как демонстрация. PWA не читает Apple Health или Health Connect напрямую.</p><button class="button" data-action="nav" data-page="consents">Управлять примером и согласиями</button></section>`;
-}
-function exerciseTime() {
-  const seconds = Math.max(
-    0,
-    Math.ceil((exerciseSession.end - Date.now()) / 1000),
-  );
-  return seconds
-    ? `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`
-    : "Можно продолжить";
-}
-function setExerciseStep() {
-  const item = prototypeContent.exercises.find(
-    (i) => i.id === exerciseSession.key,
-  );
-  exerciseSession.end =
-    Date.now() + (Number(item.steps[exerciseSession.step][2]) || 0) * 1000;
-  clearInterval(exerciseTicker);
-  exerciseTicker = setInterval(() => {
-    if (!state.user || state.page !== "move") {
-      clearInterval(exerciseTicker);
-      return;
-    }
-    if ($("#exercise-time")) $("#exercise-time").textContent = exerciseTime();
-  }, 500);
 }
 
 function safetyPlanPage(doctor = false) {
@@ -350,25 +300,20 @@ function safetyPlanPage(doctor = false) {
   if (doctor)
     html += `<section class="card"><form id="safety-plan-form">${planLabels.map(([k, t]) => `<label>${t}<textarea name="${k}" rows="3" required maxlength="1500">${e(plan?.body[k] || "")}</textarea></label>`).join("")}<button class="button primary" type="submit">Сохранить план безопасности</button></form></section>`;
   else if (plan)
-    html += planLabels
-      .map(
-        ([k, t], i) =>
-          `<section class="card"><h2>${i + 1}. ${t}</h2><p class="report-text">${e(plan.body[k])}</p></section>`,
-      )
-      .join("");
+    html += `<section class="card"><ol class="safety-plan-steps">${planLabels.map(([k, t]) => `<li><h3>${t}</h3><p class="report-text">${e(plan.body[k])}</p></li>`).join("")}</ol></section>`;
   html += `<section class="card"><h2>Соглашение о сопровождении</h2><p class="caption">Учебная фиксация договорённостей, без квалифицированной электронной подписи.</p>${agreement ? `<p class="report-text">${e(agreement.body)}</p><p class="caption">До ${e(clinicDate(agreement.ends_on))} · специалист ознакомил ${e(clinicDate(agreement.created_at))}</p><span class="chip ${agreement.patient_signed_at ? "green" : "amber"}">${agreement.patient_signed_at ? "Пациент ознакомился " + e(clinicDate(agreement.patient_signed_at)) : "Ожидает ознакомления пациента"}</span>${!doctor && !agreement.patient_signed_at && new Date(agreement.ends_on) > new Date() ? '<button class="button primary full" data-ext="agreement-accept">Ознакомился(ась) с условиями</button>' : ""}` : '<p class="muted">Договорённостей пока нет.</p>'}${doctor ? `<details><summary>Предложить новое соглашение</summary><form id="agreement-form"><label>Что согласовано<textarea name="body" required maxlength="3000" rows="6">Врач и пациент обсуждают записи на встречах. Ответы в чате — в согласованное рабочее время. При непосредственной опасности пациент обращается за экстренной помощью.</textarea></label><label>Срок, дней<input name="days" type="number" min="1" max="365" value="28" required></label><button class="button primary" type="submit">Сохранить соглашение</button></form></details>` : ""}</section>`;
   return html;
 }
 const emotionSteps = {
   panic: [
-    "Накатывает паника · ВОЛНА",
+    "Накатывает паника",
     "Почувствуйте опору под ногами. Можно сесть в удобном месте.",
     "Назовите про себя, что чувствуете, без необходимости это менять.",
     "Дышите в комфортном ритме, посмотрите на знакомые предметы.",
     "Если становится хуже или непонятна причина физических симптомов, обратитесь за медицинской помощью.",
   ],
   anger: [
-    "Злюсь · СТОП",
+    "Злюсь",
     "Остановитесь на короткую паузу, если это безопасно.",
     "Отойдите от ситуации, не принимая резких решений.",
     "Заметьте ощущения и выберите одно посильное действие.",
@@ -380,7 +325,7 @@ const emotionSteps = {
     "Можно написать человеку, которому доверяете.",
   ],
   harm: [
-    "Хочу навредить себе · ПАУЗА",
+    "Хочу навредить себе",
     "Если есть непосредственная опасность, звоните 112 или в местную экстренную службу сейчас.",
     "По возможности перейдите в более безопасное место и свяжитесь с человеком, которому доверяете.",
     "Откройте согласованный план безопасности. Не оставайтесь с этим в одиночку.",
@@ -400,16 +345,7 @@ function extendedHelpPage() {
     ],
     "now",
   );
-  if (active === "plan")
-    return (
-      heading(
-        "САМОПОМОЩЬ",
-        "План безопасности",
-        "Договорённости со специалистом.",
-      ) +
-      tabs +
-      safetyPlanPage()
-    );
+  if (active === "plan") return tabs + safetyPlanPage();
   if (active === "calm")
     return (
       heading(
@@ -418,7 +354,7 @@ function extendedHelpPage() {
         "Остановитесь, если некомфортно.",
       ) +
       tabs +
-      `<section class="card"><h2>Дыхание 4 · 2 · 6</h2><label class="consent-switch"><input type="checkbox" id="breath-voice" ${breathingVoice ? "checked" : ""}><span>Голос · если поддерживается браузером</span></label><div class="breath-space"><div class="breathing-orb ${breathingTicker ? "running" : ""}"><span id="breath-phase">${breathingTicker ? "В своём ритме" : "Готовы?"}</span></div></div><p class="caption">Вдох 4, необязательная пауза 2, выдох 6. Можно пропустить задержку и дышать привычно.</p><button class="button primary" data-ext="breath-toggle">${breathingTicker ? "Остановить" : "Начать дыхание"}</button></section><section class="card"><h2>Заземление «5-4-3-2-1»</h2><p>${["Найдите 5 вещей, которые видите", "Заметьте 4 поверхности, которых можете коснуться", "Назовите 3 звука, которые слышите", "Заметьте 2 запаха, если удобно", "Заметьте 1 вкус или ощущение опоры", "Готово. Можно вернуться к своему дню."][state.groundStep || 0]}</p><button class="button" data-ext="ground-next">${(state.groundStep || 0) >= 5 ? "Ещё раз" : "Дальше"}</button></section>`
+      calmPractices()
     );
   if (active === "games")
     return (
@@ -441,30 +377,25 @@ function extendedHelpPage() {
       streakPage()
     );
   if (active === "sos")
-    return (
-      heading(
-        "ПОДДЕРЖКА",
-        "SOS и контакты",
-        "Приложение не заменяет экстренную связь.",
-      ) +
-      tabs +
-      sosPage() +
-      contactsPage() +
-      trustedForm()
-    );
-  const choice = emotionSteps[state.emotion];
-  const steps = choice
-    ? `<section class="card"><h2>${choice[0]}</h2><p>${choice[Math.min((state.emotionStep || 0) + 1, choice.length - 1)]}</p><div class="proposal-actions"><button class="button" data-ext="emotion-next">Следующий шаг</button><button class="button quiet" data-ext="emotion-close">Закрыть</button></div></section>`
-    : Object.entries(emotionSteps)
-        .map(
-          ([k, v]) =>
-            `<button class="card lesson-option" data-ext="emotion" data-key="${k}"><strong>${v[0]}</strong>${icon("arrow")}</button>`,
-        )
-        .join("");
-  return tabs + steps + helpPage();
+    return tabs + sosPage() + trustedForm() + contactsPage();
+  return (
+    heading("САМОПОМОЩЬ", "Как вы сейчас?", "") +
+    tabs +
+    `<div class="emotion-list">${Object.entries(emotionSteps)
+      .map(
+        ([key, steps]) =>
+          `<details class="card emotion-accordion"><summary>${steps[0]}${icon("plus")}</summary><ol>${steps
+            .slice(1)
+            .map((s) => `<li>${e(s)}</li>`)
+            .join(
+              "",
+            )}</ol>${key === "harm" ? '<a class="button danger" href="tel:112">Позвонить 112</a>' : ""}</details>`,
+      )
+      .join("")}</div>`
+  );
 }
 function sosPage() {
-  return `<section class="notice urgent-help"><h2>Тревожная кнопка</h2><p>Запрос сохранится в приложении и создаст уведомление специалисту. Близкий увидит его, если вы разрешили доступ. Это не вызов скорой помощи и не гарантия немедленного ответа.</p><button class="button danger hold-sos" data-ext="sos" aria-label="Отправить SOS: удерживайте полторы секунды">Удерживайте 1,5 секунды · SOS</button><p class="caption">С клавиатуры: нажмите Enter и подтвердите. Геопозиция не определяется.</p>${(
+  return `<section class="card sos-focus"><h2>Тревожная кнопка</h2><button class="button danger hold-sos sos-large" data-ext="sos" aria-label="Отправить SOS: удерживайте полторы секунды">Удерживайте 1,5 секунды</button><p class="caption">Сообщение врачу и разрешённому близкому внутри приложения. При непосредственной опасности звоните 112.</p>${(
     ws().events || []
   )
     .filter((v) => v.kind === "sos")
@@ -491,79 +422,11 @@ function trustedForm() {
 }
 function streakPage() {
   const p = pref();
-  const days = p.streak_start
-    ? Math.max(
-        0,
-        Math.floor((Date.now() - new Date(p.streak_start)) / 86400000),
-      )
-    : 0;
-  return (
-    demoNote(
-      "Счётчик не оценивает вашу ценность или успех лечения. Любое прожитое время остаётся важным. При непосредственной опасности — 112.",
-    ) +
-    `<section class="card">${p.streak_on ? `<h2>Дней без самоповреждения</h2><strong class="exercise-clock">${days}</strong><p>Лучший результат: ${Math.max(days, p.streak_best || 0)}</p><button class="button" data-ext="streak-restart">Начать новый отсчёт</button><button class="button quiet" data-ext="streak-off">Выключить</button>` : `<h2>Включить по желанию</h2><form id="streak-form"><label>Сколько дней уже прошло<input name="days" type="number" min="0" max="36500" value="0" required></label><button class="button primary" type="submit">Включить счётчик</button></form>`}</section>`
-  );
+  return `<section class="card stopwatch-card"><p>Личный отсчёт времени с выбранного вами момента — например, начала периода без самоповреждения. Пользуйтесь им, если это помогает; он не оценивает успешность лечения.</p>${p.streak_on && p.streak_start ? `<output id="streak-display" class="stopwatch" aria-label="Прошло времени">${stopwatchValue()}</output><div class="proposal-actions"><button class="button" data-ext="streak-restart">Начать заново</button><button class="button quiet" data-ext="streak-off">Остановить отсчёт</button></div>` : '<button class="button primary" data-experience="streak-start">Начать отсчёт</button>'}</section>`;
 }
 function gamesPage() {
-  const mode = state.gameMode || "bubbles";
-  if (mode === "ball")
-    return `<section class="card"><div class="proposal-actions"><button class="button" data-ext="game-mode" data-key="bubbles">Пузырьки</button><button class="button primary" data-ext="game-mode" data-key="ball">Шарик в лунку</button><button class="button" data-ext="game-mode" data-key="memory">Найди пару</button></div><h2>Шарик в лунку</h2><p class="caption">Ведите шарик пальцем или используйте стрелки. Без проигрышей и ограничений по времени.</p><svg id="ball-board" class="ball-board" viewBox="0 0 100 100" role="img" aria-label="Поле: шарик и лунка"><rect width="100" height="100" rx="5" fill="var(--surface-2)"/><circle cx="80" cy="20" r="10" fill="var(--line)"/><circle id="game-ball" cx="${state.ballX || 20}" cy="${state.ballY || 80}" r="6" fill="var(--accent)"/></svg><div class="proposal-actions">${[
-      ["left", "←"],
-      ["up", "↑"],
-      ["down", "↓"],
-      ["right", "→"],
-    ]
-      .map(
-        ([key, t]) =>
-          `<button class="button" data-ext="ball-move" data-key="${key}" aria-label="Шарик: ${key}">${t}</button>`,
-      )
-      .join(
-        "",
-      )}</div><p class="caption" id="ball-status">Закатите шарик в лунку.</p></section>`;
-  if (mode === "memory") {
-    if (!state.memoryCards) resetMemory();
-    return `<section class="card"><div class="proposal-actions"><button class="button" data-ext="game-mode" data-key="bubbles">Пузырьки</button><button class="button primary" data-ext="game-mode" data-key="memory">Найди пару</button><button class="button" data-ext="game-mode" data-key="ball">Шарик в лунку</button></div><h2>Найди пару</h2><div class="memory-grid">${state.memoryCards.map((v, i) => `<button class="memory-card" data-ext="memory" data-index="${i}" aria-label="Карточка ${i + 1}" ${state.memoryMatched?.includes(i) ? "disabled" : ""}>${state.memoryOpen?.includes(i) || state.memoryMatched?.includes(i) ? v : "?"}</button>`).join("")}</div><button class="button" data-ext="memory-reset">Начать заново</button></section>`;
-  }
-  return `<section class="card"><div class="proposal-actions"><button class="button primary" data-ext="game-mode" data-key="bubbles">Пузырьки</button><button class="button" data-ext="game-mode" data-key="memory">Найди пару</button><button class="button" data-ext="game-mode" data-key="ball">Шарик в лунку</button></div><h2>Пузырьки</h2><p class="caption">Коснитесь любого кружка. Можно остановиться в любой момент.</p><div class="bubble-grid">${Array.from({ length: 16 }, (_, i) => `<button class="bubble b${i % 4}" data-ext="bubble" aria-label="Пузырёк ${i + 1}">○</button>`).join("")}</div><p id="bubble-count" class="caption">Касаний: ${state.bubbles || 0}</p></section>`;
+  return `<section class="card"><h2>Пузырьки</h2><p class="caption">Касайтесь пузырьков, чтобы немного переключиться.</p><div class="bubble-field">${Array.from({ length: 20 }, (_, i) => `<button class="bubble ${i % 3 === 0 ? "big" : ""}" data-ext="bubble" aria-label="Пузырёк ${i + 1}"></button>`).join("")}</div><p id="bubble-count" class="caption">Касаний: ${state.bubbles || 0}</p></section>`;
 }
-function resetMemory() {
-  state.memoryCards = ["☀", "☀", "✿", "✿", "◇", "◇", "☁", "☁"].sort(
-    () => Math.random() - 0.5,
-  );
-  state.memoryOpen = [];
-  state.memoryMatched = [];
-}
-function moveBall(x, y) {
-  state.ballX = Math.max(6, Math.min(94, x));
-  state.ballY = Math.max(6, Math.min(94, y));
-  const ball = $("#game-ball");
-  if (ball) {
-    ball.setAttribute("cx", state.ballX);
-    ball.setAttribute("cy", state.ballY);
-  }
-  if (Math.hypot(state.ballX - 80, state.ballY - 20) < 9 && $("#ball-status"))
-    $("#ball-status").textContent = "Получилось! Можно покатать шарик ещё.";
-}
-document.addEventListener("pointerdown", (event) => {
-  const board = event.target.closest("#ball-board");
-  if (board) {
-    board.setPointerCapture(event.pointerId);
-    moveBallFromPointer(board, event);
-  }
-});
-document.addEventListener("pointermove", (event) => {
-  const board = event.target.closest("#ball-board");
-  if (board && board.hasPointerCapture(event.pointerId))
-    moveBallFromPointer(board, event);
-});
-function moveBallFromPointer(board, event) {
-  const r = board.getBoundingClientRect();
-  moveBall(
-    ((event.clientX - r.left) * 100) / r.width,
-    ((event.clientY - r.top) * 100) / r.height,
-  );
-}
-
 function consentsPage() {
   const p = pref();
   const toggle = (key, title, description) =>
@@ -587,10 +450,12 @@ function extendedMessagesPage() {
       ["chat", "Чат"],
       ["mail", "Письма"],
       ["ai", "Помощник"],
+      ["records", "Моя карта"],
     ],
     "chat",
   );
   if (active === "chat") return tabs + messagesPage();
+  if (active === "records") return tabs + recordsPage();
   if (active === "mail")
     return (
       heading(
@@ -674,24 +539,10 @@ function referencePage() {
     heading(
       "ИНСТРУМЕНТЫ ВРАЧА",
       "Калькулятор совместимости",
-      "Только вымышленные варианты и демонстрационные правила.",
+      "Выберите пациента или задайте характеристики учебного сценария.",
     ) +
     tabs +
-    `<section class="card"><form id="compatibility-form"><label>Вариант<select name="choice">${state.detail.catalog.map((c) => `<option value="${c.id}">${e(c.name)}</option>`).join("")}</select></label><div class="form-grid"><label>Возраст<input name="age" type="number" min="0" max="120" value="40" required></label><label>СКФ · учебное поле<input name="egfr" type="number" min="0" max="200" value="90" required></label></div><label>Печень · учебное поле<select name="liver"><option>Нет ограничений</option><option>Есть ограничение</option></select></label>${[
-      ["pregnancy", "Беременность / лактация"],
-      ["epilepsy", "Эпилепсия"],
-      ["cardio", "Сердечно-сосудистые заболевания"],
-      ["diabetes", "Диабет"],
-      ["allergy", "Учебная несовместимость с вариантом"],
-      ["interaction", "Другой вымышленный вариант с взаимодействием"],
-    ]
-      .map(
-        ([k, l]) =>
-          `<label class="consent-switch"><input name="${k}" type="checkbox"><span>${l}</span></label>`,
-      )
-      .join(
-        "",
-      )}<label>Сопутствующие варианты<textarea name="meds" rows="2" maxlength="500" placeholder="Только вымышленные названия"></textarea></label><button class="button primary" type="submit">Рассчитать учебный сценарий</button></form><div id="compatibility-result"></div><p class="caption">Форма демонстрирует проверку ограничений из макета. Числовые пороги придуманы и не применимы к реальным препаратам.</p></section>`
+    compatibilityCalculator()
   );
 }
 function newsPage() {
@@ -791,6 +642,26 @@ function relativeLearningPage() {
 
 const sectionSettings = settingsPage;
 settingsPage = function () {
+  if (state.user.role === "patient") {
+    const tabs = sectionTabs(
+      "settings",
+      [
+        ["general", "Настройки"],
+        ["consents", "Мои согласия"],
+        ["about", "О проекте"],
+        ["tour", "Сценарий"],
+      ],
+      "general",
+    );
+    return (
+      tabs +
+      (
+        { consents: consentsPage, about: aboutPage, tour: tourPage }[
+          sub("settings", "general")
+        ] || sectionSettings
+      )()
+    );
+  }
   if (state.user.role === "relative")
     return (
       heading(
@@ -947,12 +818,15 @@ decoratePsicompas = function () {
     }
   }
   if (state.page !== "help" || sub("help", "now") !== "calm") stopBreathing();
+  decorateExperience();
 };
 const sectionClear = clearSession;
 clearSession = function () {
+  stopGuidedExercise();
+  clearInterval(streakTicker);
+  flowerBusy = false;
+  $("#patient-safety-bar").hidden = true;
   stopBreathing();
-  clearInterval(exerciseTicker);
-  exerciseSession = null;
   sectionClear();
   for (const key of [
     "workspace",
@@ -968,6 +842,13 @@ clearSession = function () {
     "memoryCards",
     "memoryOpen",
     "memoryMatched",
+    "activityDay",
+    "activityMonth",
+    "doctorDay",
+    "doctorMonth",
+    "compatibilityPatient",
+    "compatibilityProfile",
+    "counterClockOffset",
   ])
     delete state[key];
 };
@@ -1007,10 +888,24 @@ let sosTimer = null,
   sosHeld = false;
 document.addEventListener("pointerdown", (event) => {
   const b = event.target.closest('[data-ext="sos"]');
-  if (!b || !state.user || busy) return;
+  if (
+    !b ||
+    b.disabled ||
+    event.button !== 0 ||
+    state.user?.role !== "patient" ||
+    busy
+  )
+    return;
+  clearTimeout(sosTimer);
   sosHeld = false;
   b.classList.add("holding");
   sosTimer = setTimeout(() => {
+    if (
+      !document.contains(b) ||
+      document.hidden ||
+      state.user?.role !== "patient"
+    )
+      return;
     sosHeld = true;
     b.classList.remove("holding");
     sendSos(b);
@@ -1026,14 +921,14 @@ for (const name of ["pointerup", "pointercancel"])
 document.addEventListener("pointerout", (event) => {
   if (
     event.target.closest?.('[data-ext="sos"]') &&
-    !event.target.contains(event.relatedTarget)
+    !event.target.closest('[data-ext="sos"]').contains(event.relatedTarget)
   ) {
     clearTimeout(sosTimer);
     event.target.closest('[data-ext="sos"]').classList.remove("holding");
   }
 });
 async function sendSos(button) {
-  if (busy) return;
+  if (busy || state.user?.role !== "patient") return;
   busy = true;
   button.disabled = true;
   try {
@@ -1130,70 +1025,14 @@ document.addEventListener("click", async (event) => {
       }
       render();
       tickBreathing();
-    } else if (a === "game-mode") {
-      state.gameMode = k;
-      render();
-    } else if (a === "ball-move") {
-      moveBall(
-        (state.ballX || 20) + ({ left: -8, right: 8 }[k] || 0),
-        (state.ballY || 80) + ({ up: -8, down: 8 }[k] || 0),
-      );
     } else if (a === "bubble") {
       state.bubbles = (state.bubbles || 0) + 1;
       b.classList.toggle("popped");
       $("#bubble-count").textContent = "Касаний: " + state.bubbles;
-    } else if (a === "memory-reset") {
-      resetMemory();
-      render();
-    } else if (a === "memory") {
-      if (state.memoryOpen.length >= 2) return;
-      const i = Number(b.dataset.index);
-      if (state.memoryOpen.includes(i)) return;
-      state.memoryOpen.push(i);
-      render();
-      if (state.memoryOpen.length === 2) {
-        const [x, y] = state.memoryOpen;
-        if (state.memoryCards[x] === state.memoryCards[y]) {
-          state.memoryMatched.push(x, y);
-          state.memoryOpen = [];
-          render();
-        } else
-          setTimeout(() => {
-            state.memoryOpen = [];
-            if (state.user && state.page === "help") render();
-          }, 800);
-      }
-    } else if (a === "exercise-start") {
-      exerciseSession = { key: k, step: 0, end: 0 };
-      setExerciseStep();
-      render();
-    } else if (a === "exercise-next" || a === "exercise-prev") {
-      exerciseSession.step += a === "exercise-next" ? 1 : -1;
-      setExerciseStep();
-      render();
-    } else if (a === "exercise-close") {
-      clearInterval(exerciseTicker);
-      exerciseSession = null;
-      render();
-    } else if (a === "exercise-done") {
-      await write("/api/patients/" + state.selected + "/wellbeing", {
-        activity: exerciseSession.key,
-      });
-      clearInterval(exerciseTicker);
-      exerciseSession = null;
-      await load();
-      toast("Занятие отмечено выполненным");
     } else if (a === "streak-off") await savePreference({ streak_on: false });
     else if (a === "streak-restart") {
-      const best = Math.max(
-        pref().streak_best || 0,
-        Math.floor((Date.now() - new Date(pref().streak_start)) / 86400000),
-      );
-      await savePreference({
-        streak_start: new Date().toISOString(),
-        streak_best: best,
-        streak_on: true,
-      });
+      await write(`/api/patients/${state.selected}/counter/start`, {});
+      await load();
       toast("Начат новый отсчёт. Предыдущий опыт остаётся важным.");
     } else if (a === "sos" && event.detail === 0) {
       if (
@@ -1328,28 +1167,7 @@ document.addEventListener("submit", (event) => {
       render();
       toast("Ответ опубликован");
     });
-  if (f.id === "compatibility-form") {
-    const checks = [];
-    if (Number(data.age) < 18)
-      checks.push("Возраст младше 18: учебное ограничение");
-    if (Number(data.egfr) < 30) checks.push("СКФ ниже 30: учебное ограничение");
-    if (f.elements.allergy.checked)
-      checks.push("Отмечена учебная несовместимость");
-    if (f.elements.interaction.checked)
-      checks.push("Отмечено вымышленное взаимодействие");
-    if (
-      f.elements.pregnancy.checked ||
-      f.elements.epilepsy.checked ||
-      f.elements.cardio.checked ||
-      f.elements.diabetes.checked ||
-      data.liver !== "Нет ограничений"
-    )
-      checks.push(
-        "Требуется рассмотрение дополнительных факторов в учебном сценарии",
-      );
-    $("#compatibility-result").innerHTML =
-      `<div class="notice ${checks.length ? "urgent-help" : "info"}"><h2>${checks.length ? "Есть учебные ограничения" : "Учебные ограничения не отмечены"}</h2>${checks.map((v) => `<p>${v}</p>`).join("")}<p>Результат относится только к вымышленному сценарию, не определяет безопасность реального препарата и не меняет план.</p></div>`;
-  }
+  if (f.id === "compatibility-form") showCompatibility(f);
   if (f.id === "scale-guide-form") {
     const gad = Number(data.gad7),
       phq = Number(data.phq9),

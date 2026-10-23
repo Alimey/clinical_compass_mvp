@@ -181,6 +181,7 @@ def register_sections(app, patient, require_role, payload, text, write_once):
         )
         agreement = rows("SELECT * FROM care_agreements WHERE patient_id=?", (ident,))
         return jsonify(
+            server_now=now(),
             preferences=public_prefs,
             entries=[entry(r) for r in entries],
             assessments=scales,
@@ -208,6 +209,23 @@ def register_sections(app, patient, require_role, payload, text, write_once):
             ),
             code=code(ident),
         )
+
+    @app.post("/api/patients/<int:ident>/counter/start")
+    def start_counter(ident):
+        patient(ident)
+        require_role("patient")
+        data = payload()
+
+        def save():
+            prefs = preferences(ident)
+            prefs.update(streak_on=True, streak_start=now())
+            db().execute(
+                "INSERT INTO patient_preferences VALUES(?,?) ON CONFLICT(patient_id) DO UPDATE SET settings_json=excluded.settings_json",
+                (ident, json.dumps(prefs)),
+            )
+            return {"ok": True}, 200
+
+        return write_once(data, save)
 
     @app.post("/api/patients/<int:ident>/preferences")
     def save_preferences(ident):
@@ -460,7 +478,7 @@ def register_sections(app, patient, require_role, payload, text, write_once):
             event_id = create_event(
                 account,
                 "sos",
-                "Пациент попросил связаться через кнопку SOS. Это не вызов экстренной службы.",
+                "Мне сейчас нужна поддержка. Пожалуйста, свяжитесь со мной. Запрос отправлен через кнопку SOS; экстренная служба не вызвана.",
             )
             return {"id": event_id, "status": "saved", "emergency_called": False}, 201
 
