@@ -14,26 +14,85 @@ let flowerQueue = Promise.resolve(),
   flowerSerial = 0,
   insightRequest = 0;
 const pendingFlowers = new Map();
+const treeTapAnimations = new WeakMap();
+const treeMotionPreference = matchMedia("(prefers-reduced-motion: reduce)");
+treeMotionPreference.addEventListener("change", () => {
+  if (treeMotionPreference.matches)
+    document
+      .querySelectorAll(".tree-tap, .flower-bloom")
+      .forEach((node) =>
+        node.getAnimations().forEach((animation) => animation.cancel()),
+      );
+});
 const newPracticeId = () =>
   globalThis.crypto?.randomUUID?.() ||
   Date.now() + "-" + Math.random().toString(36).slice(2);
 function flowerDots(flower) {
-  return `<g data-flower="${e(flower.id)}"><circle cx="${Number(flower.x).toFixed(2)}" cy="${Number(flower.y).toFixed(2)}" r="6" fill="#f2a3b9"/><circle cx="${(Number(flower.x) + 7).toFixed(2)}" cy="${(Number(flower.y) - 5).toFixed(2)}" r="4" fill="#e77f9e"/></g>`;
+  const radius = Number(flower.radius) || 6;
+  return `<g data-flower="${e(flower.id)}" transform="translate(${Number(flower.x).toFixed(2)} ${Number(flower.y).toFixed(2)})"><g class="flower-bloom"><circle cx="0" cy="0" r="${radius.toFixed(2)}" fill="#f2a3b9"/><circle cx="${(radius * 1.16).toFixed(2)}" cy="${(-radius * 0.83).toFixed(2)}" r="${(radius * 0.66).toFixed(2)}" fill="#e77f9e"/></g></g>`;
 }
-function treeFlowerMarkup() {
+function visibleTreeFlowers() {
   return [
     ...(state.wellbeing?.tree_flowers || []),
     ...Array.from(pendingFlowers.values()).filter(
       (f) => f.owner === state.user?.id,
     ),
-  ]
-    .map(flowerDots)
-    .join("");
+  ];
+}
+function treeFlowerMarkup() {
+  return visibleTreeFlowers().map(flowerDots).join("");
 }
 function syncTreeFlowers() {
+  const flowers = visibleTreeFlowers(),
+    wanted = new Set(flowers.map((f) => String(f.id)));
+  document.querySelectorAll(".tree-flowers").forEach((group) => {
+    const existing = new Set();
+    for (const node of [...group.children]) {
+      if (!wanted.has(node.dataset.flower)) node.remove();
+      else existing.add(node.dataset.flower);
+    }
+    for (const flower of flowers)
+      if (!existing.has(String(flower.id)))
+        group.insertAdjacentHTML("beforeend", flowerDots(flower));
+  });
+}
+function animateTreeTap(button, flower) {
+  if (treeMotionPreference.matches) return;
+  const tree = button.querySelector(".tree-tap");
+  if (!tree?.animate) return;
+  const previous = treeTapAnimations.get(tree),
+    start = getComputedStyle(tree).transform;
+  previous?.cancel();
+  const direction = flower.x < 150 ? 1 : -1;
+  treeTapAnimations.set(
+    tree,
+    tree.animate(
+      [
+        { transform: start },
+        { transform: `rotate(${direction * 2.5}deg)`, offset: 0.16 },
+        { transform: `rotate(${direction * -1.7}deg)`, offset: 0.4 },
+        { transform: `rotate(${direction * 0.9}deg)`, offset: 0.64 },
+        { transform: `rotate(${direction * -0.35}deg)`, offset: 0.83 },
+        { transform: "rotate(0deg)" },
+      ],
+      { duration: 950, easing: "ease-in-out" },
+    ),
+  );
   document
-    .querySelectorAll(".tree-flowers")
-    .forEach((group) => (group.innerHTML = treeFlowerMarkup()));
+    .querySelectorAll(
+      `.tree-flowers [data-flower="${flower.id}"] .flower-bloom`,
+    )
+    .forEach((node) =>
+      node.animate(
+        [
+          { transform: "scale(.12)", opacity: 0 },
+          { transform: "scale(1.22)", opacity: 1, offset: 0.55 },
+          { transform: "scale(.94)", offset: 0.8 },
+          { transform: "scale(1)", opacity: 1 },
+        ],
+        { duration: 620, easing: "ease-out" },
+      ),
+    );
 }
 function plantFlower(event, button) {
   const owner = state.user.id,
@@ -49,9 +108,11 @@ function plantFlower(event, button) {
     owner,
     x: Math.max(7, Math.min(290, point.x)),
     y: Math.max(7, Math.min(290, point.y)),
+    radius: Number((4.5 + Math.random() * 4.5).toFixed(2)),
   };
   pendingFlowers.set(flower.id, flower);
   syncTreeFlowers();
+  animateTreeTap(button, flower);
   flowerQueue = flowerQueue
     .catch(() => {})
     .then(async () => {
@@ -62,7 +123,7 @@ function plantFlower(event, button) {
       try {
         const result = await api(
           `/api/patients/${patient}/tree`,
-          { x: flower.x, y: flower.y },
+          { x: flower.x, y: flower.y, radius: flower.radius },
           { "Idempotency-Key": flower.id + "-" + owner + "-" + Date.now() },
         );
         if (state.user?.id !== owner) return;
@@ -71,6 +132,9 @@ function plantFlower(event, button) {
         if (!flowers.some((f) => f.id === result.flower.id))
           flowers.push(result.flower);
         state.wellbeing.tree_flowers = flowers.slice(-120);
+        document
+          .querySelectorAll(`.tree-flowers [data-flower="${flower.id}"]`)
+          .forEach((node) => (node.dataset.flower = String(result.flower.id)));
       } catch (error) {
         if (state.user?.id === owner)
           toast("Не удалось сохранить цветок. " + error.message, true);

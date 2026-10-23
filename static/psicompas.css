@@ -2900,6 +2900,12 @@ dialog .caption {
   overflow: visible;
   pointer-events: none;
 }
+.tree-tap {
+  transform-origin: 150px 278px;
+}
+.flower-bloom {
+  transform-origin: 0 0;
+}
 .animated-tree .tree-crown {
   transform-origin: 150px 278px;
   animation: tree-sway 6s ease-in-out infinite;

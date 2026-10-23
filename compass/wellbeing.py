@@ -58,6 +58,10 @@ def init_wellbeing():
         );
     """
     )
+    if "radius" not in {r[1] for r in con.execute("PRAGMA table_info(tree_flowers)")}:
+        con.execute(
+            "ALTER TABLE tree_flowers ADD COLUMN radius REAL NOT NULL DEFAULT 6"
+        )
     con.commit()
 
 
@@ -87,7 +91,7 @@ def register_wellbeing(app, patient, require_role, payload, write_once):
             lessons=lessons,
             tree_blossoms=tree[0]["blossoms"] if tree else 0,
             tree_flowers=rows(
-                "SELECT id,x,y FROM tree_flowers WHERE patient_id=? ORDER BY id",
+                "SELECT id,x,y,radius FROM tree_flowers WHERE patient_id=? ORDER BY id",
                 (ident,),
             ),
             practice_count=db()
@@ -105,6 +109,7 @@ def register_wellbeing(app, patient, require_role, payload, write_once):
         require_role("patient")
         data = payload()
         x, y = data.get("x", 150), data.get("y", 110)
+        radius = data.get("radius", 6)
         if any(
             type(value) not in (int, float)
             or not math.isfinite(value)
@@ -112,6 +117,12 @@ def register_wellbeing(app, patient, require_role, payload, write_once):
             for value in (x, y)
         ):
             raise ValueError("Проверьте место касания дерева")
+        if (
+            type(radius) not in (int, float)
+            or not math.isfinite(radius)
+            or not 3 <= radius <= 10
+        ):
+            raise ValueError("Проверьте размер цветка")
 
         def save():
             db().execute(
@@ -123,7 +134,8 @@ def register_wellbeing(app, patient, require_role, payload, write_once):
                 "SELECT blossoms FROM care_trees WHERE patient_id=?", (ident,)
             )[0]["blossoms"]
             cur = db().execute(
-                "INSERT INTO tree_flowers(patient_id,x,y) VALUES(?,?,?)", (ident, x, y)
+                "INSERT INTO tree_flowers(patient_id,x,y,radius) VALUES(?,?,?,?)",
+                (ident, x, y, radius),
             )
             db().execute(
                 "DELETE FROM tree_flowers WHERE patient_id=? AND id NOT IN (SELECT id FROM tree_flowers WHERE patient_id=? ORDER BY id DESC LIMIT 120)",
@@ -131,7 +143,7 @@ def register_wellbeing(app, patient, require_role, payload, write_once):
             )
             return {
                 "blossoms": count,
-                "flower": {"id": cur.lastrowid, "x": x, "y": y},
+                "flower": {"id": cur.lastrowid, "x": x, "y": y, "radius": radius},
             }, 200
 
         return write_once(data, save)

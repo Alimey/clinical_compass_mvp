@@ -92,23 +92,86 @@ with tempfile.TemporaryDirectory() as temp:
                 "window.beforeTree=document.querySelector('.home-tree-link svg')"
             )
             tree = page.locator(".home-tree-link")
+            page.evaluate(
+                "window.originalRandom=Math.random;window.testFlowerSizes=[.05,.95,.45];Math.random=()=>window.testFlowerSizes.shift()??.5"
+            )
             tree.click(position={"x": 110, "y": 90})
             expect(tree.locator(".tree-flowers circle")).to_have_count(2)
+            assert (
+                tree.locator(".tree-tap").evaluate("el=>el.getAnimations().length") == 0
+            )
+            page.evaluate(
+                "window.firstFlower=document.querySelector('.tree-flowers [data-flower]')"
+            )
+            page.emulate_media(reduced_motion="no-preference")
             tree.click(position={"x": 140, "y": 110})
             expect(tree.locator(".tree-flowers circle")).to_have_count(4)
+            page.evaluate(
+                "window.previousTap=document.querySelector('.tree-tap').getAnimations()[0];window.windAnimation=document.querySelector('.tree-crown').getAnimations()[0]"
+            )
+            tree.click(position={"x": 120, "y": 100})
+            expect(tree.locator(".tree-flowers circle")).to_have_count(6)
+            assert page.evaluate("window.previousTap.playState") == "idle"
+            assert (
+                tree.locator(".tree-tap").evaluate("el=>el.getAnimations().length") == 1
+            )
+            assert page.evaluate(
+                "window.windAnimation===document.querySelector('.tree-crown').getAnimations()[0]"
+            )
+            assert page.evaluate(
+                "window.firstFlower===document.querySelector('.tree-flowers [data-flower]')"
+            )
+            page.evaluate(
+                "Math.random=window.originalRandom;window.lastFlower=document.querySelector('.tree-flowers [data-flower]:last-child');document.querySelector('.tree-tap').getAnimations()[0].currentTime=160"
+            )
+            assert (
+                tree.locator(".tree-tap").evaluate(
+                    "el=>Math.abs(new DOMMatrix(getComputedStyle(el).transform).b)"
+                )
+                > 0.01
+            )
+            assert (
+                page.locator(
+                    ".tree-flowers [data-flower]:last-child .flower-bloom"
+                ).evaluate("el=>el.getAnimations().length")
+                == 1
+            )
+            radii = tree.locator(".flower-bloom > circle:first-child").evaluate_all(
+                "els=>els.map(el=>Number(el.getAttribute('r')))"
+            )
+            assert len(set(radii)) == 3 and all(4.5 <= r <= 9 for r in radii), radii
             assert page.url.endswith("#page=overview")
             page.evaluate(
                 "()=>{window.fetch=window.originalFetch;window.treeSaves.forEach(release=>release())}"
             )
             page.evaluate("()=>flowerQueue")
-            assert page.evaluate("state.wellbeing.tree_flowers.length") == 2
+            assert page.evaluate("state.wellbeing.tree_flowers.length") == 3
+            assert page.evaluate(
+                "window.lastFlower===document.querySelector('.tree-flowers [data-flower]:last-child')"
+            )
+            assert (
+                tree.locator(".flower-bloom > circle:first-child").evaluate_all(
+                    "els=>els.map(el=>Number(el.getAttribute('r')))"
+                )
+                == radii
+            )
+            page.emulate_media(reduced_motion="reduce")
+            assert (
+                tree.locator(".tree-tap").evaluate("el=>el.getAnimations().length") == 0
+            )
             assert page.evaluate(
                 "window.beforeTree===document.querySelector('.home-tree-link svg')"
             )
             page.get_by_role("button", name="Моё дерево", exact=True).click()
             expect(page.locator(".simple-tree")).to_be_visible()
             expect(page.locator("#tree-bloom-status")).to_have_count(0)
-            expect(page.locator(".tree-flowers circle")).to_have_count(4)
+            expect(page.locator(".tree-flowers circle")).to_have_count(6)
+            assert (
+                page.locator(".flower-bloom > circle:first-child").evaluate_all(
+                    "els=>els.map(el=>Number(el.getAttribute('r')))"
+                )
+                == radii
+            )
             page.locator(".activity-plan-form[data-key=walk] button").click()
             expect(page.locator(".weekly-activity progress")).to_have_attribute(
                 "max", "1200"

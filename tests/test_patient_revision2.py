@@ -58,12 +58,16 @@ class PatientRevision2Test(unittest.TestCase):
 
     def test_tree_coordinates_persist_and_retry_does_not_duplicate(self):
         for _ in range(2):
-            response = self.post("tree", {"x": 84.5, "y": 142.25}, key="same-flower")
+            response = self.post(
+                "tree", {"x": 84.5, "y": 142.25, "radius": 8.25}, key="same-flower"
+            )
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.json["flower"]["x"], 84.5)
+            self.assertEqual(response.json["flower"]["radius"], 8.25)
         data = self.p.get("/api/patients/2/wellbeing").json
         self.assertEqual(len(data["tree_flowers"]), 1)
         self.assertEqual(data["tree_flowers"][0]["y"], 142.25)
+        self.assertEqual(data["tree_flowers"][0]["radius"], 8.25)
         self.assertEqual(data["practice_count"], 0)
         self.assertEqual(data["activities"], [])
         reopened = create_app(self.path, seed_demo=False, testing=True)
@@ -80,11 +84,29 @@ class PatientRevision2Test(unittest.TestCase):
     def test_tree_rejects_invalid_positions_and_bounds_stored_flowers(self):
         for value in (-1, 301, True, "150", None, float("nan"), float("inf")):
             self.assertEqual(self.post("tree", {"x": value, "y": 100}).status_code, 400)
+        for radius in (-1, 2.9, 10.1, True, "6", None, float("nan"), float("inf")):
+            self.assertEqual(self.post("tree", {"radius": radius}).status_code, 400)
         for i in range(122):
             self.assertEqual(self.post("tree", {"x": i, "y": 100}).status_code, 200)
         data = self.p.get("/api/patients/2/wellbeing").json
         self.assertEqual(len(data["tree_flowers"]), 120)
         self.assertEqual(data["tree_flowers"][0]["x"], 2)
+        self.assertEqual(data["tree_flowers"][0]["radius"], 6)
+
+    def test_existing_tree_migrates_without_losing_flowers(self):
+        import sqlite3
+
+        self.post("tree", {"x": 25, "y": 75})
+        with sqlite3.connect(self.path) as con:
+            con.execute("ALTER TABLE tree_flowers DROP COLUMN radius")
+        reopened = create_app(self.path, seed_demo=False, testing=True)
+        client = reopened.test_client()
+        client.post(
+            "/api/auth/login",
+            json={"username": "patient-a", "password": "compass-demo"},
+        )
+        flower = client.get("/api/patients/2/wellbeing").json["tree_flowers"][0]
+        self.assertEqual((flower["x"], flower["y"], flower["radius"]), (25, 75, 6))
 
     def test_summary_is_owned_and_empty_data_never_calls_model(self):
         self.assertEqual(
