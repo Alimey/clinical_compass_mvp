@@ -383,7 +383,13 @@ with tempfile.TemporaryDirectory() as temp:
                         nav(page, section)
                         assert page.evaluate(
                             "document.documentElement.scrollWidth<=innerWidth"
-                        ), (width, section)
+                        ), (
+                            width,
+                            section,
+                            page.evaluate(
+                                "[...document.querySelectorAll('body *')].filter(el=>{const r=el.getBoundingClientRect();return r.width&&r.right>innerWidth+1}).slice(0,15).map(el=>[el.tagName,el.id,el.className.baseVal||el.className,Math.round(el.getBoundingClientRect().right)])"
+                            ),
+                        )
             doc.set_viewport_size({"width": 390, "height": 844})
             nav(doc, "forum")
             doc.locator("[data-ext=forum-back]").click()

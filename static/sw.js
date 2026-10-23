@@ -1,5 +1,5 @@
 "use strict";
-const CACHE = "compass-shell-v9";
+const CACHE = "compass-shell-v10";
 const SHELL = [
   "/",
   "/static/style.css",
@@ -17,6 +17,10 @@ const SHELL = [
   "/static/fonts/montserrat-cyrillic-600-normal.woff2",
   "/static/fonts/montserrat-latin-400-normal.woff2",
   "/static/fonts/montserrat-latin-600-normal.woff2",
+  "/static/fonts/montserrat-latin-700-normal.woff2",
+  "/static/fonts/montserrat-latin-500-normal.woff2",
+  "/static/fonts/montserrat-cyrillic-700-normal.woff2",
+  "/static/fonts/montserrat-cyrillic-500-normal.woff2",
   "/static/offline.js",
   "/static/manifest.webmanifest",
   "/static/icon.svg",

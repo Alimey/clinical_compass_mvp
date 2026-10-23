@@ -62,7 +62,7 @@ diaryPage = function () {
   return state.diary === "form"
     ? html.replace(
         '<label for="adverse">',
-        `<div class="symptom-picker"><h3>Жалобы сегодня</h3><div class="filter-group">${["Плохой сон", "Сонливость", "Головная боль", "Головокружение", "Напряжение", "Тошнота"].map((s) => `<button type="button" data-ext="symptom" data-key="${s}" aria-pressed="false">${s}</button>`).join("")}</div><p class="caption">Отметки добавятся в текст ниже и будут отправлены вместе с записью.</p></div><label for="adverse">`,
+        `<div class="symptom-picker"><h3>Жалобы сегодня</h3><div class="filter-group">${["Плохой сон", "Сонливость", "Головная боль", "Головокружение", "Напряжение", "Тошнота"].map((s) => `<button type="button" data-ext="symptom" data-key="${s}" aria-pressed="false">${s}</button>`).join("")}</div></div><label for="adverse">`,
       )
     : html;
 };
@@ -100,10 +100,10 @@ function assessmentPage(doctor = false) {
   if (chosen && available.includes(chosen)) {
     const items = prototypeContent[chosen];
     const maximum = chosen === "hama" ? 4 : 3;
-    return `<section class="card"><h2>${{ gad7: "GAD-7", phq9: "PHQ-9", hama: "HAM-A" }[chosen]} · учебная форма</h2><p class="caption">Демонстрация интерфейса шкалы. Результат интерпретирует специалист; автоматических назначений нет.</p><form id="assessment-form" data-kind="${chosen}">${items.map((q, i) => `<label>${i + 1}. ${e(q)}<select name="q${i}" required><option value="">Выберите ответ</option>${Array.from({ length: maximum + 1 }, (_, v) => `<option value="${v}">${v} · ${maximum === 3 ? ["Ни разу", "Несколько дней", "Больше половины дней", "Почти каждый день"][v] : ["Нет", "Легко", "Умеренно", "Выраженно", "Очень выраженно"][v]}</option>`).join("")}</select></label>`).join("")}<p class="urgent">При непосредственной опасности обратитесь за срочной помощью. Запись в приложении не вызывает экстренную службу.</p><button class="button primary" type="submit">${doctor ? "Сохранить оценку" : "Отправить ответы специалисту"}</button><button class="button quiet" type="button" data-ext="assessment-cancel">Отмена</button></form></section>`;
+    return `<section class="card"><h2>${{ gad7: "GAD-7", phq9: "PHQ-9", hama: "HAM-A" }[chosen]}</h2><form id="assessment-form" data-kind="${chosen}">${items.map((q, i) => `<label>${i + 1}. ${e(q)}<select name="q${i}" required><option value="">Выберите ответ</option>${Array.from({ length: maximum + 1 }, (_, v) => `<option value="${v}">${v} · ${maximum === 3 ? ["Ни разу", "Несколько дней", "Больше половины дней", "Почти каждый день"][v] : ["Нет", "Легко", "Умеренно", "Выраженно", "Очень выраженно"][v]}</option>`).join("")}</select></label>`).join("")}<p class="urgent">При непосредственной опасности обратитесь за срочной помощью. Запись в приложении не вызывает экстренную службу.</p><button class="button primary" type="submit">${doctor ? "Сохранить оценку" : "Отправить ответы специалисту"}</button><button class="button quiet" type="button" data-ext="assessment-cancel">Отмена</button></form></section>`;
   }
   const past = ws().assessments;
-  return `<section class="card"><h2>${doctor ? "Шкала специалиста" : "Шкалы самочувствия"}</h2>${available.map((k) => `<button class="button full" data-ext="assessment" data-key="${k}">${{ gad7: "GAD-7 · 7 вопросов", phq9: "PHQ-9 · 9 вопросов", hama: "HAM-A · 14 пунктов" }[k]} ${icon("arrow")}</button>`).join("")}<p class="caption">Вопросы перенесены из макета команды. Используются только с синтетическими данными; медицинская проверка перевода и протокола ещё предстоит.</p></section><section class="card"><h2>Сохранённые результаты</h2>${past.length ? past.map((s) => `<div class="report-item"><strong>${e(s.kind.toUpperCase())}</strong><p class="caption">${e(clinicDate(s.created_at))}</p>${doctor ? `<p>Сумма: <strong>${s.score}</strong> · учебная запись</p><details><summary>Ответы по пунктам</summary><p>${s.answers.map((v, i) => `${i + 1}: ${v}`).join(" · ")}</p></details>` : `<p>${e(s.interpretation)}</p>`}</div>`).join("") : '<p class="muted">Шкалы пока не заполнены.</p>'}</section>`;
+  return `<section class="card"><h2>${doctor ? "Шкала специалиста" : "Шкалы самочувствия"}</h2>${available.map((k) => `<button class="button full" data-ext="assessment" data-key="${k}">${{ gad7: "GAD-7 · 7 вопросов", phq9: "PHQ-9 · 9 вопросов", hama: "HAM-A · 14 пунктов" }[k]} ${icon("arrow")}</button>`).join("")}</section><section class="card"><h2>Сохранённые результаты</h2>${past.length ? past.map((s) => `<div class="report-item"><strong>${e(s.kind.toUpperCase())}</strong><p class="caption">${e(clinicDate(s.created_at))}</p>${doctor ? `<p>Сумма: <strong>${s.score}</strong></p><details><summary>Ответы по пунктам</summary><p>${s.answers.map((v, i) => `${i + 1}: ${v}`).join(" · ")}</p></details>` : `<p>${e(s.interpretation)}</p>`}</div>`).join("") : '<p class="muted">Шкалы пока не заполнены.</p>'}</section>`;
 }
 
 function thoughtJournal() {
@@ -127,9 +127,7 @@ function literature(who) {
       ([t, d, link]) =>
         `<article class="report-item"><h3>${e(t)}</h3><p class="caption">${e(d)}</p>${typeof link === "string" && /^https:\/\//.test(link) ? `<a class="text-button" target="_blank" rel="noopener noreferrer" href="${e(link)}">Открыть источник ↗</a>` : ""}</article>`,
     )
-    .join(
-      "",
-    )}<p class="caption">Список из макета команды. Содержимое внешних источников здесь не проверялось.</p></section>`;
+    .join("")}</section>`;
 }
 function coursePage(items, prefix) {
   if (
@@ -167,9 +165,7 @@ function learningContent() {
   );
   if (active === "books")
     return (
-      heading("ЗНАНИЯ", "Книги и материалы", "Подборка из макета команды.") +
-      tabs +
-      literature("patient")
+      heading("ЗНАНИЯ", "Книги и материалы", "") + tabs + literature("patient")
     );
   if (active === "thought")
     return (
@@ -183,11 +179,7 @@ function learningContent() {
     );
   if (active === "articles")
     return (
-      heading(
-        "ЗНАНИЯ",
-        "Понять себя",
-        "Материалы для демонстрации раздела психообразования.",
-      ) +
+      heading("ЗНАНИЯ", "Понять себя", "") +
       tabs +
       `<section class="card">${[
         [
@@ -246,12 +238,12 @@ function wearableCard() {
 function safetyPlanPage(doctor = false) {
   const plan = ws().plan,
     agreement = ws().agreement;
-  let html = `<section class="card"><h2>План безопасности</h2><p class="caption">Совместный учебный план. При непосредственной опасности — местная экстренная служба.</p>${plan ? `<p class="caption">Сохранён специалистом ${e(clinicDate(plan.updated_at))}</p>` : '<p class="muted">План ещё не составлен. Обсудите его на встрече.</p>'}</section>`;
+  let html = `<section class="card"><h2>План безопасности</h2><p class="caption">Ваш план поддержки в сложной ситуации.</p>${plan ? `<p class="caption">Сохранён специалистом ${e(clinicDate(plan.updated_at))}</p>` : '<p class="muted">План ещё не составлен. Обсудите его на встрече.</p>'}</section>`;
   if (doctor)
     html += `<section class="card"><form id="safety-plan-form">${planLabels.map(([k, t]) => `<label>${t}<textarea name="${k}" rows="3" required maxlength="1500">${e(plan?.body[k] || "")}</textarea></label>`).join("")}<button class="button primary" type="submit">Сохранить план безопасности</button></form></section>`;
   else if (plan)
     html += `<section class="card"><ol class="safety-plan-steps">${planLabels.map(([k, t]) => `<li><h3>${t}</h3><p class="report-text">${e(plan.body[k])}</p></li>`).join("")}</ol></section>`;
-  html += `<section class="card"><h2>Соглашение о сопровождении</h2><p class="caption">Учебная фиксация договорённостей, без квалифицированной электронной подписи.</p>${agreement ? `<p class="report-text">${e(agreement.body)}</p><p class="caption">До ${e(clinicDate(agreement.ends_on))} · специалист ознакомил ${e(clinicDate(agreement.created_at))}</p><span class="chip ${agreement.patient_signed_at ? "green" : "amber"}">${agreement.patient_signed_at ? "Пациент ознакомился " + e(clinicDate(agreement.patient_signed_at)) : "Ожидает ознакомления пациента"}</span>${!doctor && !agreement.patient_signed_at && new Date(agreement.ends_on) > new Date() ? '<button class="button primary full" data-ext="agreement-accept">Ознакомился(ась) с условиями</button>' : ""}` : '<p class="muted">Договорённостей пока нет.</p>'}${doctor ? `<details><summary>Предложить новое соглашение</summary><form id="agreement-form"><label>Что согласовано<textarea name="body" required maxlength="3000" rows="6">Врач и пациент обсуждают записи на встречах. Ответы в чате — в согласованное рабочее время. При непосредственной опасности пациент обращается за экстренной помощью.</textarea></label><label>Срок, дней<input name="days" type="number" min="1" max="365" value="28" required></label><button class="button primary" type="submit">Сохранить соглашение</button></form></details>` : ""}</section>`;
+  html += `<section class="card"><h2>Соглашение о сопровождении</h2>${agreement ? `<p class="report-text">${e(agreement.body)}</p><p class="caption">До ${e(clinicDate(agreement.ends_on))} · специалист ознакомил ${e(clinicDate(agreement.created_at))}</p><span class="chip ${agreement.patient_signed_at ? "green" : "amber"}">${agreement.patient_signed_at ? "Пациент ознакомился " + e(clinicDate(agreement.patient_signed_at)) : "Ожидает ознакомления пациента"}</span>${!doctor && !agreement.patient_signed_at && new Date(agreement.ends_on) > new Date() ? '<button class="button primary full" data-ext="agreement-accept">Ознакомился(ась) с условиями</button>' : ""}` : '<p class="muted">Договорённостей пока нет.</p>'}${doctor ? `<details><summary>Предложить новое соглашение</summary><form id="agreement-form"><label>Что согласовано<textarea name="body" required maxlength="3000" rows="6">Врач и пациент обсуждают записи на встречах. Ответы в чате — в согласованное рабочее время. При непосредственной опасности пациент обращается за экстренной помощью.</textarea></label><label>Срок, дней<input name="days" type="number" min="1" max="365" value="28" required></label><button class="button primary" type="submit">Сохранить соглашение</button></form></details>` : ""}</section>`;
   return html;
 }
 const emotionSteps = {
@@ -360,7 +352,7 @@ function trustedForm() {
     )
     .join(
       "",
-    )}<button class="button primary" type="submit">Сохранить контакт</button></form><button class="button quiet full" data-action="nav" data-page="consents">Что разрешено близкому</button><p class="caption">В демо кабинет Екатерины связан с Александрой. Изменение подписи контакта не создаёт другой аккаунт.</p></section>`;
+    )}<button class="button primary" type="submit">Сохранить контакт</button></form><button class="button quiet full" data-action="nav" data-page="consents">Что разрешено близкому</button></section>`;
 }
 function streakPage() {
   const p = pref();
@@ -469,7 +461,7 @@ function scaleGuide() {
   )
     .map(([key, definition]) => {
       const value = state.scaleGuideScores?.[key] ?? "0";
-      return `<section class="card scale-guide-card" data-scale="${key}"><div class="scale-zone-heading"><h2>${definition.title}</h2><label>Баллы<input name="${key}" type="number" min="0" max="${definition.max}" step="1" value="${e(value)}" required inputmode="numeric" aria-label="${definition.title}: баллы" aria-describedby="${key}-guide-note"></label></div><div class="scale-guide-result">${scaleGuideResult(key, value)}</div><details class="scale-zone-ranges"><summary>Все диапазоны</summary><ul>${definition.starts.map((start, i) => `<li><span class="scale-zone-swatch" data-tone="${definition.tones[i]}" aria-hidden="true"></span><span>${scaleGuideRange(definition, i)} баллов</span></li>`).join("")}</ul></details><p class="caption" id="${key}-guide-note">Учебная визуализация. Интерпретацию и следующий шаг определяет специалист.</p></section>`;
+      return `<section class="card scale-guide-card" data-scale="${key}"><div class="scale-zone-heading"><h2>${definition.title}</h2><label>Баллы<input name="${key}" type="number" min="0" max="${definition.max}" step="1" value="${e(value)}" required inputmode="numeric" aria-label="${definition.title}: баллы" ></label></div><div class="scale-guide-result">${scaleGuideResult(key, value)}</div><details class="scale-zone-ranges"><summary>Все диапазоны</summary><ul>${definition.starts.map((start, i) => `<li><span class="scale-zone-swatch" data-tone="${definition.tones[i]}" aria-hidden="true"></span><span>${scaleGuideRange(definition, i)} баллов</span></li>`).join("")}</ul></details></section>`;
     })
     .join("")}</form>`;
 }
@@ -498,41 +490,25 @@ function referencePage() {
   );
   if (active === "literature")
     return (
-      heading(
-        "ИНСТРУМЕНТЫ ВРАЧА",
-        "Справочник",
-        "Источники из макета команды.",
-      ) +
+      heading("ИНСТРУМЕНТЫ ВРАЧА", "Справочник", "") +
       tabs +
       literature("doctor")
     );
   if (active === "rules")
     return (
-      heading(
-        "ИНСТРУМЕНТЫ ВРАЧА",
-        "Правила и источники",
-        "Учебная конфигурация; решения подтверждает специалист.",
-      ) +
+      heading("ИНСТРУМЕНТЫ ВРАЧА", "Правила и источники", "") +
       tabs +
       aboutPage()
     );
   if (active === "scales")
     return (
-      heading(
-        "ИНСТРУМЕНТЫ ВРАЧА",
-        "Шкалы и маршрутизация",
-        "Показанные пороги — учебная демонстрация, требуют медицинской проверки.",
-      ) +
+      heading("ИНСТРУМЕНТЫ ВРАЧА", "Шкалы и маршрутизация", "") +
       tabs +
       scaleGuide() +
       `<section class="card"><h2>Маршрутизация</h2><p>Сигнал безопасности → просмотр специалистом → согласованный следующий шаг. Приложение не оформляет реальное направление автоматически.</p><p class="caption">При непосредственной угрозе жизни нужна срочная помощь независимо от суммы шкалы.</p></section>`
     );
   return (
-    heading(
-      "ИНСТРУМЕНТЫ ВРАЧА",
-      "Калькулятор совместимости",
-      "Выберите пациента или задайте характеристики учебного сценария.",
-    ) +
+    heading("ИНСТРУМЕНТЫ ВРАЧА", "Калькулятор совместимости", "") +
     tabs +
     compatibilityCalculator()
   );
@@ -541,14 +517,7 @@ function newsPage() {
   const category = state.newsCategory || "Все";
   const cats = ["Все", "Препараты", "Мероприятия", "Статьи", "Разработки"];
   return (
-    heading(
-      "ДЛЯ СПЕЦИАЛИСТОВ",
-      "Новости ХимРар · демо",
-      "Раздел новостей из макета команды.",
-    ) +
-    demoNote(
-      "Публикации — вымышленные примеры формата, не актуальная лента компании и не реклама реальных назначений.",
-    ) +
+    heading("ДЛЯ СПЕЦИАЛИСТОВ", "Новости", "") +
     `<div class="filter-group">${cats.map((c) => `<button data-ext="news-category" data-key="${c}" class="${category === c ? "active" : ""}">${c}</button>`).join("")}</div>${prototypeContent.news
       .filter((n) => category === "Все" || n.cat === category)
       .map(
@@ -566,14 +535,7 @@ function forumPage() {
       `<div class="proposal-actions"><button class="button" data-ext="forum-back">Все темы</button><button class="button" data-ext="forum-refresh" data-id="${item.thread.id}">Обновить тему</button></div><section class="card">${item.posts.map((p) => `<article class="report-item"><h3>${e(p.author)}</h3><time class="caption">${e(clinicDate(p.created_at))}</time><p class="report-text">${e(p.body)}</p></article>`).join("")}<form id="forum-reply-form" data-id="${item.thread.id}"><label>Ответ<textarea name="body" required maxlength="3000" rows="4"></textarea></label><button class="button primary" type="submit">Опубликовать ответ</button></form></section>`
     );
   return (
-    heading(
-      "ОБРАТНАЯ СВЯЗЬ",
-      "Форум врачей",
-      "Темы и ответы доступны аккаунтам специалистов этого демо.",
-    ) +
-    demoNote(
-      "Используйте только синтетические примеры. Форум не является каналом официального фармаконадзора.",
-    ) +
+    heading("ОБРАТНАЯ СВЯЗЬ", "Форум врачей", "") +
     `<section class="card"><details><summary>Новая тема</summary><form id="forum-form"><label>Раздел<select name="category">${["Опыт применения", "Безопасность", "Взаимодействия", "Вопрос коллегам"].map((v) => `<option>${v}</option>`).join("")}</select></label><label>Заголовок<input name="title" maxlength="160" required></label><label>Сообщение<textarea name="body" rows="5" maxlength="3000" required></textarea></label><button class="button primary" type="submit">Опубликовать тему</button></form></details></section>${(state.forum || []).map((t) => `<button class="card lesson-option" data-ext="forum-open" data-id="${t.id}"><span><small>${e(t.category)} · ${t.replies} сообщений</small><strong>${e(t.title)}</strong><small>${e(t.author)} · ${e(clinicDate(t.created_at))}</small></span>${icon("arrow")}</button>`).join("")}`
   );
 }
@@ -585,9 +547,7 @@ function researchPage() {
       "Исследовательская выгрузка",
       "Только ваши пациенты с включённым разрешением.",
     ) +
-    demoNote(
-      "Случайный код заменяет имя, но это псевдонимизация: клиника может сопоставить код с пациентом. Не заявляем полную анонимность или соответствие требованиям реальных исследований.",
-    ) +
+    demoNote("Пациенты обозначены кодами; имена и контакты не выгружаются.") +
     `<section class="card"><h2>${data.length} записей с разрешением</h2><a class="button" href="/api/research.csv" download>Скачать CSV</a><div class="table-scroll"><table class="rule-table"><thead><tr><th>Код</th><th>Возрастная группа</th><th>Записей</th><th>Настроение / тревога</th></tr></thead><tbody>${data.map((r) => `<tr><td>${e(r.code)}</td><td>${e(r.age_band)}</td><td>${r.reports}</td><td>${r.mood_mean ?? "—"} / ${r.anxiety_mean ?? "—"}</td></tr>`).join("")}</tbody></table></div><p class="caption">Без имён, телефонов, чата и свободных текстов. Отзыв разрешения исключает пациента из следующих выгрузок.</p></section>`
   );
 }
@@ -599,7 +559,7 @@ function contactsPage() {
       ? (h.n + " " + h.d).toLocaleLowerCase("ru").includes(q)
       : h.c === category,
   );
-  return `<section class="card"><h2>Телефоны доверия и помощь</h2><p class="caption">Справочник из макета команды. Доступность и номера организаций нужно сверить перед публичным запуском.</p><label>Поиск<input id="contacts-search" value="${e(state.contactSearch || "")}" placeholder="Название или аудитория"></label><div class="filter-group">${prototypeContent.categories.map(([k, t]) => `<button data-ext="contact-category" data-key="${k}" class="${category === k ? "active" : ""}">${e(t)}</button>`).join("")}</div><div id="contact-results">${list.map(contactRow).join("") || '<p class="muted">Ничего не найдено.</p>'}</div></section>`;
+  return `<section class="card"><h2>Телефоны доверия и помощь</h2><label>Поиск<input id="contacts-search" value="${e(state.contactSearch || "")}" placeholder="Название или аудитория"></label><div class="filter-group">${prototypeContent.categories.map(([k, t]) => `<button data-ext="contact-category" data-key="${k}" class="${category === k ? "active" : ""}">${e(t)}</button>`).join("")}</div><div id="contact-results">${list.map(contactRow).join("") || '<p class="muted">Ничего не найдено.</p>'}</div></section>`;
 }
 function contactRow(h) {
   return `<article class="report-item"><h3>${e(h.n)}</h3><p class="caption">${e(h.d)}</p><div class="proposal-actions">${h.ph.map((phone) => `<a class="button" href="tel:${e(phone.replace(/[^+0-9]/g, ""))}">${e(phone)}</a>`).join("")}</div>${h.url ? `<a class="text-button" href="${e(h.url)}" target="_blank" rel="noopener noreferrer">Открыть сайт ↗</a>` : ""}</article>`;
@@ -619,15 +579,12 @@ function relativePage() {
               `<section class="card"><h2>${e(p.name)}</h2>${p.phone ? `<a class="button" href="tel:${e(p.phone.replace(/[^+0-9]/g, ""))}">Позвонить</a>` : ""}${p.last_active ? `<p class="caption">Последняя запись: ${e(clinicDate(p.last_active))}</p>` : ""}${p.wellbeing ? `<p>${e(p.wellbeing)}</p>` : ""}${p.adherence ? `<details><summary>Разрешённые отметки приёма</summary>${p.adherence.map((a) => `<p class="caption">${e(a.day)} ${e(a.scheduled_time)} · ${a.status === "taken" ? "принято" : "пропущено"}</p>`).join("")}</details>` : ""}</section>${p.events.length ? p.events.map((v) => `<section class="notice urgent-help"><h2>Запрос поддержки</h2><p>${e(p.name)} попросил(а) связаться через SOS.</p><p class="caption">${e(clinicDate(v.created_at))} · ${v.relative_read_at ? "вы отметили просмотр" : "новый запрос"}</p>${!v.relative_read_at ? `<button class="button" data-ext="support-read" data-id="${v.id}">Отметить просмотренным</button>` : ""}<a class="button danger" href="tel:112">Экстренная помощь · 112</a></section>`).join("") : '<section class="card"><p>Сохранённых запросов SOS нет.</p></section>'}`,
           )
           .join("")
-      : '<section class="card"><p>Пациент пока не разрешил доступ или отозвал его. Сведения не отображаются.</p></section>') +
-    demoNote(
-      "Кабинет близкого не получает дневник, шкалы, заметки и переписку. Уведомление не гарантирует немедленную помощь.",
-    )
+      : '<section class="card"><p>Пациент пока не разрешил доступ или отозвал его. Сведения не отображаются.</p></section>')
   );
 }
 function relativeLearningPage() {
   return (
-    heading("ДЛЯ БЛИЗКИХ", "Как помочь", "Поддержка и забота о себе.") +
+    heading("ДЛЯ БЛИЗКИХ", "Как помочь", "") +
     coursePage(prototypeContent.relativeCourse, "relative")
   );
 }
@@ -655,13 +612,9 @@ settingsPage = function () {
   }
   if (state.user.role === "relative")
     return (
-      heading(
-        "ПСИКОМПАС",
-        "Ваше пространство",
-        "Кабинет близкого связан с отдельным аккаунтом.",
-      ) +
+      heading("ПСИКОМПАС", "Ваше пространство", "") +
       demoNote(
-        "Аккаунт relative / compass-demo — синтетическая сестра Александры. Доступ регулирует Александра в «Мои согласия».",
+        "Доступ к данным определяет ваш близкий в разделе «Мои согласия».",
       )
     );
   const links = isDoctor()
@@ -800,7 +753,7 @@ const sectionDecorate = decoratePsicompas;
 decoratePsicompas = function () {
   sectionDecorate();
   if (state.user.role === "relative")
-    $("#session-role").textContent = "Близкий · демо";
+    $("#session-role").textContent = "Близкий";
   if (isDoctor() && state.page === "card") {
     const item = $('#navigation [data-page="patients"]');
     if (item) {

@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 import shutil
 import socket
+import sqlite3
 import subprocess
 import tempfile
 import time
@@ -46,6 +47,12 @@ with tempfile.TemporaryDirectory() as temp:
                 time.sleep(0.1)
         else:
             raise RuntimeError("Server not ready")
+        # Make the first intake available even when the suite runs before 09:00.
+        with sqlite3.connect(env["COMPASS_DB"]) as db:
+            db.execute(
+                "UPDATE prescriptions SET times_json=? WHERE patient_id=2",
+                ('["00:00", "20:00"]',),
+            )
         with sync_playwright() as p:
             browser = p.chromium.launch(
                 executable_path=os.environ.get("CHROMIUM_PATH")
@@ -146,12 +153,12 @@ with tempfile.TemporaryDirectory() as temp:
                     ), (width, name)
             page.evaluate("navigator.serviceWorker.ready")
             cached = page.evaluate(
-                """async()=>{const c=await caches.open('compass-shell-v9');return (await c.keys()).map(r=>new URL(r.url).pathname)}"""
+                """async()=>{const c=await caches.open('compass-shell-v10');return (await c.keys()).map(r=>new URL(r.url).pathname)}"""
             )
             assert (
                 "/static/patient-ui.js" in cached and "/static/patient-ui.css" in cached
             )
-            assert len([p for p in cached if p.endswith(".woff2")]) == 4
+            assert len([p for p in cached if p.endswith(".woff2")]) == 8
             assert not any(p.startswith("/api/") for p in cached)
             assert not errors, errors
             assert not external, external

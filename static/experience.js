@@ -56,7 +56,7 @@ function compatibilityCalculator() {
         : null;
   state.compatibilityProfile =
     selected && profile ? { id: selected.id, profile } : null;
-  return `<div class="source-note">Демонстрационная модель: все правила и сочетания ниже придуманы. АВИАНДР — пример названия; проверенная инструкция к препарату не подключена. Результат не определяет, можно ли принимать реальное лекарство.</div><div class="compatibility-layout"><section class="card"><form id="compatibility-form"><label>Пациент или свой сценарий<select name="patient" id="compatibility-patient"><option value="manual">Задать характеристики вручную</option>${state.patients.map((p) => `<option value="${p.id}" ${p.id === selected?.id ? "selected" : ""}>${e(p.name)}</option>`).join("")}</select></label><p id="compatibility-profile" class="caption">${selected ? `Синтетический профиль: ${e(selected.name)}. ${e(compatibilityProfileNote(profile))}` : "Укажите характеристики учебного случая."}</p><label>Основной препарат<select name="choice">${compatibilityOptions.map(([key, title]) => `<option value="${key}">${title}</option>`).join("")}</select></label><div class="form-grid"><label>Возраст<input name="age" type="number" min="0" max="120" value="${selected?.age || 40}" required></label><label>СКФ · учебное поле<input name="egfr" type="number" min="0" max="200" value="90" required></label></div><label>Печень · учебное поле<select name="liver"><option>Нет ограничений</option><option>Есть ограничение</option></select></label><fieldset class="compatibility-factors"><legend>Характеристики и противопоказания</legend>${[
+  return `<div class="compatibility-layout"><section class="card"><form id="compatibility-form"><label>Пациент или свой сценарий<select name="patient" id="compatibility-patient"><option value="manual">Задать характеристики вручную</option>${state.patients.map((p) => `<option value="${p.id}" ${p.id === selected?.id ? "selected" : ""}>${e(p.name)}</option>`).join("")}</select></label><p id="compatibility-profile" class="caption">${selected ? `Пациент: ${e(selected.name)}. ${e(compatibilityProfileNote(profile))}` : "Укажите характеристики учебного случая."}</p><label>Основной препарат<select name="choice">${compatibilityOptions.map(([key, title]) => `<option value="${key}">${title}</option>`).join("")}</select></label><div class="form-grid"><label>Возраст<input name="age" type="number" min="0" max="120" value="${selected?.age || 40}" required></label><label>СКФ · учебное поле<input name="egfr" type="number" min="0" max="200" value="90" required></label></div><label>Печень · учебное поле<select name="liver"><option>Нет ограничений</option><option>Есть ограничение</option></select></label><fieldset class="compatibility-factors"><legend>Характеристики и противопоказания</legend>${[
     ["pregnancy", "Беременность / лактация"],
     ["epilepsy", "Эпилепсия"],
     ["cardio", "Сердечно-сосудистые заболевания"],
@@ -128,7 +128,7 @@ function showCompatibility(form) {
       ? "Нужна дополнительная проверка"
       : "Учебные ограничения не отмечены";
   $("#compatibility-result").innerHTML =
-    `<span class="chip ${blocks.length ? "red" : cautions.length ? "amber" : "green"}">${blocks.length ? "Ограничение" : cautions.length ? "Внимание" : "Демо-проверка завершена"}</span><h2>${status}</h2><p><strong>${e(primary)}</strong> · ${e(form.elements.patient.selectedOptions[0].textContent)} · возраст ${e(data.age)}</p>${[...blocks, ...cautions].length ? `<ul>${[...blocks, ...cautions].map((text) => `<li>${e(text)}</li>`).join("")}</ul>` : "<p>В заданном учебном случае правила не нашли отмеченных ограничений.</p>"}<p class="caption">Результат только для демонстрации интерфейса. Это не разрешение на приём и не проверка официальной инструкции.</p>`;
+    `<span class="chip ${blocks.length ? "red" : cautions.length ? "amber" : "green"}">${blocks.length ? "Ограничение" : cautions.length ? "Внимание" : "Демо-проверка завершена"}</span><h2>${status}</h2><p><strong>${e(primary)}</strong> · ${e(form.elements.patient.selectedOptions[0].textContent)} · возраст ${e(data.age)}</p>${[...blocks, ...cautions].length ? `<ul>${[...blocks, ...cautions].map((text) => `<li>${e(text)}</li>`).join("")}</ul>` : "<p>В заданном учебном случае правила не нашли отмеченных ограничений.</p>"}`;
 }
 document.addEventListener("change", async (event) => {
   if (event.target.id !== "compatibility-patient") return;
@@ -154,7 +154,7 @@ document.addEventListener("change", async (event) => {
     state.compatibilityPatient = patient.id;
     state.compatibilityProfile = { id: patient.id, profile: record.profile };
     $("#compatibility-profile").textContent =
-      `Синтетический профиль: ${patient.name}. ${compatibilityProfileNote(record.profile)}`;
+      `Пациент: ${patient.name}. ${compatibilityProfileNote(record.profile)}`;
   } catch (error) {
     if (version === compatibilityRequest && document.contains(form))
       $("#compatibility-profile").textContent = error.message;
@@ -293,7 +293,7 @@ function calmPractices() {
 }
 function practiceWorkspace(key) {
   if (key === "rhythm")
-    return `<label class="consent-switch"><input type="checkbox" id="breath-voice" ${breathingVoice ? "checked" : ""}><span>Голос · если поддерживается браузером</span></label><div class="breath-space"><div class="breathing-orb"><span id="breath-phase">Готовы?</span></div></div><p class="caption">Вдох 4, необязательная пауза 2, выдох 6. Можно пропустить задержку и дышать привычно. При дискомфорте остановитесь.</p><button class="button" data-experience="breath-control">Остановить</button>`;
+    return `<label class="consent-switch"><input type="checkbox" id="breath-voice" ${breathingVoice ? "checked" : ""}><span>Озвучивать дыхание</span></label><div class="breath-space"><div class="breathing-orb"><span id="breath-phase">Готовы?</span></div></div><p class="caption">Вдох 4, необязательная пауза 2, выдох 6. Можно пропустить задержку и дышать привычно. При дискомфорте остановитесь.</p><button class="button" data-experience="breath-control">Остановить</button>`;
   if (key === "grounding")
     return `<ol class="grounding-steps">${groundingSteps.map(([title, text], i) => `<li ${i ? "hidden" : 'aria-current="step"'}><h3>${title}</h3><p>${text}</p></li>`).join("")}</ol><button class="button primary" data-experience="ground-step">Далее</button>`;
   return `<div class="guided-step"></div><p class="exercise-clock guided-clock" aria-live="off"></p><div class="proposal-actions"><button class="button" data-experience="guided-pause">Пауза</button><button class="button" data-experience="guided-next">Дальше</button></div><p class="caption">Двигайтесь в комфортном диапазоне; остановитесь при боли или дискомфорте.</p>`;

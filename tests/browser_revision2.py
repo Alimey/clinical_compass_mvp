@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 import shutil
 import socket
+import sqlite3
 import subprocess
 import tempfile
 import time
@@ -42,6 +43,12 @@ with tempfile.TemporaryDirectory() as temp:
                 if server.poll() is not None:
                     raise RuntimeError("Server exited")
                 time.sleep(0.1)
+        # The intake checks should also work before the first morning dose.
+        with sqlite3.connect(env["COMPASS_DB"]) as db:
+            db.execute(
+                "UPDATE prescriptions SET times_json=? WHERE patient_id=2",
+                ('["00:00", "20:00"]',),
+            )
         with sync_playwright() as pw:
             browser = pw.chromium.launch(
                 executable_path=os.environ.get("CHROMIUM_PATH")

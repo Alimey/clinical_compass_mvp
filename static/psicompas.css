@@ -37,6 +37,44 @@
     U+0304, U+0308, U+0329, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193,
     U+2212, U+2215, U+FEFF, U+FFFD;
 }
+@font-face {
+  font-family: Montserrat;
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/static/fonts/montserrat-cyrillic-500-normal.woff2") format("woff2");
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: Montserrat;
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/static/fonts/montserrat-cyrillic-700-normal.woff2") format("woff2");
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: Montserrat;
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/static/fonts/montserrat-latin-500-normal.woff2") format("woff2");
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: Montserrat;
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/static/fonts/montserrat-latin-700-normal.woff2") format("woff2");
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
 :root {
   --bg: #eef2f6;
   --surface: #fff;
@@ -72,7 +110,7 @@
     -apple-system,
     "Segoe UI",
     sans-serif;
-  font-size: 14px;
+  font-size: 1rem;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
@@ -130,7 +168,8 @@ body {
   min-height: 100dvh;
   padding: 0 0 calc(84px + env(safe-area-inset-bottom));
   color: var(--ink);
-  line-height: 1.5;
+  line-height: 1.65;
+  font-weight: 500;
   background: var(--bg);
 }
 #app-shell {
@@ -184,7 +223,7 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 17px;
+  font-size: 1.25rem;
   font-weight: 600;
   color: #fff;
   white-space: nowrap;
@@ -193,7 +232,7 @@ body {
   display: block;
   margin-top: 2px;
   font-weight: 400;
-  font-size: 10px;
+  font-size: 0.8125rem;
   opacity: 0.85;
 }
 .compass-logo {
@@ -203,7 +242,7 @@ body {
   place-items: center;
   border: 2px solid currentColor;
   border-radius: 50%;
-  font-size: 25px;
+  font-size: 1.75rem;
   flex-shrink: 0;
 }
 img.compass-logo {
@@ -232,7 +271,7 @@ img.compass-logo {
   padding: 7px 14px;
   display: flex;
   justify-content: space-between;
-  font-size: 10px;
+  font-size: 0.8125rem;
   text-transform: uppercase;
   letter-spacing: 0.03em;
   background: var(--surface);
@@ -250,13 +289,13 @@ img.compass-logo {
 .sync-label {
   display: inline;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 0.8125rem;
 }
 .demo-strip {
   padding: 8px 14px;
   background: var(--surface-2);
   color: var(--muted);
-  font-size: 10px;
+  font-size: 0.8125rem;
 }
 .demo-strip .small-dot {
   display: none;
@@ -292,7 +331,7 @@ img.compass-logo {
   gap: 4px;
   padding: 10px 1px 5px;
   border-radius: 0;
-  font-size: 9px;
+  font-size: 0.75rem;
   line-height: 1.3;
   font-weight: 400;
   color: var(--muted);
@@ -320,7 +359,7 @@ main,
   padding: 16px 14px 28px;
 }
 h1 {
-  font-size: 22px;
+  font-size: 1.625rem;
   line-height: 1.3;
   letter-spacing: -0.4px;
   font-weight: 600;
@@ -328,14 +367,14 @@ h1 {
   margin-bottom: 6px;
 }
 h2 {
-  font-size: 15px;
+  font-size: 1.125rem;
   font-weight: 600;
   letter-spacing: 0;
   margin-bottom: 10px;
   line-height: 1.5;
 }
 h3 {
-  font-size: 13px;
+  font-size: 1rem;
   font-weight: 600;
 }
 p {
@@ -344,14 +383,14 @@ p {
 }
 .eyebrow {
   color: var(--muted);
-  font-size: 10px;
+  font-size: 0.8125rem;
   font-weight: 400;
   letter-spacing: 1px;
   margin-bottom: 7px;
 }
 .caption {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 0.875rem;
 }
 .page-heading {
   align-items: flex-start;
@@ -363,11 +402,11 @@ p {
   min-width: 0;
 }
 .page-heading .muted {
-  font-size: 12px;
+  font-size: 0.9375rem;
   margin-bottom: 0;
 }
 .page-heading h1 {
-  font-size: 22px;
+  font-size: 1.625rem;
 }
 .heading-actions {
   margin: 0;
@@ -375,7 +414,7 @@ p {
 .heading-actions .button {
   min-height: 36px;
   padding: 6px 9px;
-  font-size: 11px;
+  font-size: 0.875rem;
 }
 .button,
 .button.small {
@@ -385,7 +424,7 @@ p {
   border-radius: 10px;
   min-height: 44px;
   padding: 10px 12px;
-  font-size: 12px;
+  font-size: 0.9375rem;
   gap: 7px;
   font-weight: 600;
   white-space: normal;
@@ -424,7 +463,7 @@ p {
   background: none;
   border: 0;
   color: var(--accent);
-  font-size: 11px;
+  font-size: 0.875rem;
   font-weight: 600;
   text-align: left;
 }
@@ -468,7 +507,7 @@ dialog,
   flex-wrap: wrap;
 }
 .card-heading h2 {
-  font-size: 15px;
+  font-size: 1.125rem;
   margin-bottom: 0;
 }
 .card-heading select {
@@ -497,21 +536,21 @@ dialog,
   min-width: 0;
 }
 .stat-label {
-  font-size: 9px;
+  font-size: 0.75rem;
   margin-bottom: 7px;
 }
 .stat-number {
-  font-size: 23px;
+  font-size: 1.75rem;
 }
 .stat-card p {
   color: var(--muted);
-  font-size: 9px;
+  font-size: 0.75rem;
 }
 .stat-icon {
   display: none;
 }
 .stat-number small {
-  font-size: 10px;
+  font-size: 0.8125rem;
 }
 .section-heading {
   gap: 8px;
@@ -520,19 +559,19 @@ dialog,
 }
 .section-heading h2 {
   margin: 0;
-  font-size: 14px;
+  font-size: 1rem;
 }
 .section-heading .button {
   padding: 6px 8px;
   min-height: 36px;
-  font-size: 10px;
+  font-size: 0.8125rem;
 }
 .avatar,
 .avatar.large {
   width: 42px;
   height: 42px;
   border-radius: 12px;
-  font-size: 13px;
+  font-size: 1rem;
 }
 .avatar.mint,
 .avatar.blue,
@@ -559,18 +598,18 @@ dialog,
   min-width: 110px;
 }
 .patient-info strong {
-  font-size: 12px;
+  font-size: 0.9375rem;
   color: var(--ink);
 }
 .patient-info small {
   color: var(--muted);
-  font-size: 10px;
+  font-size: 0.8125rem;
 }
 .patient-row .chip {
   margin-left: auto;
 }
 .chip {
-  font-size: 9px;
+  font-size: 0.75rem;
   border-radius: 5px;
   padding: 4px 6px;
   line-height: 1.6;
@@ -609,7 +648,7 @@ dialog,
   margin-top: 10px;
 }
 .mini-metrics strong {
-  font-size: 22px;
+  font-size: 1.625rem;
 }
 .profile-banner {
   gap: 10px;
@@ -617,7 +656,7 @@ dialog,
   margin-bottom: 14px;
 }
 .profile-banner h1 {
-  font-size: 20px;
+  font-size: 1.5rem;
 }
 .profile-banner .chip {
   margin-left: 0;
@@ -633,7 +672,7 @@ dialog,
 }
 .tabs button {
   padding: 10px;
-  font-size: 11px;
+  font-size: 0.875rem;
   border: 0;
   border-radius: 7px;
 }
@@ -673,7 +712,7 @@ dialog,
   min-width: 0;
 }
 .quick-card strong {
-  font-size: 11px;
+  font-size: 0.875rem;
 }
 .quick-card svg,
 .routine-icon {
@@ -690,7 +729,7 @@ dialog,
   margin-bottom: 12px;
 }
 .appointment-section .section-heading h2 {
-  font-size: 14px;
+  font-size: 1rem;
 }
 .appointment-strip {
   gap: 9px;
@@ -717,16 +756,16 @@ dialog,
   height: 53px;
 }
 .appointment-tile p {
-  font-size: 11px;
+  font-size: 0.875rem;
 }
 .appointment-tile strong {
-  font-size: 13px;
+  font-size: 1rem;
 }
 .appointment-tile small {
-  font-size: 10px;
+  font-size: 0.8125rem;
 }
 .appointment-date strong {
-  font-size: 20px;
+  font-size: 1.5rem;
 }
 .today-heading {
   display: flex;
@@ -736,14 +775,14 @@ dialog,
   margin-bottom: 12px;
 }
 .today-heading h1 {
-  font-size: 20px;
+  font-size: 1.5rem;
 }
 .today-heading .muted {
-  font-size: 11px;
+  font-size: 0.875rem;
   margin: 0;
 }
 .today-heading .eyebrow {
-  font-size: 9px;
+  font-size: 0.75rem;
 }
 .help-pill {
   min-height: 36px;
@@ -752,7 +791,7 @@ dialog,
   padding: 7px 10px;
   color: var(--must);
   background: var(--must-soft);
-  font-size: 10px;
+  font-size: 0.8125rem;
   font-weight: 600;
 }
 .welcome-garden {
@@ -774,16 +813,16 @@ dialog,
 }
 .welcome-garden h2 {
   color: var(--accent);
-  font-size: 21px;
+  font-size: 1.5rem;
   line-height: 1.4;
   margin: 5px 0 7px;
 }
 .welcome-garden p {
-  font-size: 10px;
+  font-size: 0.8125rem;
   max-width: 160px;
 }
 .welcome-garden .eyebrow {
-  font-size: 8px;
+  font-size: 0.6875rem;
 }
 .welcome-garden .care-tree {
   position: absolute;
@@ -821,7 +860,7 @@ dialog,
   height: 44px;
 }
 .mood-face span {
-  font-size: 8px;
+  font-size: 0.6875rem;
 }
 .mood-face[aria-pressed="true"] {
   border-color: var(--accent);
@@ -853,10 +892,10 @@ dialog,
   background: var(--surface-2);
 }
 .dose-tile strong {
-  font-size: 12px;
+  font-size: 0.9375rem;
 }
 .dose-tile span {
-  font-size: 10px;
+  font-size: 0.8125rem;
   color: var(--muted);
 }
 .dose-tile.taken {
@@ -881,7 +920,7 @@ dialog,
   margin: 0;
 }
 .notice p {
-  font-size: 12px;
+  font-size: 0.9375rem;
 }
 .notice .button {
   align-self: flex-start;
@@ -906,7 +945,7 @@ dialog,
 .weekday {
   text-align: center;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 0.8125rem;
   padding: 4px 0;
 }
 .calendar-day {
@@ -918,7 +957,7 @@ dialog,
   justify-content: center;
   gap: 4px;
   min-height: 49px;
-  font-size: 11px;
+  font-size: 0.875rem;
   background: var(--surface);
   color: var(--ink);
   padding: 4px 0;
@@ -950,7 +989,7 @@ dialog,
   max-width: 280px;
 }
 .tree-card p {
-  font-size: 12px;
+  font-size: 0.9375rem;
 }
 .tree-card .button {
   width: 100%;
@@ -967,7 +1006,7 @@ dialog,
   min-width: 130px;
 }
 .practice-option .eyebrow {
-  font-size: 9px;
+  font-size: 0.75rem;
   margin-bottom: 3px;
 }
 .practice-option h2 {
@@ -980,7 +1019,7 @@ dialog,
   width: 100%;
 }
 .practice-card > p {
-  font-size: 12px;
+  font-size: 0.9375rem;
 }
 .breath-space {
   display: grid;
@@ -997,7 +1036,7 @@ dialog,
   box-shadow: 0 0 0 16px var(--accent-soft);
   background: var(--accent-soft);
   color: var(--accent);
-  font-size: 27px;
+  font-size: 1.875rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
@@ -1014,7 +1053,7 @@ dialog,
   }
 }
 .practice-steps {
-  font-size: 12px;
+  font-size: 0.9375rem;
   padding-left: 20px;
   line-height: 1.8;
 }
@@ -1032,14 +1071,14 @@ dialog,
   align-items: center;
   padding: 12px 0;
   border-bottom: 1px solid var(--line);
-  font-size: 12px;
+  font-size: 0.9375rem;
 }
 .activity-row > span {
   color: var(--ok);
 }
 .activity-row small {
   display: block;
-  font-size: 10px;
+  font-size: 0.8125rem;
   color: var(--muted);
   margin-top: 3px;
 }
@@ -1057,20 +1096,20 @@ dialog,
 }
 .lesson-option strong {
   display: block;
-  font-size: 13px;
+  font-size: 1rem;
 }
 .lesson-option small {
   display: block;
   margin-top: 5px;
-  font-size: 10px;
+  font-size: 0.8125rem;
   color: var(--muted);
 }
 .lesson-number {
-  font-size: 18px;
+  font-size: 1.25rem;
   color: var(--accent);
 }
 .lesson-body p {
-  font-size: 13px;
+  font-size: 1rem;
   margin-bottom: 16px;
 }
 .lesson-body .button {
@@ -1098,7 +1137,7 @@ select {
   background: var(--surface);
   border-color: var(--line);
   border-radius: 10px;
-  font-size: 14px;
+  font-size: 1rem;
   min-height: 44px;
   padding: 10px;
 }
@@ -1113,18 +1152,18 @@ input[type="checkbox"] {
   accent-color: var(--accent);
 }
 label {
-  font-size: 12px;
+  font-size: 0.9375rem;
   color: var(--ink);
 }
 .range-label {
-  font-size: 12px;
+  font-size: 0.9375rem;
   margin-top: 16px;
 }
 .range-label output {
   color: var(--accent);
 }
 .scale {
-  font-size: 10px;
+  font-size: 0.8125rem;
   color: var(--muted);
   margin-bottom: 15px;
 }
@@ -1158,7 +1197,7 @@ label {
   grid-column: 1/-1;
 }
 .profile-measures strong {
-  font-size: 21px;
+  font-size: 1.5rem;
 }
 .profile-context,
 .profile-context dt,
@@ -1176,7 +1215,7 @@ label {
 .report-meta {
   gap: 8px;
   flex-wrap: wrap;
-  font-size: 11px;
+  font-size: 0.875rem;
 }
 .report-values strong {
   color: var(--ink);
@@ -1232,7 +1271,7 @@ label {
 .rule-table td,
 .rule-table th {
   overflow-wrap: anywhere;
-  font-size: 10px;
+  font-size: 0.8125rem;
   padding: 9px 5px;
 }
 .trend {
@@ -1249,7 +1288,7 @@ label {
 }
 .legend,
 .chart-foot {
-  font-size: 9px;
+  font-size: 0.75rem;
 }
 .legend span:first-child i {
   background: #0b8cc4;
@@ -1276,7 +1315,7 @@ label {
   background: var(--surface);
   color: var(--ink);
   border: 1px solid var(--line);
-  font-size: 13px;
+  font-size: 1rem;
   padding: 10px 12px;
 }
 .own .message-bubble {
@@ -1341,7 +1380,7 @@ label {
   background: var(--ink);
   padding: 13px 15px;
   border-radius: 12px;
-  font-size: 12px;
+  font-size: 0.9375rem;
 }
 dialog {
   max-width: min(440px, calc(100% - 24px));
@@ -1370,21 +1409,21 @@ dialog .caption {
 .login-form-side .brand {
   color: var(--accent);
   margin-bottom: 30px;
-  font-size: 20px;
+  font-size: 1.5rem;
 }
 .brand small {
   color: var(--muted);
 }
 .login-form-side h1 {
-  font-size: 30px;
+  font-size: 2.125rem;
   margin-bottom: 12px;
 }
 .login-form-side > p {
   color: var(--muted);
-  font-size: 12px;
+  font-size: 0.9375rem;
 }
 .login-form-side > .eyebrow {
-  font-size: 9px;
+  font-size: 0.75rem;
 }
 .login-form-side > #login-form {
   margin: 12px 0 20px;
@@ -1403,14 +1442,14 @@ dialog .caption {
 }
 .demo-login strong {
   color: var(--ink);
-  font-size: 12px;
+  font-size: 0.9375rem;
 }
 .demo-login small {
   color: var(--muted);
-  font-size: 10px;
+  font-size: 0.8125rem;
 }
 .login-note {
-  font-size: 10px !important;
+  font-size: 0.8125rem !important;
   margin-top: 14px;
 }
 .login-art {
@@ -1428,11 +1467,11 @@ dialog .caption {
   width: 190px;
 }
 .login-art h2 {
-  font-size: 20px;
+  font-size: 1.5rem;
   color: var(--accent);
 }
 .login-art p {
-  font-size: 12px;
+  font-size: 0.9375rem;
   color: var(--muted);
 }
 .login-error {
@@ -1495,13 +1534,13 @@ dialog .caption {
 }
 @media (max-width: 360px) {
   .app-brand {
-    font-size: 15px;
+    font-size: 1.125rem;
     gap: 6px;
   }
   .compass-logo {
     width: 25px;
     height: 25px;
-    font-size: 20px;
+    font-size: 1.5rem;
   }
   .topbar {
     gap: 2px;
@@ -1513,17 +1552,17 @@ dialog .caption {
     min-width: 32px;
   }
   .today-heading h1 {
-    font-size: 18px;
+    font-size: 1.25rem;
   }
   .welcome-garden .care-tree {
     width: 170px;
     right: -27px;
   }
   .welcome-garden h2 {
-    font-size: 19px;
+    font-size: 1.375rem;
   }
   .nav-item {
-    font-size: 8px;
+    font-size: 0.6875rem;
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -1547,7 +1586,7 @@ dialog .caption {
   gap: 10px;
   margin: 16px 0;
   line-height: 1.6;
-  font-size: 12px;
+  font-size: 0.9375rem;
 }
 .consent-switch input[type="checkbox"] {
   width: 20px;
@@ -1558,12 +1597,12 @@ dialog .caption {
   display: block;
   color: var(--muted);
   margin-top: 4px;
-  font-size: 10px;
+  font-size: 0.8125rem;
 }
 .course-item {
   border-bottom: 1px solid var(--line);
   padding: 12px 0;
-  font-size: 12px;
+  font-size: 0.9375rem;
 }
 .course-item summary {
   font-weight: 600;
@@ -1591,17 +1630,17 @@ dialog .caption {
   margin: 12px 0;
 }
 .demo-measures span {
-  font-size: 10px;
+  font-size: 0.8125rem;
   color: var(--muted);
 }
 .demo-measures strong {
   display: block;
-  font-size: 22px;
+  font-size: 1.625rem;
   color: var(--accent);
 }
 .exercise-clock {
   display: block;
-  font-size: 36px;
+  font-size: 2.5rem;
   font-weight: 600;
   color: var(--accent);
   margin: 20px 0;
@@ -1623,7 +1662,7 @@ dialog .caption {
   border-radius: 50%;
   background: var(--accent-soft);
   color: var(--accent);
-  font-size: 30px;
+  font-size: 2.125rem;
 }
 .bubble.b1 {
   background: #fbd3de;
@@ -1719,12 +1758,12 @@ dialog .caption {
   background: transparent;
   border: 0;
   padding: 9px 18px 3px;
-  font-size: 9px;
+  font-size: 0.75rem;
 }
 .demo-strip {
   background: transparent;
   padding: 5px 18px 8px;
-  font-size: 9px;
+  font-size: 0.75rem;
 }
 #content {
   padding: 18px 18px 30px;
@@ -1753,10 +1792,10 @@ dialog .caption {
   box-shadow: 0 5px 14px #0b639014;
 }
 .caption {
-  font-size: 12px;
+  font-size: 0.9375rem;
 }
 .page-heading .muted {
-  font-size: 13px;
+  font-size: 1rem;
 }
 .eyebrow {
   letter-spacing: 1.1px;
@@ -1774,11 +1813,11 @@ dialog .caption {
   margin: 0;
 }
 .today-heading h1 {
-  font-size: 22px;
+  font-size: 1.625rem;
   letter-spacing: -0.55px;
 }
 .today-heading .muted {
-  font-size: 12px;
+  font-size: 0.9375rem;
   margin-top: 5px;
 }
 .help-pill {
@@ -1802,7 +1841,7 @@ dialog .caption {
   text-align: center;
 }
 .home-actions .quick-card strong {
-  font-size: 10px;
+  font-size: 0.8125rem;
   font-weight: 400;
 }
 .action-circle {
@@ -1831,7 +1870,7 @@ dialog .caption {
 }
 .home-shortcuts .button {
   min-height: 40px;
-  font-size: 10px;
+  font-size: 0.8125rem;
   border-radius: 30px;
 }
 .welcome-garden {
@@ -1846,20 +1885,20 @@ dialog .caption {
   max-width: 63%;
 }
 .welcome-garden .eyebrow {
-  font-size: 8px;
+  font-size: 0.6875rem;
 }
 .welcome-garden h2 {
-  font-size: 21px;
+  font-size: 1.5rem;
   letter-spacing: -0.6px;
   line-height: 1.4;
 }
 .welcome-garden p {
   max-width: 210px;
-  font-size: 11px;
+  font-size: 0.875rem;
   margin-bottom: 14px;
 }
 .welcome-garden .button {
-  font-size: 11px;
+  font-size: 0.875rem;
   padding: 9px 12px;
   min-height: 40px;
   border-radius: 24px;
@@ -1879,10 +1918,10 @@ dialog .caption {
   margin: 0 0 8px;
 }
 .appointment-section .section-heading h2 {
-  font-size: 15px;
+  font-size: 1.125rem;
 }
 .appointment-section .section-heading .button {
-  font-size: 10px;
+  font-size: 0.8125rem;
   padding-right: 0;
 }
 .appointment-strip {
@@ -1906,16 +1945,16 @@ dialog .caption {
   background: var(--accent-soft);
 }
 .survey-reminder .eyebrow {
-  font-size: 9px;
+  font-size: 0.75rem;
 }
 .survey-reminder h2 {
   margin: 4px 0;
 }
 .survey-reminder p {
-  font-size: 11px;
+  font-size: 0.875rem;
 }
 .survey-reminder .button {
-  font-size: 11px;
+  font-size: 0.875rem;
   border-radius: 24px;
 }
 .mood-card .mood-faces {
@@ -1933,19 +1972,19 @@ dialog .caption {
   border-radius: 50%;
 }
 .patient-info strong {
-  font-size: 13px;
+  font-size: 1rem;
 }
 .patient-info small {
-  font-size: 11px;
+  font-size: 0.875rem;
 }
 .dose-tile {
   border-radius: 16px;
 }
 .dose-tile strong {
-  font-size: 13px;
+  font-size: 1rem;
 }
 .dose-tile span {
-  font-size: 11px;
+  font-size: 0.875rem;
 }
 .home-trend .trend {
   width: 100%;
@@ -2036,7 +2075,7 @@ dialog .caption {
   padding: 32px 24px;
 }
 .login-form-side h1 {
-  font-size: 32px;
+  font-size: 2.25rem;
 }
 .login-form-side .brand {
   margin-bottom: 28px;
@@ -2093,11 +2132,11 @@ dialog .caption {
     min-height: 250px;
   }
   .welcome-garden h2 {
-    font-size: 28px;
+    font-size: 2rem;
   }
   .welcome-garden p {
     max-width: 340px;
-    font-size: 13px;
+    font-size: 1rem;
   }
   .welcome-garden > .care-illustration {
     width: 310px;
@@ -2119,7 +2158,7 @@ dialog .caption {
   }
   .header-user {
     display: block;
-    font-size: 12px;
+    font-size: 0.9375rem;
     margin-right: 12px;
   }
   .login-layout {
@@ -2158,7 +2197,7 @@ dialog .caption {
   }
   .sidebar > .brand {
     display: flex;
-    font-size: 19px;
+    font-size: 1.375rem;
     gap: 11px;
     padding: 0 7px;
     color: var(--accent);
@@ -2168,12 +2207,12 @@ dialog .caption {
     height: 40px;
   }
   .sidebar .brand small {
-    font-size: 9px;
+    font-size: 0.75rem;
     margin-top: 4px;
   }
   .workspace-label {
     display: block;
-    font-size: 9px;
+    font-size: 0.75rem;
     margin: 38px 14px 16px;
     color: var(--muted);
     letter-spacing: 1px;
@@ -2205,7 +2244,7 @@ dialog .caption {
     align-items: center;
     gap: 13px;
     border-radius: 14px;
-    font-size: 12px;
+    font-size: 0.9375rem;
     padding: 14px;
     min-height: 50px;
     text-align: left;
@@ -2242,7 +2281,7 @@ dialog .caption {
     padding: 20px 10px 0;
   }
   .sidebar-foot p {
-    font-size: 9px;
+    font-size: 0.75rem;
     line-height: 1.7;
     margin: 20px 0 0;
     color: var(--muted);
@@ -2257,17 +2296,17 @@ dialog .caption {
     width: 37px;
     height: 37px;
     border-radius: 50%;
-    font-size: 11px;
+    font-size: 0.875rem;
   }
   #sidebar-account strong {
     display: block;
-    font-size: 10px;
+    font-size: 0.8125rem;
     line-height: 1.5;
   }
   #sidebar-account small {
     display: block;
     color: var(--muted);
-    font-size: 9px;
+    font-size: 0.75rem;
   }
   .topbar {
     min-height: 106px;
@@ -2275,7 +2314,7 @@ dialog .caption {
     border-radius: 0 0 6% 3% / 0 0 22px 16px;
   }
   .app-brand {
-    font-size: 20px;
+    font-size: 1.5rem;
     gap: 12px;
   }
   .app-brand .compass-logo {
@@ -2283,14 +2322,14 @@ dialog .caption {
     height: 38px;
   }
   .app-brand small {
-    font-size: 11px;
+    font-size: 0.875rem;
   }
   .header-actions {
     gap: 7px;
   }
   .header-user {
     display: block;
-    font-size: 12px;
+    font-size: 0.9375rem;
     margin-right: 10px;
   }
   .topbar .avatar {
@@ -2307,11 +2346,11 @@ dialog .caption {
   }
   .app-status {
     padding: 12px 34px 2px;
-    font-size: 10px;
+    font-size: 0.8125rem;
   }
   .demo-strip {
     padding: 6px 34px 0;
-    font-size: 10px;
+    font-size: 0.8125rem;
   }
   #content {
     width: 100%;
@@ -2326,23 +2365,23 @@ dialog .caption {
   }
   h1,
   .page-heading h1 {
-    font-size: 29px;
+    font-size: 2rem;
   }
   h2,
   .card-heading h2 {
-    font-size: 17px;
+    font-size: 1.25rem;
   }
   h3 {
-    font-size: 14px;
+    font-size: 1rem;
   }
   p {
-    font-size: 13px;
+    font-size: 1rem;
   }
   .page-heading .muted {
-    font-size: 13px;
+    font-size: 1rem;
   }
   .heading-actions .button {
-    font-size: 12px;
+    font-size: 0.9375rem;
     padding: 10px 14px;
     min-height: 44px;
   }
@@ -2358,7 +2397,7 @@ dialog .caption {
   }
   .button,
   .button.small {
-    font-size: 12px;
+    font-size: 0.9375rem;
     padding: 11px 16px;
   }
   .two-columns {
@@ -2379,16 +2418,16 @@ dialog .caption {
     gap: 8px;
   }
   .stat-label {
-    font-size: 11px;
+    font-size: 0.875rem;
   }
   .stat-number {
-    font-size: 32px;
+    font-size: 2.25rem;
   }
   .stat-number small {
-    font-size: 12px;
+    font-size: 0.9375rem;
   }
   .stat-card p {
-    font-size: 10px;
+    font-size: 0.8125rem;
   }
   .stat-icon {
     display: grid;
@@ -2404,10 +2443,10 @@ dialog .caption {
     padding: 22px;
   }
   .quick-card strong {
-    font-size: 13px;
+    font-size: 1rem;
   }
   .quick-card small {
-    font-size: 11px;
+    font-size: 0.875rem;
   }
   .patient-grid,
   .scenario-grid,
@@ -2419,25 +2458,25 @@ dialog .caption {
     margin-bottom: 16px;
   }
   .patient-card h3 {
-    font-size: 16px;
+    font-size: 1.125rem;
   }
   .mini-metrics {
     padding: 18px 0;
   }
   .mini-metrics small {
-    font-size: 11px;
+    font-size: 0.875rem;
   }
   .profile-banner {
     gap: 18px;
     margin-bottom: 24px;
   }
   .profile-banner h1 {
-    font-size: 27px;
+    font-size: 1.875rem;
   }
   .profile-banner .avatar.large {
     width: 64px;
     height: 64px;
-    font-size: 20px;
+    font-size: 1.5rem;
   }
   .profile-banner .chip {
     margin-left: auto;
@@ -2449,7 +2488,7 @@ dialog .caption {
   }
   .tabs button {
     padding: 11px 16px;
-    font-size: 12px;
+    font-size: 0.9375rem;
   }
   .section-tabs {
     width: fit-content;
@@ -2499,11 +2538,11 @@ dialog .caption {
   .rule-table td,
   .rule-table th {
     padding: 13px 10px;
-    font-size: 12px;
+    font-size: 0.9375rem;
   }
   .report-values,
   .report-meta {
-    font-size: 12px;
+    font-size: 0.9375rem;
     gap: 15px;
   }
   .report-item {
@@ -2526,7 +2565,7 @@ dialog .caption {
     grid-column: 1/-1;
   }
   .patient-dashboard > .today-heading h1 {
-    font-size: 29px;
+    font-size: 2rem;
   }
   .patient-dashboard > .home-shortcuts {
     justify-content: flex-end;
@@ -2534,7 +2573,7 @@ dialog .caption {
   }
   .home-shortcuts .button {
     padding: 8px 14px;
-    font-size: 11px;
+    font-size: 0.875rem;
   }
   .home-actions.quick-grid {
     grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -2545,7 +2584,7 @@ dialog .caption {
     padding: 0;
   }
   .home-actions .quick-card strong {
-    font-size: 12px;
+    font-size: 0.9375rem;
   }
   .action-circle {
     width: 60px;
@@ -2563,11 +2602,11 @@ dialog .caption {
     min-height: 260px;
   }
   .welcome-garden h2 {
-    font-size: 27px;
+    font-size: 1.875rem;
   }
   .welcome-garden p {
     max-width: 280px;
-    font-size: 12px;
+    font-size: 0.9375rem;
   }
   .welcome-garden > div {
     max-width: 64%;
@@ -2618,7 +2657,7 @@ dialog .caption {
     margin: 22px 0;
   }
   .mood-face span {
-    font-size: 8px;
+    font-size: 0.6875rem;
   }
   .specialist-card .patient-info {
     min-width: 100px;
@@ -2633,7 +2672,7 @@ dialog .caption {
     padding: 22px 26px;
   }
   .chat-heading h3 {
-    font-size: 16px;
+    font-size: 1.125rem;
   }
   .chat-thread {
     height: clamp(340px, 53dvh, 620px);
@@ -2644,11 +2683,11 @@ dialog .caption {
     max-width: min(72%, 600px);
   }
   .message-bubble {
-    font-size: 14px;
+    font-size: 1rem;
     padding: 14px 18px;
   }
   .message-meta {
-    font-size: 10px;
+    font-size: 0.8125rem;
   }
   .chat-compose {
     padding: 18px 24px;
@@ -2686,10 +2725,10 @@ dialog .caption {
     padding: 44px 48px;
   }
   .login-form-side h1 {
-    font-size: 39px;
+    font-size: 2.75rem;
   }
   .login-form-side > p {
-    font-size: 13px;
+    font-size: 1rem;
   }
   .login-art {
     display: flex;
@@ -2706,23 +2745,23 @@ dialog .caption {
   .login-art h2 {
     color: white;
     max-width: 420px;
-    font-size: 36px;
+    font-size: 2.5rem;
     line-height: 1.35;
     margin: 8px 0 20px;
   }
   .login-art .eyebrow,
   .login-art p {
     color: #ffffffd9;
-    font-size: 13px;
+    font-size: 1rem;
   }
   .login-art .eyebrow {
-    font-size: 10px;
+    font-size: 0.8125rem;
   }
   .demo-login strong {
-    font-size: 13px;
+    font-size: 1rem;
   }
   .demo-login small {
-    font-size: 11px;
+    font-size: 0.875rem;
   }
   .offline-layout,
   .intake-layout {
@@ -2791,7 +2830,7 @@ dialog .caption {
     padding: 34px;
   }
   .welcome-garden h2 {
-    font-size: 32px;
+    font-size: 2.25rem;
   }
   .welcome-garden > .care-illustration {
     width: 310px;
@@ -2799,7 +2838,7 @@ dialog .caption {
   }
   .welcome-garden p {
     max-width: 330px;
-    font-size: 13px;
+    font-size: 1rem;
   }
   #toast {
     left: calc(50% + 130px);
@@ -2816,7 +2855,7 @@ dialog .caption {
     padding-right: 14px;
   }
   .today-heading h1 {
-    font-size: 19px;
+    font-size: 1.375rem;
   }
   .card {
     padding: 17px;
@@ -2826,19 +2865,19 @@ dialog .caption {
     min-height: 240px;
   }
   .welcome-garden h2 {
-    font-size: 19px;
+    font-size: 1.375rem;
   }
   .welcome-garden > .care-illustration {
     width: 175px;
     right: -30px;
   }
   .home-actions .quick-card strong {
-    font-size: 9px;
+    font-size: 0.75rem;
   }
   .home-shortcuts .button {
     padding-left: 9px;
     padding-right: 9px;
-    font-size: 9px;
+    font-size: 0.75rem;
   }
 }
 /* The home tree is an inline SVG: no downloads or network-driven frames. */
@@ -2896,7 +2935,7 @@ dialog .caption {
   min-height: 36px;
   padding: 6px 12px;
   font: inherit;
-  font-size: 10px;
+  font-size: 0.8125rem;
   cursor: pointer;
 }
 .home-tree-scene.is-paused .animated-tree * {
@@ -2955,4 +2994,57 @@ dialog .caption {
   background: var(--accent-soft);
   color: var(--accent);
   border-color: var(--accent);
+}
+
+/* Stronger hierarchy, with room for larger text and translated labels. */
+h1,
+h2,
+h3 {
+  font-weight: 700;
+  text-wrap: balance;
+}
+.button,
+.tabs button,
+.nav-item,
+label {
+  font-weight: 600;
+}
+p,
+.report-text,
+.assistant-answer {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 1023px) {
+  #navigation {
+    justify-content: flex-start;
+    gap: 4px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    scrollbar-width: thin;
+    scrollbar-color: var(--line) transparent;
+  }
+  #navigation .nav-item {
+    flex: 0 0 auto;
+    min-width: 84px;
+    max-width: none;
+    min-height: 72px;
+    padding: 10px 12px 6px;
+    font-size: 0.8125rem;
+    scroll-snap-align: center;
+  }
+  #navigation .nav-item span {
+    white-space: nowrap;
+  }
+}
+@media (max-width: 599px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .stats-grid > :last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+  .stat-label {
+    font-size: 0.875rem;
+  }
 }

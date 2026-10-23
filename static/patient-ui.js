@@ -142,7 +142,7 @@ function chartSeries(items, series, label) {
   if (!items.length) return '<p class="muted">Пока нет данных.</p>';
   const x = (i) =>
     items.length === 1 ? 320 : 38 + (564 * i) / (items.length - 1);
-  return `<div class="chart-legend">${series.map(([key, title, color]) => `<span><svg width="10" height="10" aria-hidden="true"><circle cx="5" cy="5" r="4" fill="${color}"/></svg>${title}</span>`).join("")}</div><svg class="patient-trend" viewBox="0 0 640 220" role="img" aria-label="${label}">${[0, 5, 10].map((v) => `<path d="M38 ${180 - v * 15}H610" stroke="var(--line)"/><text x="8" y="${184 - v * 15}" fill="var(--muted)" font-size="12">${v}</text>`).join("")}${series
+  return `<div class="chart-legend">${series.map(([key, title, color]) => `<span><svg width="10" height="10" aria-hidden="true"><circle cx="5" cy="5" r="4" fill="${color}"/></svg>${title}</span>`).join("")}</div><svg class="patient-trend" viewBox="0 0 640 220" role="img" aria-label="${label}">${[0, 5, 10].map((v) => `<path d="M38 ${180 - v * 15}H610" stroke="var(--line)"/><text x="8" y="${184 - v * 15}" fill="var(--muted)" font-size="18">${v}</text>`).join("")}${series
     .map(([key, title, color]) => {
       // Split at missing observations, rather than filling gaps with zeroes.
       const segments = [];
@@ -163,7 +163,7 @@ function chartSeries(items, series, label) {
     })
     .join(
       "",
-    )}<text x="38" y="211" fill="var(--muted)" font-size="12">${e(shortDate(items[0].created_at))}</text><text x="610" y="211" text-anchor="end" fill="var(--muted)" font-size="12">${e(shortDate(items[items.length - 1].created_at))}</text></svg>`;
+    )}<text x="38" y="211" fill="var(--muted)" font-size="18">${e(shortDate(items[0].created_at))}</text><text x="610" y="211" text-anchor="end" fill="var(--muted)" font-size="18">${e(shortDate(items[items.length - 1].created_at))}</text></svg>`;
 }
 function complaintsCalendar() {
   const today = care().today,
@@ -211,7 +211,7 @@ function scaleChart() {
         max = { gad7: 21, phq9: 27, hama: 56 }[key];
       const x = (i) =>
         values.length === 1 ? 320 : 38 + (564 * i) / (values.length - 1);
-      return `<div class="scale-series"><h3>${labels[key]}</h3><svg class="patient-trend" viewBox="0 0 640 150" role="img" aria-label="${labels[key]}: сохранённые учебные баллы"><path d="M38 112H610" stroke="var(--line)"/><polyline points="${values.map((s, i) => `${x(i)},${112 - (s.score / max) * 85}`).join(" ")}" stroke="var(--accent)" stroke-width="3" fill="none"/>${values.map((s, i) => `<circle cx="${x(i)}" cy="${112 - (s.score / max) * 85}" r="4" fill="var(--accent)"/><text x="${x(i)}" y="${100 - (s.score / max) * 85}" text-anchor="middle" fill="var(--ink)" font-size="13">${s.score}</text>`).join("")}<text x="38" y="140" fill="var(--muted)" font-size="12">${e(shortDate(values[0].created_at))}</text><text x="610" y="140" text-anchor="end" fill="var(--muted)" font-size="12">${e(shortDate(values[values.length - 1].created_at))}</text></svg></div>`;
+      return `<div class="scale-series"><h3>${labels[key]}</h3><svg class="patient-trend" viewBox="0 0 640 150" role="img" aria-label="${labels[key]}: сохранённые баллы"><path d="M38 112H610" stroke="var(--line)"/><polyline points="${values.map((s, i) => `${x(i)},${112 - (s.score / max) * 85}`).join(" ")}" stroke="var(--accent)" stroke-width="3" fill="none"/>${values.map((s, i) => `<circle cx="${x(i)}" cy="${112 - (s.score / max) * 85}" r="4" fill="var(--accent)"/><text x="${x(i)}" y="${100 - (s.score / max) * 85}" text-anchor="middle" fill="var(--ink)" font-size="20">${s.score}</text>`).join("")}<text x="38" y="140" fill="var(--muted)" font-size="18">${e(shortDate(values[0].created_at))}</text><text x="610" y="140" text-anchor="end" fill="var(--muted)" font-size="18">${e(shortDate(values[values.length - 1].created_at))}</text></svg></div>`;
     })
     .join("");
 }
@@ -223,7 +223,7 @@ function patientGraphs() {
         clinicDay(r.created_at) <= care().today,
     )
     .reverse();
-  return `<section class="card"><p class="caption">Доступ специалиста к дневнику: ${pref().share_mood ? "разрешён" : "отозван"}</p><button class="button" data-action="nav" data-page="consents">Мои согласия</button></section><section class="card graph-insight"><div class="card-heading"><h2>Что видно на графиках</h2><span class="chip neutral">ИИ</span></div><div id="graph-insight" role="status">Готовлю расшифровку…</div><p class="caption">Наблюдения по вашим записям, а не медицинский вывод. Обсудите их с врачом.</p></section><section class="card"><h2>Тревога, качество сна и энергия</h2>${chartSeries(
+  return `<section class="card"><p class="caption">Доступ специалиста к дневнику: ${pref().share_mood ? "разрешён" : "отозван"}</p><button class="button" data-action="nav" data-page="consents">Мои согласия</button></section><section class="card graph-insight"><div class="card-heading"><h2>Что видно на графиках</h2><span class="chip neutral">ИИ</span></div><div id="graph-insight" role="status">Готовлю расшифровку…</div></section><section class="card"><h2>Тревога, качество сна и энергия</h2>${chartSeries(
     series,
     [
       ["anxiety", "Тревога", "#dc9265"],
@@ -306,7 +306,7 @@ function medicationSchedule() {
                         const future =
                           new Date(`${day}T${time}:00+03:00`) > new Date();
                         const status = mark?.status;
-                        return `<button class="dose-check ${status || ""}" data-care="medication-mark" data-id="${p.id}" data-day="${day}" data-time="${time}" data-status="${status === "taken" ? "skipped" : "taken"}" aria-label="${e(p.title)} · ${day} ${time} · ${status === "taken" ? "Принято, отметить пропуск" : status === "skipped" ? "Пропущено, отметить приём" : "Отметить приём"}" aria-pressed="${status === "taken"}" ${future || !p.active ? "disabled" : ""}>${status === "taken" ? "✓" : status === "skipped" ? "×" : "—"}</button>`;
+                        return `<button class="dose-check ${status || ""}" data-care="medication-mark" data-id="${p.id}" data-day="${day}" data-time="${time}" data-status="${status === "taken" ? "skipped" : "taken"}" aria-label="${e(prescriptionTitle(p))} · ${day} ${time} · ${status === "taken" ? "Принято, отметить пропуск" : status === "skipped" ? "Пропущено, отметить приём" : "Отметить приём"}" aria-pressed="${status === "taken"}" ${future || !p.active ? "disabled" : ""}>${status === "taken" ? "✓" : status === "skipped" ? "×" : "—"}</button>`;
                       })
                       .join('<span class="dose-divider"> / </span>')
               }</td>`,
@@ -368,11 +368,11 @@ function patientDiaryScreen() {
   );
 }
 function schoolVideos(items) {
-  return `<section class="card school-videos">${items.map((item) => `<details class="course-item"><summary>${e(item.t)} · ${item.min} мин</summary><div class="video-placeholder" role="img" aria-label="Место для видеоурока"><span aria-hidden="true">▷</span><strong>Видео появится здесь</strong><small>Мы готовим короткий урок</small></div></details>`).join("")}</section>`;
+  return `<section class="card school-videos">${items.map((item) => `<details class="course-item"><summary>${e(item.t)} · ${item.min} мин</summary><div class="video-placeholder" role="img" aria-label="Место для видеоурока"><span aria-hidden="true">▷</span><strong>Видео появится здесь</strong></div></details>`).join("")}</section>`;
 }
 function patientSettingsGeneral() {
   const push = state.integrations?.push?.subscriptions;
-  return `<section class="card"><h2>Уведомления и установка PWA</h2><p class="caption">Установите приложение на главный экран и включите напоминания.</p><div class="proposal-actions"><button class="button primary" data-ui="install">Установить PWA</button><button class="button" data-care="enable-push">Подключить push в браузере</button><button class="button quiet" data-care="disable-push">Отключить push</button></div><p class="caption">${push ? "Подписка браузера сохранена." : "Push ещё не подключены."} Для доставки нужны разрешение браузера, HTTPS и работающий сервер.</p><p class="caption">На iPhone: Safari → «Поделиться» → «На экран Домой». На Android: меню браузера → «Установить приложение».</p></section>`;
+  return `<section class="card"><h2>Уведомления и установка PWA</h2><div class="proposal-actions"><button class="button primary" data-ui="install">Установить PWA</button><button class="button" data-care="enable-push">Подключить push в браузере</button><button class="button quiet" data-care="disable-push">Отключить push</button></div><p class="caption">${push ? "Подписка браузера сохранена." : "Push ещё не подключены."} Для доставки нужны разрешение браузера, HTTPS и работающий сервер.</p><p class="caption">На iPhone: Safari → «Поделиться» → «На экран Домой». На Android: меню браузера → «Установить приложение».</p></section>`;
 }
 function patientConsentScreen() {
   const doc = new DOMParser().parseFromString(sectionSettings(), "text/html");
@@ -457,8 +457,7 @@ document.addEventListener("click", async (event) => {
             (r) =>
               `<p>${e(r.adverse_effects || "")} ${r.safety_signal ? "Отмечен срочный сигнал." : ""}</p>`,
           )
-          .join("") ||
-        '<p class="caption">Жалоб не отмечено. Это не оценка здоровья.</p>'
+          .join("") || '<p class="caption">Жалоб не отмечено.</p>'
       }`;
   } else if (action === "retry-practice") {
     const root = button.closest("[data-practice]");

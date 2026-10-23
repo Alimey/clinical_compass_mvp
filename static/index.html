@@ -11,7 +11,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta
       name="description"
-      content="Клинический компас: синтетическое демо сопровождения пациента"
+      content="ПсиКомпас: дневник самочувствия и связь с врачом"
     />
     <link rel="manifest" href="/static/manifest.webmanifest" />
     <link rel="icon" href="/static/icon.svg" type="image/svg+xml" />
@@ -28,7 +28,7 @@
     <script src="/static/experience.js" defer></script>
     <script src="/static/patient-ui.js" defer></script>
     <script src="/static/sections.js" defer></script>
-    <title>ПсиКомпас · демо</title>
+    <title>ПсиКомпас</title>
   </head>
   <body>
     <div id="login-screen" hidden></div>
@@ -48,9 +48,6 @@
         <nav id="workspace-tools" aria-label="Инструменты пространства"></nav>
         <div class="sidebar-foot">
           <div id="sidebar-account"></div>
-          <p class="caption">
-            Синтетическое демо<br />Каждое решение — за специалистом
-          </p>
         </div>
       </aside>
       <div class="workspace">
@@ -104,11 +101,7 @@
           <span
             ><i></i
             ><span id="sync-label" class="sync-label">На связи</span></span
-          ><span id="session-role">Синтетическое демо</span>
-        </div>
-        <div class="demo-strip">
-          <span class="small-dot"></span> Вымышленные пациенты, правила и
-          варианты сопровождения. Не для реального лечения.
+          ><span id="session-role">Ваш кабинет</span>
         </div>
         <div id="connection" class="connection-banner" role="status" hidden>
           Нет соединения. Отправка недоступна. Неотправленные формы хранятся
@@ -162,12 +155,9 @@
           required
           maxlength="500"
           rows="4"
-          placeholder="Только вымышленные сведения"
+          placeholder="Укажите основание решения"
         ></textarea>
-        <p class="caption">
-          Сохраним ваше подтверждение и основание в журнале. Никаких реальных
-          назначений или направлений не выполняется.
-        </p>
+
         <div class="dialog-actions">
           <button type="button" class="button quiet" id="cancel-resolution">
             Отмена</button

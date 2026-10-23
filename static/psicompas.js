@@ -110,13 +110,13 @@ function medicationPreview() {
   const active = c.prescriptions.filter(
     (p) => p.active && p.starts_on <= c.today && p.ends_on >= c.today,
   );
-  return `<section class="card medication-card"><div class="card-heading"><h2>Мои препараты</h2><button class="text-button" data-action="nav" data-page="medications">График приёма</button></div><p class="caption">Вымышленные ДЕМО-варианты</p>${
+  return `<section class="card medication-card"><div class="card-heading"><h2>Мои препараты</h2><button class="text-button" data-action="nav" data-page="medications">График приёма</button></div>${
     active.length
       ? active
           .slice(0, 2)
           .map(
             (p) =>
-              `<div class="medication-preview"><h3>${e(p.title)}</h3><p class="caption">${e(p.note)}</p><div class="dose-preview">${p.times
+              `<div class="medication-preview"><h3>${e(prescriptionTitle(p))}</h3>${prescriptionNote(p) ? `<p class="caption">${e(prescriptionNote(p))}</p>` : ""}<div class="dose-preview">${p.times
                 .map((time) => {
                   const taken = c.medication_marks.find(
                     (m) =>
@@ -148,12 +148,12 @@ patientOverview = function () {
   const actions = [...patientNavigation, ...patientTools];
   return `<div class="patient-dashboard"><div class="today-heading"><div><p class="eyebrow">${e(day)}</p><h1>Здравствуйте, ${e(name)}</h1><p class="muted">Небольшие шаги. Каждый день.</p></div></div>
     <div class="quick-grid home-actions" aria-label="Быстрые действия">${actions.map(([page, glyph, label]) => `<button class="quick-card" data-action="nav" data-page="${page}"><span class="action-circle">${icon(glyph)}</span><strong>${label}</strong></button>`).join("")}</div>
-    <section class="welcome-garden"><div><span class="eyebrow">ВРЕМЯ ДЛЯ СЕБЯ</span><h2>Забота рядом.<br>В вашем ритме.</h2><p>Замечайте своё состояние и оставайтесь на связи со специалистом.</p><button class="button primary" data-action="nav" data-page="move">Моё дерево ${icon("arrow")}</button></div>${homeTree()}</section>
+    <section class="welcome-garden"><div><h2>Забота рядом.<br>В вашем ритме.</h2><p>Замечайте своё состояние и оставайтесь на связи со специалистом.</p><button class="button primary" data-action="nav" data-page="move">Моё дерево ${icon("arrow")}</button></div>${homeTree()}</section>
     ${appointmentStrip()}
-    ${pending.length ? `<section class="notice info survey-reminder"><div><span class="eyebrow">ОТ СПЕЦИАЛИСТА</span><h2>${pending.length === 1 ? "Вас ждёт опрос" : "Вас ждут опросы"}</h2><p>${e(pending[0].title)} · до ${e(clinicDate(pending[0].due_at))}</p></div><button class="button primary" data-action="nav" data-page="surveys">Назначенные опросы · ${pending.length} ${icon("arrow")}</button></section>` : ""}
+    ${pending.length ? `<section class="notice info survey-reminder"><div><h2>${pending.length === 1 ? "Вас ждёт опрос" : "Вас ждут опросы"}</h2><p>${e(pending[0].title)} · до ${e(clinicDate(pending[0].due_at))}</p></div><button class="button primary" data-action="nav" data-page="surveys">Назначенные опросы · ${pending.length} ${icon("arrow")}</button></section>` : ""}
     ${medicationPreview()}
-    <section class="card mood-card"><h2>Как настроение?</h2><p class="caption">Минута внимания к себе</p>${moodFaces(-1, true)}<button class="button primary full" data-ui="open-diary">Заполнить дневник ${icon("arrow")}</button></section>
-    <section class="card specialist-card">${specialistContact()}<p class="caption">Вопросы и наблюдения можно обсудить в переписке.</p><button class="button full" data-action="nav" data-page="messages">${icon("chat")}Написать врачу</button></section>
+    <section class="card mood-card"><h2>Как настроение?</h2>${moodFaces(-1, true)}<button class="button primary full" data-ui="open-diary">Заполнить дневник ${icon("arrow")}</button></section>
+    <section class="card specialist-card">${specialistContact()}<button class="button full" data-action="nav" data-page="messages">${icon("chat")}Написать врачу</button></section>
     <section class="card home-trend"><div class="card-heading"><h2>Моя динамика</h2><button class="text-button" data-action="history">История</button></div>${chart(state.detail.reports)}</section></div>`;
 };
 function specialistContact() {
@@ -241,7 +241,7 @@ function treePage() {
 }
 function wellbeingSummary() {
   const activities = state.wellbeing?.activities || [];
-  return `<section class="card"><h2>Занятия и материалы</h2><p class="caption">Самоотметки пациента, без измерения нагрузки и клинических выводов.</p>${
+  return `<section class="card"><h2>Занятия и материалы</h2>${
     activities.length
       ? activities
           .slice(0, 6)
@@ -256,7 +256,7 @@ function wellbeingSummary() {
 function practiceView() {
   const session = practiceSession;
   const item = practiceCatalog[session.key];
-  return `<section class="card practice-card"><p class="eyebrow">В СВОЁМ РИТМЕ</p><h2>${item.title}</h2><p>${item.text}</p><div class="breath-space"><div class="breathing-orb ${session.key === "breathing" && session.running ? "running" : ""}"><span id="practice-time">${practiceRemaining()}</span></div></div><ol class="practice-steps">${item.steps.map((s) => `<li>${s}</li>`).join("")}</ol><p class="caption">Таймер помогает выделить время. Приложение не измеряет дыхание или нагрузку.</p><div class="practice-actions"><button class="button primary" data-ui="practice-toggle">${session.running ? "Пауза" : "Продолжить"}</button><button class="button" data-ui="practice-close">Завершить без отметки</button></div><button class="button primary full" id="practice-save" data-ui="practice-save" ${practiceSecondsLeft() > 0 ? "hidden" : ""}>Отметить выполненным</button></section>`;
+  return `<section class="card practice-card"><p class="eyebrow">В СВОЁМ РИТМЕ</p><h2>${item.title}</h2><p>${item.text}</p><div class="breath-space"><div class="breathing-orb ${session.key === "breathing" && session.running ? "running" : ""}"><span id="practice-time">${practiceRemaining()}</span></div></div><ol class="practice-steps">${item.steps.map((s) => `<li>${s}</li>`).join("")}</ol><div class="practice-actions"><button class="button primary" data-ui="practice-toggle">${session.running ? "Пауза" : "Продолжить"}</button><button class="button" data-ui="practice-close">Завершить без отметки</button></div><button class="button primary full" id="practice-save" data-ui="practice-save" ${practiceSecondsLeft() > 0 ? "hidden" : ""}>Отметить выполненным</button></section>`;
 }
 function movementPage() {
   const activities = (state.wellbeing?.activities || []).filter(
@@ -346,8 +346,7 @@ renderLogin = function (error = "") {
 };
 function decoratePsicompas() {
   const doctor = isDoctor();
-  $("#session-role").textContent =
-    `${doctor ? "Специалист" : "Пациент"} · демо`;
+  $("#session-role").textContent = `${doctor ? "Специалист" : "Пациент"}`;
   $("#more-button").hidden = false;
   document.body.dataset.role = state.user.role;
   document.body.dataset.page = state.page;
@@ -377,6 +376,17 @@ function decoratePsicompas() {
     if (item) {
       item.classList.add("active");
       item.setAttribute("aria-current", "page");
+    }
+  }
+  if (innerWidth < 1024) {
+    const navigation = $("#navigation"),
+      active = navigation.querySelector("[aria-current=page]");
+    if (active) {
+      const left = active.offsetLeft,
+        right = left + active.offsetWidth;
+      if (left < navigation.scrollLeft) navigation.scrollLeft = left;
+      else if (right > navigation.scrollLeft + navigation.clientWidth)
+        navigation.scrollLeft = right - navigation.clientWidth;
     }
   }
   if (state.page !== "move" && practiceSession?.running) pausePractice();

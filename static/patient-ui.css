@@ -48,7 +48,7 @@ body[data-role="patient"] #content {
 }
 .weekly-activity strong {
   color: #25815c;
-  font-size: 14px;
+  font-size: 1rem;
 }
 .weekly-activity progress {
   display: block;
@@ -77,7 +77,7 @@ body[data-role="patient"] #content {
 }
 .daily-saved {
   margin-top: 16px;
-  font-size: 12px;
+  font-size: 0.9375rem;
 }
 .daily-saved .report-item {
   border: 0;
@@ -105,13 +105,13 @@ body[data-role="patient"] #content {
   display: flex;
   gap: 6px;
   align-items: center;
-  font-size: 11px;
+  font-size: 0.875rem;
   color: var(--muted);
 }
 .graph-insight li {
   line-height: 1.7;
   margin: 8px 0;
-  font-size: 13px;
+  font-size: 1rem;
 }
 .graph-insight ul {
   padding-left: 20px;
@@ -124,7 +124,7 @@ body[data-role="patient"] #content {
 }
 .complaint-week > span {
   display: block;
-  font-size: 12px;
+  font-size: 0.9375rem;
   color: var(--muted);
   margin-bottom: 7px;
 }
@@ -141,7 +141,7 @@ body[data-role="patient"] #content {
   background: var(--surface-2);
   color: var(--muted);
   font: inherit;
-  font-size: 9px;
+  font-size: 0.75rem;
   cursor: pointer;
   padding: 0;
 }
@@ -161,7 +161,7 @@ body[data-role="patient"] #content {
   margin-top: 20px;
 }
 .scale-series h3 {
-  font-size: 13px;
+  font-size: 1rem;
 }
 .medication-schedule table {
   width: 100%;
@@ -170,7 +170,7 @@ body[data-role="patient"] #content {
 }
 .medication-schedule th {
   text-align: left;
-  font-size: 11px;
+  font-size: 0.875rem;
   text-transform: uppercase;
   color: var(--muted);
   vertical-align: top;
@@ -179,7 +179,7 @@ body[data-role="patient"] #content {
 .medication-schedule thead small {
   display: block;
   margin-top: 6px;
-  font-size: 10px;
+  font-size: 0.8125rem;
   font-weight: 400;
   line-height: 1.5;
 }
@@ -195,7 +195,7 @@ body[data-role="patient"] #content {
   overflow-wrap: anywhere;
 }
 .medication-schedule td {
-  font-size: 12px;
+  font-size: 0.9375rem;
   vertical-align: top;
 }
 .medication-schedule tr:last-child th,
@@ -206,7 +206,7 @@ body[data-role="patient"] #content {
   white-space: nowrap;
   font-weight: 400;
   color: var(--ink);
-  font-size: 12px;
+  font-size: 0.9375rem;
 }
 .dose-check {
   border: 0;
@@ -215,7 +215,7 @@ body[data-role="patient"] #content {
   min-width: 28px;
   min-height: 34px;
   padding: 0 4px;
-  font-size: 20px;
+  font-size: 1.5rem;
   cursor: pointer;
 }
 .dose-check.taken {
@@ -234,7 +234,7 @@ body[data-role="patient"] #content {
 }
 .dose-divider {
   color: var(--muted);
-  font-size: 12px;
+  font-size: 0.9375rem;
 }
 .video-placeholder {
   display: flex;
@@ -251,13 +251,13 @@ body[data-role="patient"] #content {
   margin: 16px auto 0;
 }
 .video-placeholder > span {
-  font-size: 42px;
+  font-size: 2.75rem;
 }
 .video-placeholder strong {
-  font-size: 14px;
+  font-size: 1rem;
 }
 .video-placeholder small {
-  font-size: 11px;
+  font-size: 0.875rem;
 }
 .school-videos .course-item:first-child {
   margin-top: 0;
@@ -278,7 +278,7 @@ body[data-role="patient"] #content {
   padding-top: 20px;
 }
 .emotion-current {
-  font-size: 14px;
+  font-size: 1rem;
   line-height: 1.8;
   min-height: 60px;
 }
@@ -309,10 +309,10 @@ body[data-role="patient"] #content {
   background: var(--surface);
   margin: 0 auto 14px;
   color: #25815c;
-  font-size: 30px;
+  font-size: 2.125rem;
 }
 .practice-success h3 {
-  font-size: 20px;
+  font-size: 1.5rem;
   color: var(--accent);
 }
 @keyframes patient-breath-cycle {
@@ -355,11 +355,5 @@ body[data-role="patient"] #content {
 @media (prefers-reduced-motion: reduce) {
   .patient-page [data-practice="rhythm"] .breathing-orb.running {
     animation: none;
-  }
-}
-@media (max-width: 1023px) {
-  body[data-role="patient"] #navigation [data-page="schedule"] span {
-    font-size: 8px;
-    letter-spacing: -0.15px;
   }
 }
