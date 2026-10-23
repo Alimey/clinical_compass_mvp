@@ -54,6 +54,9 @@ with tempfile.TemporaryDirectory() as temp:
                     reduced_motion="reduce",
                     timezone_id="Europe/Moscow",
                 )
+                c.add_init_script(
+                    "window.cspViolations=[];addEventListener('securitypolicyviolation',event=>window.cspViolations.push(event.violatedDirective))"
+                )
                 page = c.new_page()
                 page.on("pageerror", lambda e: errors.append(str(e)))
                 page.goto(url)
@@ -78,6 +81,54 @@ with tempfile.TemporaryDirectory() as temp:
             def submit(page, form):
                 page.locator(form).locator("button[type=submit]").click()
                 page.wait_for_function("() => !busy")
+
+            # Revision 3: all main destinations precede the settings separator.
+            doc.set_viewport_size({"width": 1440, "height": 1000})
+            nav(doc, "overview")
+            expect(doc.locator("#navigation [data-page]").first).to_have_text("Главное")
+            expect(doc.locator("#navigation [data-page=schedule]")).to_have_text(
+                "Мои встречи"
+            )
+            for page in (pat, doc, rel):
+                expect(page.locator("#workspace-tools [data-page]")).to_have_count(1)
+                expect(
+                    page.locator("#workspace-tools [data-page=settings]")
+                ).to_have_count(1)
+                assert page.locator(
+                    "#workspace-tools [data-page=settings] path"
+                ).get_attribute("d") == pat.locator(
+                    "#workspace-tools [data-page=settings] path"
+                ).get_attribute(
+                    "d"
+                )
+            assert doc.locator("#workspace-tools").evaluate(
+                "el=>parseFloat(getComputedStyle(el).borderTopWidth)>0"
+            )
+            doc.screenshot(path=str(ART / "revision3-doctor-menu.png"), full_page=True)
+            nav(doc, "schedule")
+            expect(
+                doc.get_by_role("heading", name="Записать на консультацию", exact=True)
+            ).to_be_visible()
+            expect(doc.locator("#booking-patient")).to_be_visible()
+            nav(pat, "schedule")
+            expect(
+                pat.get_by_role(
+                    "heading", name="Записаться на консультацию", exact=True
+                )
+            ).to_be_visible()
+            expect(
+                rel.get_by_role("link", name="Позвонить", exact=True)
+            ).to_have_attribute("href", "tel:+70000000002")
+            nav(rel, "learn")
+            expect(rel.locator(".course-item")).to_have_count(4)
+            for item in rel.locator(".course-item").all():
+                item.locator("summary").click()
+                expect(item.locator(".video-placeholder")).to_be_visible()
+            expect(rel.locator("[data-ext=resource-read]")).to_have_count(0)
+            rel.evaluate("scrollTo(0,0)")
+            rel.screenshot(
+                path=str(ART / "revision3-relative-videos.png"), full_page=True
+            )
 
             nav(pat, "diary")
             tab(pat, "diary", "notes")
@@ -200,9 +251,97 @@ with tempfile.TemporaryDirectory() as temp:
             expect(doc.locator("#compatibility-result")).to_contain_text(
                 "Нужна дополнительная проверка"
             )
-            for key in ("scales", "rules", "literature"):
+            tab(doc, "reference", "scales")
+            # Check threshold transitions, invalid scores and pointer geometry.
+            for key, maximum, examples in (
+                (
+                    "gad7",
+                    21,
+                    (
+                        (0, "0–4"),
+                        (4, "0–4"),
+                        (5, "5–9"),
+                        (9, "5–9"),
+                        (10, "10–14"),
+                        (14, "10–14"),
+                        (15, "15–21"),
+                        (21, "15–21"),
+                    ),
+                ),
+                (
+                    "phq9",
+                    27,
+                    (
+                        (0, "0–4"),
+                        (4, "0–4"),
+                        (5, "5–9"),
+                        (9, "5–9"),
+                        (10, "10–14"),
+                        (14, "10–14"),
+                        (15, "15–19"),
+                        (19, "15–19"),
+                        (20, "20–27"),
+                        (27, "20–27"),
+                    ),
+                ),
+                (
+                    "hama",
+                    56,
+                    (
+                        (0, "0–17"),
+                        (17, "0–17"),
+                        (18, "18–24"),
+                        (24, "18–24"),
+                        (25, "25–30"),
+                        (30, "25–30"),
+                        (31, "31–56"),
+                        (56, "31–56"),
+                    ),
+                ),
+            ):
+                card = doc.locator(f".scale-guide-card[data-scale={key}]")
+                for score, band in examples:
+                    card.locator("input").fill(str(score))
+                    expect(card.get_by_role("meter")).to_have_attribute(
+                        "aria-valuenow", str(score)
+                    )
+                    expect(card.locator(".scale-zone-current")).to_contain_text(band)
+                    pointer = card.evaluate(
+                        "el=>{const m=el.querySelector('.scale-zone-marker').getBoundingClientRect(),t=el.querySelector('.scale-zone-track').getBoundingClientRect();return {ratio:(m.x+m.width/2-t.x)/t.width,marker:{x:m.x,width:m.width},track:{x:t.x,width:t.width}}}"
+                    )
+                    assert abs(pointer["ratio"] - score / maximum) < 0.01, (
+                        key,
+                        score,
+                        pointer,
+                    )
+                for invalid in ("", "-1", str(maximum + 1), "2.5"):
+                    card.locator("input").fill(invalid)
+                    expect(card.get_by_role("meter")).to_have_count(0)
+                    expect(card.locator(".scale-zone-empty")).to_contain_text(
+                        f"от 0 до {maximum}"
+                    )
+                card.locator("input").fill(
+                    {"gad7": "11", "phq9": "8", "hama": "20"}[key]
+                )
+                card.locator("summary").click()
+                expect(card.locator(".scale-zone-ranges li")).to_have_count(
+                    5 if key == "phq9" else 4
+                )
+            expect(doc.locator("#toast")).to_be_hidden(timeout=10000)
+            for width in (320, 390, 768, 1440):
+                doc.set_viewport_size({"width": width, "height": 1000})
+                assert doc.evaluate(
+                    "document.documentElement.scrollWidth<=innerWidth"
+                ), (width, "scale zones")
+                if width in (390, 1440):
+                    doc.evaluate("scrollTo(0,0)")
+                    doc.screenshot(
+                        path=str(ART / f"revision3-scales-{width}.png"), full_page=True
+                    )
+            for key in ("rules", "literature", "scales"):
                 tab(doc, "reference", key)
                 assert doc.locator("#content").inner_text()
+            expect(doc.locator("[data-scale=phq9] input")).to_have_value("8")
             nav(doc, "news")
             doc.get_by_role("button", name="Мероприятия", exact=True).click()
             expect(doc.locator("#content article.card")).to_have_count(1)
@@ -224,7 +363,18 @@ with tempfile.TemporaryDirectory() as temp:
             expect(rel.locator("#content")).to_contain_text("отозвал его")
             for width in (320, 390, 430, 1280):
                 for page, sections in (
-                    (doc, ("reference", "news", "forum", "research", "tour")),
+                    (
+                        doc,
+                        (
+                            "overview",
+                            "schedule",
+                            "reference",
+                            "news",
+                            "forum",
+                            "research",
+                            "tour",
+                        ),
+                    ),
                     (pat, ("consents", "diary", "learn", "move", "help")),
                     (rel, ("overview", "learn", "contacts")),
                 ):
@@ -242,9 +392,11 @@ with tempfile.TemporaryDirectory() as temp:
             nav(rel, "learn")
             rel.screenshot(path=str(ART / "psicompas-relative.png"), full_page=True)
             assert not errors, errors
+            for page in (pat, doc, rel):
+                assert page.evaluate("window.cspViolations") == []
             browser.close()
             print(
-                "PASS: all prototype sections, 3 separate roles, notes/thoughts/privacy, GAD/PHQ/HAM forms, letters/replies, safety plan/agreement, SOS hold and relative revocation, games/breathing, exercises, consents/research CSV, calculator/news/forum, 4 widths"
+                "PASS: all prototype sections, revision 3 doctor navigation/booking, shared settings gear, relative call/video placeholders, live scale zones and boundary/invalid values, 3 separate roles, notes/thoughts/privacy, GAD/PHQ/HAM forms, letters/replies, safety plan/agreement, SOS hold and relative revocation, games/breathing, exercises, consents/research CSV, calculator/news/forum, responsive layouts"
             )
     finally:
         server.terminate()

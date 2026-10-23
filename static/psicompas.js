@@ -355,17 +355,7 @@ function decoratePsicompas() {
   $("#header-user").textContent = state.user.name;
   $("#sidebar-account").innerHTML =
     `${avatar(state.user.name, "blue")}<span><strong>${e(state.user.name)}</strong><small>${doctor ? "Специалист" : state.user.role === "relative" ? "Близкий" : "Пациент"}</small></span>`;
-  $("#workspace-tools").innerHTML = (
-    state.user.role === "relative"
-      ? [["settings", "info", "Настройки"]]
-      : state.user.role === "patient"
-        ? patientTools
-        : [
-            ...(doctor ? [["overview", "home", "Главная"]] : []),
-            ["schedule", "clock", "Мои встречи"],
-            ["settings", "info", "Настройки"],
-          ]
-  )
+  $("#workspace-tools").innerHTML = patientTools
     .map(
       ([page, glyph, label]) =>
         `<button class="nav-item ${state.page === page ? "active" : ""}" data-action="nav" data-page="${page}" ${state.page === page ? 'aria-current="page"' : ""}>${icon(glyph)}<span>${label}</span></button>`,

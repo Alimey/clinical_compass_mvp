@@ -448,11 +448,13 @@ function render() {
   const doctor = state.user.role === "doctor";
   const nav = doctor
     ? [
+        ["overview", "home", "Главное"],
         ["patients", "users", "Пациенты"],
         ["letters", "chat", "Письма"],
         ["reference", "book", "Справочник"],
         ["news", "info", "Новости"],
         ["forum", "users", "Форум"],
+        ["schedule", "clock", "Мои встречи"],
       ]
     : patientNavigation;
   const roleNav =

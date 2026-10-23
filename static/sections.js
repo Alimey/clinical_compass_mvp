@@ -132,7 +132,10 @@ function literature(who) {
     )}<p class="caption">Список из макета команды. Содержимое внешних источников здесь не проверялось.</p></section>`;
 }
 function coursePage(items, prefix) {
-  if (state.user.role === "patient" && prefix === "course")
+  if (
+    (state.user.role === "patient" && prefix === "course") ||
+    (state.user.role === "relative" && prefix === "relative")
+  )
     return schoolVideos(items);
   const progress =
     state.user.role === "relative"
@@ -420,6 +423,67 @@ function lettersPage() {
   return `${doctor ? heading("ОБРАЩЕНИЯ", "Письма пациентов", "Развёрнутые вопросы и ответы.") + `<button class="button full" data-action="nav" data-page="messages">Чаты с пациентами ${icon("chat")}</button>` : `<section class="card"><h2>Новое письмо</h2><form id="letter-form"><label>Тема обращения<select name="category">${["Вопрос о лечении", "Побочный эффект", "Запись на приём", "Документы", "Другое"].map((v) => `<option>${v}</option>`).join("")}</select></label><label>Заголовок<input name="subject" required maxlength="160"></label><label>Текст<textarea name="body" required maxlength="3000" rows="5"></textarea></label><button class="button primary" type="submit">Отправить письмо</button></form></section>`}${items.length ? items.map((l) => `<section class="card"><div class="card-heading"><h2>${e(l.subject)}</h2><span class="chip ${l.reply ? "green" : l.read_at ? "neutral" : "amber"}">${l.reply ? "Есть ответ" : l.read_at ? "Прочитано" : "Новое"}</span></div><p class="caption">${e(l.patient_name || l.category)} · ${e(clinicDate(l.created_at))}</p><p class="report-text">${e(l.body)}</p>${l.reply ? `<div class="source-note"><strong>Ответ специалиста</strong><p class="report-text">${e(l.reply)}</p></div>` : ""}${doctor ? `<form class="letter-reply-form" data-id="${l.id}"><label>Ответ<textarea name="body" required maxlength="3000" rows="3">${e(l.reply)}</textarea></label><button class="button primary" type="submit">Отправить ответ</button></form>` : ""}</section>`).join("") : '<section class="card"><p class="muted">Писем пока нет.</p></section>'}`;
 }
 
+const scaleGuideDefinitions = {
+  gad7: {
+    title: "GAD-7",
+    max: 21,
+    starts: [0, 5, 10, 15],
+    tones: ["mint", "green", "yellow", "red"],
+  },
+  phq9: {
+    title: "PHQ-9",
+    max: 27,
+    starts: [0, 5, 10, 15, 20],
+    tones: ["mint", "green", "yellow", "orange", "red"],
+  },
+  hama: {
+    title: "HAM-A",
+    max: 56,
+    starts: [0, 18, 25, 31],
+    tones: ["green", "yellow", "orange", "red"],
+  },
+};
+function scaleGuideRange(definition, index) {
+  return `${definition.starts[index]}–${index + 1 < definition.starts.length ? definition.starts[index + 1] - 1 : definition.max}`;
+}
+function scaleGuideResult(key, value) {
+  const definition = scaleGuideDefinitions[key],
+    score = Number(value);
+  if (
+    String(value).trim() === "" ||
+    !Number.isInteger(score) ||
+    score < 0 ||
+    score > definition.max
+  )
+    return `<p class="caption scale-zone-empty" role="status">Введите целое число от 0 до ${definition.max}.</p>`;
+  const index = definition.starts.reduce(
+      (current, start, i) => (score >= start ? i : current),
+      0,
+    ),
+    range = scaleGuideRange(definition, index);
+  return `<div class="scale-zone-meter" role="meter" aria-label="${definition.title}: положение балла" aria-valuemin="0" aria-valuemax="${definition.max}" aria-valuenow="${score}" aria-valuetext="${score} из ${definition.max}; диапазон ${range}"><svg class="scale-zone-track" viewBox="0 0 560 36" preserveAspectRatio="none" aria-hidden="true"><defs><clipPath id="${key}-zone-clip"><rect x="0" y="9" width="560" height="18" rx="9"/></clipPath></defs><g clip-path="url(#${key}-zone-clip)">${definition.starts.map((start, i) => `<rect data-tone="${definition.tones[i]}" x="${(start / definition.max) * 560}" y="9" width="${(((definition.starts[i + 1] ?? definition.max) - start) / definition.max) * 560}" height="18" stroke="var(--surface)" stroke-width="2" vector-effect="non-scaling-stroke"/>`).join("")}</g><rect class="scale-zone-marker" x="${(score / definition.max) * 560 - 2}" y="3" width="4" height="30" rx="2"/></svg></div><div class="scale-zone-axis" aria-hidden="true"><span>0</span><span>${definition.max}</span></div><div class="scale-zone-current" data-tone="${definition.tones[index]}" role="status"><span>Текущая зона</span><strong>${range} баллов</strong></div>`;
+}
+function scaleGuide() {
+  return `<form id="scale-guide-form" class="scale-guide-grid">${Object.entries(
+    scaleGuideDefinitions,
+  )
+    .map(([key, definition]) => {
+      const value = state.scaleGuideScores?.[key] ?? "0";
+      return `<section class="card scale-guide-card" data-scale="${key}"><div class="scale-zone-heading"><h2>${definition.title}</h2><label>Баллы<input name="${key}" type="number" min="0" max="${definition.max}" step="1" value="${e(value)}" required inputmode="numeric" aria-label="${definition.title}: баллы" aria-describedby="${key}-guide-note"></label></div><div class="scale-guide-result">${scaleGuideResult(key, value)}</div><details class="scale-zone-ranges"><summary>Все диапазоны</summary><ul>${definition.starts.map((start, i) => `<li><span class="scale-zone-swatch" data-tone="${definition.tones[i]}" aria-hidden="true"></span><span>${scaleGuideRange(definition, i)} баллов</span></li>`).join("")}</ul></details><p class="caption" id="${key}-guide-note">Учебная визуализация. Интерпретацию и следующий шаг определяет специалист.</p></section>`;
+    })
+    .join("")}</form>`;
+}
+function updateScaleGuide(input) {
+  const key = input.name;
+  if (!Object.hasOwn(scaleGuideDefinitions, key)) return;
+  (state.scaleGuideScores ||= {})[key] = input.value;
+  input
+    .closest(".scale-guide-card")
+    .querySelector(".scale-guide-result").innerHTML = scaleGuideResult(
+    key,
+    input.value,
+  );
+}
 function referencePage() {
   const active = sub("reference", "calc");
   const tabs = sectionTabs(
@@ -460,18 +524,8 @@ function referencePage() {
         "Показанные пороги — учебная демонстрация, требуют медицинской проверки.",
       ) +
       tabs +
-      `<section class="card"><form id="scale-guide-form">${[
-        ["gad7", "GAD-7", 21],
-        ["phq9", "PHQ-9", 27],
-        ["hama", "HAM-A", 56],
-      ]
-        .map(
-          ([k, n, max]) =>
-            `<label>${n}: сумма<input name="${k}" type="number" min="0" max="${max}" value="0" required></label>`,
-        )
-        .join(
-          "",
-        )}<button class="button primary">Посмотреть диапазоны</button></form><div id="scale-guide-result"></div></section><section class="card"><h2>Маршрутизация</h2><p>Сигнал безопасности → просмотр специалистом → согласованный следующий шаг. Приложение не оформляет реальное направление автоматически.</p><p class="caption">При непосредственной угрозе жизни нужна срочная помощь независимо от суммы шкалы.</p></section>`
+      scaleGuide() +
+      `<section class="card"><h2>Маршрутизация</h2><p>Сигнал безопасности → просмотр специалистом → согласованный следующий шаг. Приложение не оформляет реальное направление автоматически.</p><p class="caption">При непосредственной угрозе жизни нужна срочная помощь независимо от суммы шкалы.</p></section>`
     );
   return (
     heading(
@@ -562,7 +616,7 @@ function relativePage() {
       ? people
           .map(
             (p) =>
-              `<section class="card"><h2>${e(p.name)}</h2>${p.phone ? `<a class="button" href="tel:${e(p.phone.replace(/[^+0-9]/g, ""))}">Позвонить близкому</a>` : ""}${p.last_active ? `<p class="caption">Последняя запись: ${e(clinicDate(p.last_active))}</p>` : ""}${p.wellbeing ? `<p>${e(p.wellbeing)}</p>` : ""}${p.adherence ? `<details><summary>Разрешённые отметки приёма</summary>${p.adherence.map((a) => `<p class="caption">${e(a.day)} ${e(a.scheduled_time)} · ${a.status === "taken" ? "принято" : "пропущено"}</p>`).join("")}</details>` : ""}</section>${p.events.length ? p.events.map((v) => `<section class="notice urgent-help"><h2>Запрос поддержки</h2><p>${e(p.name)} попросил(а) связаться через SOS.</p><p class="caption">${e(clinicDate(v.created_at))} · ${v.relative_read_at ? "вы отметили просмотр" : "новый запрос"}</p>${!v.relative_read_at ? `<button class="button" data-ext="support-read" data-id="${v.id}">Отметить просмотренным</button>` : ""}<a class="button danger" href="tel:112">Экстренная помощь · 112</a></section>`).join("") : '<section class="card"><p>Сохранённых запросов SOS нет.</p></section>'}`,
+              `<section class="card"><h2>${e(p.name)}</h2>${p.phone ? `<a class="button" href="tel:${e(p.phone.replace(/[^+0-9]/g, ""))}">Позвонить</a>` : ""}${p.last_active ? `<p class="caption">Последняя запись: ${e(clinicDate(p.last_active))}</p>` : ""}${p.wellbeing ? `<p>${e(p.wellbeing)}</p>` : ""}${p.adherence ? `<details><summary>Разрешённые отметки приёма</summary>${p.adherence.map((a) => `<p class="caption">${e(a.day)} ${e(a.scheduled_time)} · ${a.status === "taken" ? "принято" : "пропущено"}</p>`).join("")}</details>` : ""}</section>${p.events.length ? p.events.map((v) => `<section class="notice urgent-help"><h2>Запрос поддержки</h2><p>${e(p.name)} попросил(а) связаться через SOS.</p><p class="caption">${e(clinicDate(v.created_at))} · ${v.relative_read_at ? "вы отметили просмотр" : "новый запрос"}</p>${!v.relative_read_at ? `<button class="button" data-ext="support-read" data-id="${v.id}">Отметить просмотренным</button>` : ""}<a class="button danger" href="tel:112">Экстренная помощь · 112</a></section>`).join("") : '<section class="card"><p>Сохранённых запросов SOS нет.</p></section>'}`,
           )
           .join("")
       : '<section class="card"><p>Пациент пока не разрешил доступ или отозвал его. Сведения не отображаются.</p></section>') +
@@ -777,6 +831,7 @@ clearSession = function () {
     "patientAi",
     "sectionTabs",
     "assessmentKind",
+    "scaleGuideScores",
     "emotion",
     "memoryCards",
     "memoryOpen",
@@ -1016,6 +1071,8 @@ document.addEventListener("change", async (event) => {
   }
 });
 document.addEventListener("input", (event) => {
+  if (event.target.matches("#scale-guide-form input"))
+    updateScaleGuide(event.target);
   if (event.target.id === "contacts-search") {
     state.contactSearch = event.target.value;
     const q = event.target.value.toLowerCase();
@@ -1117,12 +1174,7 @@ document.addEventListener("submit", (event) => {
     });
   if (f.id === "compatibility-form") showCompatibility(f);
   if (f.id === "scale-guide-form") {
-    const gad = Number(data.gad7),
-      phq = Number(data.phq9),
-      ham = Number(data.hama);
-    $("#scale-guide-result").innerHTML = demoNote(
-      `Диапазоны из макета: GAD-7 — ${gad < 5 ? "0–4" : gad < 10 ? "5–9" : gad < 15 ? "10–14" : "15–21"}; PHQ-9 — ${phq < 5 ? "0–4" : phq < 10 ? "5–9" : phq < 15 ? "10–14" : phq < 20 ? "15–19" : "20–27"}; HAM-A — ${ham <= 17 ? "0–17" : ham <= 24 ? "18–24" : ham <= 30 ? "25–30" : "31–56"}. Интерпретацию и маршрутизацию определяет специалист.`,
-    );
+    f.querySelectorAll("input").forEach(updateScaleGuide);
   }
 });
 
