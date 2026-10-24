@@ -278,31 +278,14 @@ treePage = function () {
   );
 };
 const labMaze = (() => {
-  // One vector mark is shared by the game picker, heading and canvas.
-  const brandColor = "#087d9c";
-  const brandPetal =
-    "M40 13C29 7 15 14 13 26C11 37 21 44 31 40L39 33L29 24L22 30L31 37C24 39 18 35 18 29C18 20 29 14 40 13Z";
+  // Use the same restored reference image everywhere, without redrawing its shape.
+  const brandImage = new Image();
+  brandImage.src = "/static/chemrar-mark.png";
   const brandIcon = () =>
-    `<svg class="maze-brand-mark" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><circle cx="32" cy="32" r="28" fill="white" stroke="${brandColor}" stroke-width="3"/><g fill="${brandColor}"><path d="${brandPetal}"/><path d="${brandPetal}" transform="rotate(180 32 32)"/></g></svg>`;
-  const petal = new Path2D(brandPetal);
+    '<img class="maze-brand-mark" src="/static/chemrar-mark.png" width="36" height="36" alt="" aria-hidden="true" decoding="async">';
   function drawBrand(c, x, y, size) {
-    c.save();
-    c.translate(x, y);
-    c.scale(size / 64, size / 64);
-    c.fillStyle = "#ffffff";
-    c.strokeStyle = brandColor;
-    c.lineWidth = 3;
-    c.beginPath();
-    c.arc(32, 32, 28, 0, Math.PI * 2);
-    c.fill();
-    c.stroke();
-    c.fillStyle = brandColor;
-    c.fill(petal);
-    c.translate(32, 32);
-    c.rotate(Math.PI);
-    c.translate(-32, -32);
-    c.fill(petal);
-    c.restore();
+    if (brandImage.complete && brandImage.naturalWidth)
+      c.drawImage(brandImage, x, y, size, size);
   }
   function drawCarton(c, x, y, cells) {
     const w = cells * 36 - 4,
@@ -519,5 +502,5 @@ const labMaze = (() => {
           `<button class="button" data-game-action="lab-step" data-dx="${x}" data-dy="${y}">${t}</button>`,
       )
       .join("")}</div>`;
-  return { create, step, draw, controls, brandIcon };
+  return { create, step, draw, controls, brandIcon, brandImage };
 })();

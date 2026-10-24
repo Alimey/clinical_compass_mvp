@@ -349,7 +349,7 @@ with tempfile.TemporaryDirectory() as temp:
                             )
             page.evaluate("navigator.serviceWorker.ready")
             paths = page.evaluate(
-                "async()=>{const c=await caches.open('compass-shell-v21');return(await c.keys()).map(r=>new URL(r.url).pathname)}"
+                "async()=>{const c=await caches.open('compass-shell-v22');return(await c.keys()).map(r=>new URL(r.url).pathname)}"
             )
             assert "/static/games.js" in paths and "/static/games.css" in paths
             context.set_offline(True)

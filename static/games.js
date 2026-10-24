@@ -1315,6 +1315,9 @@ const compassGames = (() => {
       }
       refresh();
     }
+    // The maze is static between moves, so redraw once when its image arrives.
+    if (key === "lab")
+      labMaze.brandImage.addEventListener("load", draw, { once: true, signal });
     function wantsMotion() {
       if (key === "balls" || key === "lava") return !m.paused;
       if (key === "meadow") return !!m.pointer || m.regrow.length > 0;
