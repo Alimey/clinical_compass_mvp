@@ -174,8 +174,16 @@ class PatientRevision2Test(unittest.TestCase):
     def test_own_scale_chart_points_have_scores_without_changing_patient_interpretation(
         self,
     ):
+        assignment = self.d.post(
+            "/api/patients/2/assessment-assignments",
+            json={"kind": "gad7", "due_at": "2030-01-01T12:00:00Z"},
+            headers={"X-CSRF-Token": self.dc},
+        ).json["id"]
         self.assertEqual(
-            self.post("assessments", {"kind": "gad7", "answers": [1] * 7}).status_code,
+            self.post(
+                "assessments",
+                {"kind": "gad7", "answers": [1] * 7, "assignment_id": assignment},
+            ).status_code,
             201,
         )
         data = self.p.get("/api/patients/2/workspace").json

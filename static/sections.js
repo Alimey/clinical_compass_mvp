@@ -95,7 +95,17 @@ function additionalChart() {
     )}</svg><p class="caption">Голубой — сон · зелёный — энергия. Последние ${reports.length} записей.</p><details><summary>Посмотреть значения</summary>${reports.map((r) => `<p class="caption">${e(clinicDate(r.created_at))} · сон ${r.sleep}/10 · энергия ${r.energy}/10</p>`).join("")}</details>`;
 }
 function assessmentPage(doctor = false) {
-  const chosen = state.assessmentKind;
+  let chosen = state.assessmentKind;
+  if (
+    !doctor &&
+    !ws().assessment_assignments?.some(
+      (a) =>
+        a.id === state.assessmentAssignment &&
+        a.kind === chosen &&
+        a.status === "assigned",
+    )
+  )
+    chosen = null;
   const available = doctor ? ["hama"] : ["gad7", "phq9"];
   if (extraAssessments[chosen] || ["schulte", "serial7"].includes(chosen))
     return extendedAssessment(chosen);
@@ -105,7 +115,7 @@ function assessmentPage(doctor = false) {
     return `<section class="card"><h2>${{ gad7: "GAD-7", phq9: "PHQ-9", hama: "HAM-A" }[chosen]}</h2><form id="assessment-form" data-kind="${chosen}">${items.map((q, i) => `<label>${i + 1}. ${e(q)}<select name="q${i}" required><option value="">Выберите ответ</option>${Array.from({ length: maximum + 1 }, (_, v) => `<option value="${v}">${v} · ${maximum === 3 ? ["Ни разу", "Несколько дней", "Больше половины дней", "Почти каждый день"][v] : ["Нет", "Легко", "Умеренно", "Выраженно", "Очень выраженно"][v]}</option>`).join("")}</select></label>`).join("")}<p class="urgent">При непосредственной опасности обратитесь за срочной помощью. Запись в приложении не вызывает экстренную службу.</p><button class="button primary" type="submit">${doctor ? "Сохранить оценку" : "Отправить ответы специалисту"}</button><button class="button quiet" type="button" data-ext="assessment-cancel">Отмена</button></form></section>`;
   }
   const past = ws().assessments;
-  return `<section class="card"><h2>${doctor ? "Шкала специалиста" : "Шкалы самочувствия"}</h2>${doctor ? "" : extraAssessmentPicker()}${available.map((k) => `<button class="button full" data-ext="assessment" data-key="${k}">${{ gad7: "GAD-7 · 7 вопросов", phq9: "PHQ-9 · 9 вопросов", hama: "HAM-A · 14 пунктов" }[k]} ${icon("arrow")}</button>`).join("")}</section><section class="card"><h2>Сохранённые результаты</h2>${past.length ? past.map((s) => `<div class="report-item"><strong>${e(extraAssessments[s.kind]?.title || { schulte: "Таблицы Шульте", serial7: "Вычитание по 7 из 100" }[s.kind] || s.kind.toUpperCase())}</strong><p class="caption">${e(clinicDate(s.created_at))}</p>${doctor ? `${extraAssessments[s.kind] ? "<p>Учебные ответы без диагностического балла</p>" : `<p>${s.kind === "schulte" ? "Время, сек." : s.kind === "serial7" ? "Верных ответов" : "Сумма"}: <strong>${s.score}</strong></p>`}<details><summary>Ответы по пунктам</summary><p>${s.answers.map((v, i) => `${i + 1}: ${v}`).join(" · ")}</p></details>` : `<p>${e(s.interpretation)}</p>`}</div>`).join("") : '<p class="muted">Шкалы пока не заполнены.</p>'}</section>`;
+  return `<section class="card"><h2>${doctor ? "Шкала специалиста" : "Шкалы самочувствия"}</h2>${assessmentAssignmentPanel(doctor)}${(doctor ? available : []).map((k) => `<button class="button full" data-ext="assessment" data-key="${k}">${{ gad7: "GAD-7 · 7 вопросов", phq9: "PHQ-9 · 9 вопросов", hama: "HAM-A · 14 пунктов" }[k]} ${icon("arrow")}</button>`).join("")}</section><section class="card"><h2>Сохранённые результаты</h2>${past.length ? past.map((s) => `<div class="report-item"><strong>${e(extraAssessments[s.kind]?.title || { schulte: "Таблицы Шульте", serial7: "Вычитание по 7 из 100" }[s.kind] || s.kind.toUpperCase())}</strong><p class="caption">${e(clinicDate(s.created_at))}</p>${doctor ? `${extraAssessments[s.kind] ? "<p>Учебные ответы без диагностического балла</p>" : `<p>${s.kind === "schulte" ? "Время, сек." : s.kind === "serial7" ? "Верных ответов" : "Сумма"}: <strong>${s.score}</strong></p>`}<details><summary>Ответы по пунктам</summary><p>${s.answers.map((v, i) => `${i + 1}: ${v}`).join(" · ")}</p></details>` : `<p>${e(s.interpretation)}</p>`}</div>`).join("") : '<p class="muted">Шкалы пока не заполнены.</p>'}</section>`;
 }
 
 function thoughtJournal() {
@@ -1059,6 +1069,7 @@ document.addEventListener("submit", (event) => {
       const kind = f.dataset.kind;
       await write("/api/patients/" + state.selected + "/assessments", {
         kind,
+        assignment_id: state.assessmentAssignment,
         answers: prototypeContent[kind].map((_, i) => Number(data["q" + i])),
       });
       state.assessmentKind = null;

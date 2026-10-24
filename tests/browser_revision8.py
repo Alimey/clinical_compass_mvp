@@ -65,10 +65,47 @@ with tempfile.TemporaryDirectory() as temp:
             expect(page.locator(".tree-legend li")).to_have_count(5)
             page.evaluate("()=>flowerQueue")
             page.screenshot(path=str(ART / "revision8-tree.png"), full_page=True)
+            doctor_context = browser.new_context(
+                viewport={"width": 1440, "height": 1000}
+            )
+            auth = doctor_context.request.post(
+                url + "/api/auth/login",
+                data={"username": "doctor", "password": "compass-demo"},
+            ).json()
+            doctor_page = doctor_context.new_page()
+            doctor_page.goto(url)
+            doctor_page.wait_for_function("()=>state.user&&!busy")
+            doctor_page.locator('[data-action=patient][data-id="2"]').first.click()
+            doctor_page.locator("[data-tab=scales]").click()
+            assign_form = doctor_page.locator("#assign-assessment-form")
+            assign_form.locator("[name=kind]").select_option("mmpi")
+            assign_form.locator("[name=due_at]").fill("2030-01-01T12:00")
+            assign_form.locator("button").click()
+            expect(doctor_page.locator(".assessment-assignments")).to_contain_text(
+                "MMPI"
+            )
+            for key in [
+                "leonhard",
+                "beck_hopelessness",
+                "beck_depression",
+                "spielberger",
+                "hcl33",
+                "mdq",
+                "dembo",
+                "cope",
+                "schulte",
+                "serial7",
+            ]:
+                response = doctor_context.request.post(
+                    url + "/api/patients/2/assessment-assignments",
+                    data={"kind": key, "due_at": "2030-01-01T12:00:00Z"},
+                    headers={"X-CSRF-Token": auth["csrf"]},
+                )
+                assert response.ok
             page.locator("#navigation [data-page=diary]").click()
             page.locator("[data-ext=sub][data-group=diary][data-key=scales]").click()
             expect(
-                page.locator(".extended-assessments [data-ext=assessment]")
+                page.locator(".assessment-assignments [data-ext=assessment]")
             ).to_have_count(11)
             for key in [
                 "mmpi",
@@ -87,7 +124,7 @@ with tempfile.TemporaryDirectory() as temp:
                 for select in f.locator("select").all():
                     select.select_option("1")
                 f.locator("button[type=submit],button:not([type])").first.click()
-                expect(page.locator(".extended-assessments")).to_be_visible()
+                expect(page.locator(".assessment-assignments")).to_be_visible()
                 page.wait_for_function("()=>!busy")
             page.locator("[data-ext=assessment][data-key=schulte]").click()
             for n in range(1, 26):
@@ -140,7 +177,7 @@ with tempfile.TemporaryDirectory() as temp:
             assert not errors, errors
             browser.close()
             print(
-                "PASS: named private counter, tree navigation and color legend, nine demo forms with persistence, Schulte and serial subtraction, labyrinth pills/walls/keyboard/buttons, popping and regrowing berries, video titles, 5 widths"
+                "PASS: doctor assignment and deadline, patient completion, named private counter, tree navigation and color legend, nine demo forms with persistence, Schulte and serial subtraction, labyrinth pills/walls/keyboard/buttons, popping and regrowing berries, video titles, 5 widths"
             )
     finally:
         server.terminate()

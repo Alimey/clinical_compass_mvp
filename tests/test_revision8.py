@@ -24,6 +24,15 @@ class Revision8Test(unittest.TestCase):
     def tearDown(self):
         self.temp.cleanup()
 
+    def assigned_data(self, kind, answers):
+        response = self.doctor.post(
+            "/api/patients/2/assessment-assignments",
+            json={"kind": kind, "due_at": "2030-01-01T12:00:00Z"},
+            headers={"X-CSRF-Token": self.dc},
+        )
+        self.assertEqual(response.status_code, 201, response.json)
+        return {"kind": kind, "answers": answers, "assignment_id": response.json["id"]}
+
     def test_demo_forms_exercises_and_role_validation(self):
         for kind in [
             "mmpi",
@@ -39,7 +48,7 @@ class Revision8Test(unittest.TestCase):
             path = "/api/patients/2/assessments"
             result = self.patient.post(
                 path,
-                json={"kind": kind, "answers": [1] * 6},
+                json=self.assigned_data(kind, [1] * 6),
                 headers={"X-CSRF-Token": self.pc},
             )
             self.assertEqual(result.status_code, 201, result.json)
@@ -61,12 +70,12 @@ class Revision8Test(unittest.TestCase):
             )
         self.patient.post(
             path,
-            json={"kind": "serial7", "answers": [100 - 7 * (i + 1) for i in range(13)]},
+            json=self.assigned_data("serial7", [100 - 7 * (i + 1) for i in range(13)]),
             headers={"X-CSRF-Token": self.pc},
         )
         self.patient.post(
             path,
-            json={"kind": "schulte", "answers": [27]},
+            json=self.assigned_data("schulte", [27]),
             headers={"X-CSRF-Token": self.pc},
         )
         results = self.doctor.get("/api/patients/2/workspace").json["assessments"]
@@ -94,6 +103,62 @@ class Revision8Test(unittest.TestCase):
         self.assertNotIn(
             "streak_label",
             self.doctor.get("/api/patients/2/workspace").json["preferences"],
+        )
+
+    def test_assignment_required_single_use_cancelled_and_bound(self):
+        path = "/api/patients/2/assessments"
+        headers = {"X-CSRF-Token": self.pc}
+        self.assertEqual(
+            self.patient.post(
+                path, json={"kind": "mmpi", "answers": [1] * 6}, headers=headers
+            ).status_code,
+            403,
+        )
+        data = self.assigned_data("mmpi", [1] * 6)
+        self.assertEqual(
+            self.patient.post(
+                "/api/patients/2/assessment-assignments",
+                json={"kind": "mmpi", "due_at": "2030-01-01T12:00:00Z"},
+                headers=headers,
+            ).status_code,
+            403,
+        )
+        self.assertEqual(
+            self.patient.post(
+                path, json={**data, "kind": "cope"}, headers=headers
+            ).status_code,
+            403,
+        )
+        self.assertEqual(
+            self.patient.post(path, json=data, headers=headers).status_code, 201
+        )
+        self.assertEqual(
+            self.patient.post(path, json=data, headers=headers).status_code, 409
+        )
+        assignments = self.patient.get("/api/patients/2/workspace").json[
+            "assessment_assignments"
+        ]
+        self.assertEqual(assignments[0]["status"], "completed")
+        data = self.assigned_data("cope", [1] * 6)
+        response = self.doctor.post(
+            f"/api/patients/2/assessment-assignments/{data['assignment_id']}/cancel",
+            json={},
+            headers={"X-CSRF-Token": self.dc},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            self.patient.post(path, json=data, headers=headers).status_code, 409
+        )
+        other = self.app.test_client()
+        csrf = other.post(
+            "/api/auth/login",
+            json={"username": "patient-b", "password": "compass-demo"},
+        ).json["csrf"]
+        self.assertEqual(
+            other.post(
+                "/api/patients/3/assessments", json=data, headers={"X-CSRF-Token": csrf}
+            ).status_code,
+            403,
         )
 
     def test_earned_colors_stable_on_refresh(self):

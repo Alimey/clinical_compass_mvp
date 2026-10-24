@@ -149,6 +149,10 @@ with tempfile.TemporaryDirectory() as temp:
             expect(pat.get_by_role("heading", name="Литература")).to_be_visible()
             nav(pat, "diary")
             tab(pat, "diary", "scales")
+            assigned = doc.evaluate(
+                "async()=>api('/api/patients/2/assessment-assignments',{kind:'gad7',due_at:'2030-01-01T12:00:00Z'})"
+            )
+            pat.evaluate("()=>load()")
             pat.locator("[data-ext=assessment][data-key=gad7]").click()
             for i in range(7):
                 pat.locator(f"#assessment-form [name=q{i}]").select_option("1")

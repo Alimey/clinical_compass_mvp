@@ -137,7 +137,13 @@ function medicationPreview() {
 
 patientOverview = function () {
   const c = care();
-  const pending = c.surveys.filter((s) => s.status === "assigned");
+  const pending = [
+    ...c.surveys,
+    ...(ws().assessment_assignments || []).map((a) => ({
+      ...a,
+      title: assessmentTitle(a.kind),
+    })),
+  ].filter((s) => s.status === "assigned");
   const day = new Date().toLocaleDateString("ru-RU", {
     weekday: "long",
     day: "numeric",

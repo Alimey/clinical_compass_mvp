@@ -150,10 +150,15 @@ class SectionsTest(unittest.TestCase):
                 self.post("patient-a", "/api/patients/2/assessments", data).status_code,
                 (400, 403),
             )
+        assignment = self.post(
+            "doctor",
+            "/api/patients/2/assessment-assignments",
+            {"kind": "phq9", "due_at": "2030-01-01T12:00:00Z"},
+        ).json["id"]
         response = self.post(
             "patient-a",
             "/api/patients/2/assessments",
-            {"kind": "phq9", "answers": [1] * 9},
+            {"kind": "phq9", "answers": [1] * 9, "assignment_id": assignment},
         )
         self.assertEqual(response.status_code, 201)
         self.assertNotIn("score", self.workspace()["assessments"][0])

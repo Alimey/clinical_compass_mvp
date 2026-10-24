@@ -1,5 +1,5 @@
 "use strict";
-const CACHE = "compass-shell-v16";
+const CACHE = "compass-shell-v17";
 const SHELL = [
   "/",
   "/static/style.css",
