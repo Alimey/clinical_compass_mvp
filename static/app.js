@@ -678,6 +678,7 @@ async function login(username, password) {
       diary: "form",
     };
     beginNavigationSession();
+    sendPresence();
     $("#login-screen").hidden = true;
     $("#login-screen").replaceChildren();
     $("#app-shell").hidden = false;
@@ -1131,6 +1132,7 @@ async function boot() {
     state.user = result.user;
     state.csrf = result.csrf;
     beginNavigationSession();
+    sendPresence();
     $("#login-screen").hidden = true;
     $("#app-shell").hidden = false;
     await load();

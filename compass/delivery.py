@@ -23,7 +23,14 @@ def init_delivery():
         """
     CREATE TABLE IF NOT EXISTS push_subscriptions(id INTEGER PRIMARY KEY AUTOINCREMENT,user_id INTEGER NOT NULL REFERENCES users(id),endpoint TEXT NOT NULL UNIQUE,subscription_json TEXT NOT NULL,created_at TEXT NOT NULL,active INTEGER NOT NULL DEFAULT 1);
     CREATE TABLE IF NOT EXISTS push_jobs(id INTEGER PRIMARY KEY AUTOINCREMENT,notification_id INTEGER NOT NULL REFERENCES notifications(id),subscription_id INTEGER NOT NULL REFERENCES push_subscriptions(id),status TEXT NOT NULL DEFAULT 'pending',attempts INTEGER NOT NULL DEFAULT 0,next_attempt REAL NOT NULL DEFAULT 0,lease_until REAL NOT NULL DEFAULT 0,last_error TEXT NOT NULL DEFAULT '',sent_at TEXT,UNIQUE(notification_id,subscription_id));
+    CREATE TABLE IF NOT EXISTS user_presence(user_id INTEGER PRIMARY KEY REFERENCES users(id),last_seen TEXT NOT NULL);
+    CREATE TABLE IF NOT EXISTS notification_guards(notification_id INTEGER PRIMARY KEY REFERENCES notifications(id),kind TEXT NOT NULL,resource_id INTEGER,patient_id INTEGER NOT NULL,episode TEXT NOT NULL DEFAULT '',cancelled INTEGER NOT NULL DEFAULT 0);
+    CREATE TRIGGER IF NOT EXISTS presence_for_new_patient AFTER INSERT ON users WHEN NEW.role='patient' BEGIN INSERT OR IGNORE INTO user_presence VALUES(NEW.id,strftime('%Y-%m-%dT%H:%M:%fZ','now')); END;
     """
+    )
+    db().execute(
+        "INSERT OR IGNORE INTO user_presence SELECT id,? FROM users WHERE role='patient'",
+        (now(),),
     )
     db().commit()
 
@@ -59,14 +66,19 @@ def reminders_and_escalations():
     clock = datetime.now(timezone.utc)
     today = local_today()
 
-    def once(key, user, patient, title, body):
+    def once(key, user, patient, title, body, guard=None):
         inserted = (
             db()
             .execute("INSERT OR IGNORE INTO reminder_events VALUES(?,?)", (key, stamp))
             .rowcount
         )
         if inserted:
-            notify(user, patient, title, body)
+            ident = notify(user, patient, title, body)
+            if guard:
+                con.execute(
+                    "INSERT INTO notification_guards(notification_id,kind,resource_id,patient_id,episode) VALUES(?,?,?,?,?)",
+                    (ident, guard[0], guard[1], patient, guard[2]),
+                )
 
     with db() as con:
         for item in con.execute(
@@ -80,6 +92,7 @@ def reminders_and_escalations():
                     item["patient_id"],
                     "Напоминание об опросе",
                     "Опрос ожидает ответа. Проверьте дедлайн в приложении.",
+                    ("survey", item["id"], ""),
                 )
             elif clock > due:
                 once(
@@ -88,6 +101,7 @@ def reminders_and_escalations():
                     item["patient_id"],
                     "Дедлайн опроса прошёл",
                     "Ответить ещё можно. При необходимости обсудите срок со специалистом.",
+                    ("survey", item["id"], ""),
                 )
                 once(
                     "survey-overdue-doctor:" + str(item["id"]),
@@ -95,27 +109,94 @@ def reminders_and_escalations():
                     item["patient_id"],
                     "Опрос просрочен",
                     "Пациент пока не ответил на назначенный опрос.",
+                    ("survey", item["id"], ""),
                 )
         for item in con.execute(
-            "SELECT * FROM prescriptions WHERE active=1 AND starts_on<=? AND ends_on>=?",
-            (today.isoformat(), today.isoformat()),
+            "SELECT * FROM assessment_assignments WHERE status='assigned' AND kind NOT IN ('mmpi','beck_hopelessness','beck_depression')"
         ).fetchall():
-            for schedule in json.loads(item["times_json"]):
-                due = datetime.combine(
-                    today, datetime.strptime(schedule, "%H:%M").time(), CLINIC_TZ
-                ).astimezone(timezone.utc)
-                marked = con.execute(
-                    "SELECT 1 FROM medication_marks WHERE prescription_id=? AND day=? AND scheduled_time=?",
-                    (item["id"], today.isoformat(), schedule),
-                ).fetchone()
-                if due <= clock < due + timedelta(hours=2) and not marked:
+            due = timestamp(item["due_at"])
+            if due - timedelta(hours=24) <= clock:
+                overdue = clock > due
+                once(
+                    f"assessment-{'overdue' if overdue else 'due'}:{item['id']}",
+                    item["patient_id"],
+                    item["patient_id"],
+                    (
+                        "Срок выполнения формы прошёл"
+                        if overdue
+                        else "Напоминание о задании"
+                    ),
+                    "Откройте Дневник → Шкалы. Ответы ещё не отправлены.",
+                    ("assessment", item["id"], ""),
+                )
+                if overdue:
                     once(
-                        f"medication:{item['id']}:{today}:{schedule}",
+                        f"assessment-overdue-doctor:{item['id']}",
+                        item["doctor_id"],
                         item["patient_id"],
-                        item["patient_id"],
-                        "Напоминание о таблетнице",
-                        "Проверьте учебное назначение и отметьте выполнение.",
+                        "Задание просрочено",
+                        "Пациент пока не выполнил назначенную форму.",
+                        ("assessment", item["id"], ""),
                     )
+        grace = max(0, int(os.environ.get("COMPASS_MEDICATION_GRACE_MINUTES", "30")))
+        for day in (today - timedelta(days=1), today):
+            for item in con.execute(
+                "SELECT * FROM prescriptions WHERE active=1 AND starts_on<=? AND ends_on>=?",
+                (day.isoformat(), day.isoformat()),
+            ).fetchall():
+                for schedule in json.loads(item["times_json"]):
+                    due = datetime.combine(
+                        day, datetime.strptime(schedule, "%H:%M").time(), CLINIC_TZ
+                    ).astimezone(timezone.utc)
+                    taken = con.execute(
+                        "SELECT 1 FROM medication_marks WHERE prescription_id=? AND day=? AND scheduled_time=? AND status='taken'",
+                        (item["id"], day.isoformat(), schedule),
+                    ).fetchone()
+                    if (
+                        due + timedelta(minutes=grace)
+                        <= clock
+                        < due + timedelta(hours=24)
+                        and not taken
+                    ):
+                        once(
+                            f"medication:{item['id']}:{day}:{schedule}",
+                            item["patient_id"],
+                            item["patient_id"],
+                            "В таблетнице нет отметки о приёме",
+                            "Проверьте отметку. Если приём пропущен, следуйте назначению врача; не меняйте схему по уведомлению.",
+                            ("medication", item["id"], f"{day}|{schedule}"),
+                        )
+        from compass.reminder_policy import inactivity_hours, cancel_stale_reminders
+        from compass.sections import preferences
+
+        for item in con.execute(
+            "SELECT u.id,u.doctor_id,u.name,p.last_seen FROM users u JOIN user_presence p ON p.user_id=u.id WHERE u.role='patient'"
+        ).fetchall():
+            if (
+                timestamp(item["last_seen"]) + timedelta(hours=inactivity_hours())
+                > clock
+            ):
+                continue
+            recipients = [item["doctor_id"]] if item["doctor_id"] else []
+            prefs = preferences(item["id"])
+            if prefs["relative_sos"] and prefs["relative_away"]:
+                recipients += [
+                    r[0]
+                    for r in con.execute(
+                        "SELECT relative_id FROM relative_links WHERE patient_id=?",
+                        (item["id"],),
+                    )
+                ]
+            for recipient in recipients:
+                once(
+                    f"absence:{item['id']}:{item['last_seen']}:{recipient}",
+                    recipient,
+                    item["id"],
+                    "Пациент давно не открывал приложение",
+                    f"{item['name']}: нет посещений приложения более {inactivity_hours()} ч. Это не подтверждает ухудшение состояния; можно связаться и уточнить, как дела.",
+                    ("absence", None, item["last_seen"]),
+                )
+        cancel_stale_reminders()
         for item in con.execute(
             "SELECT * FROM appointments WHERE status='booked'"
         ).fetchall():
@@ -162,7 +243,7 @@ def reminders_and_escalations():
         con.execute(
             """INSERT OR IGNORE INTO push_jobs(notification_id,subscription_id)
             SELECT n.id,s.id FROM notifications n JOIN push_subscriptions s ON s.user_id=n.user_id
-            WHERE s.active=1 AND n.created_at>=s.created_at AND n.read_at IS NULL"""
+            WHERE s.active=1 AND n.created_at>=s.created_at AND n.read_at IS NULL AND NOT EXISTS (SELECT 1 FROM notification_guards g WHERE g.notification_id=n.id AND g.cancelled=1)"""
         )
         con.execute(
             "INSERT OR REPLACE INTO service_state VALUES('worker_heartbeat',?)",
@@ -171,7 +252,10 @@ def reminders_and_escalations():
 
 
 def dispatch_push():
+    from compass.reminder_policy import cancel_stale_reminders
+
     with db() as con:
+        cancel_stale_reminders()
         con.execute(
             "UPDATE push_jobs SET status='failed',last_error='LeaseExpired' WHERE status='sending' AND attempts>=6 AND lease_until<?",
             (time.time(),),
@@ -201,6 +285,25 @@ def dispatch_push():
             ):
                 continue
             if item["read_at"]:
+                con.execute(
+                    "UPDATE push_jobs SET status='cancelled' WHERE id=?", (item["id"],)
+                )
+                continue
+            from compass.reminder_policy import guard_is_current
+
+            guard = con.execute(
+                "SELECT * FROM notification_guards WHERE notification_id=?",
+                (item["notification_id"],),
+            ).fetchone()
+            owner = con.execute(
+                "SELECT user_id FROM notifications WHERE id=?",
+                (item["notification_id"],),
+            ).fetchone()[0]
+            if guard and not guard_is_current(guard, owner):
+                con.execute(
+                    "UPDATE notification_guards SET cancelled=1 WHERE notification_id=?",
+                    (item["notification_id"],),
+                )
                 con.execute(
                     "UPDATE push_jobs SET status='cancelled' WHERE id=?", (item["id"],)
                 )
@@ -259,6 +362,37 @@ def dispatch_push():
 
 
 def register_delivery(app, require_role, payload):
+    @app.post("/api/push/test")
+    def test_push():
+        payload()
+        if (
+            not db()
+            .execute(
+                "SELECT 1 FROM push_subscriptions WHERE user_id=? AND active=1",
+                (g.user["id"],),
+            )
+            .fetchone()
+        ):
+            raise ValueError("Сначала подключите push хотя бы на одном устройстве")
+        with db():
+            ident = notify(
+                g.user["id"],
+                g.user["id"],
+                "Проверка уведомлений",
+                "Тестовое уведомление отправлено. На устройстве появится сообщение ПсиКомпас.",
+            )
+        return jsonify(id=ident), 201
+
+    @app.post("/api/activity/heartbeat")
+    def heartbeat():
+        require_role("patient")
+        payload()
+        from compass.reminder_policy import record_presence
+
+        with db():
+            record_presence(g.user["id"])
+        return jsonify(ok=True)
+
     @app.get("/api/integrations")
     def integrations():
         base, model, key = ai_settings()

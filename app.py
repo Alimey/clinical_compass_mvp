@@ -267,6 +267,11 @@ def create_app(database=None, *, seed_demo=True, testing=False):
                 ),
             )
         user = rows("SELECT * FROM users WHERE id=?", (account["user_id"],))[0]
+        if user["role"] == "patient":
+            from compass.reminder_policy import record_presence
+
+            with db():
+                record_presence(user["id"])
         response = jsonify(user=user, csrf=csrf)
         response.set_cookie(
             "compass_session",
@@ -685,14 +690,18 @@ def create_app(database=None, *, seed_demo=True, testing=False):
 
     @app.get("/api/notifications")
     def notifications():
+        from compass.reminder_policy import cancel_stale_reminders
+
+        with db():
+            cancel_stale_reminders(g.user["id"])
         return jsonify(
             items=rows(
-                "SELECT * FROM notifications WHERE user_id=? ORDER BY id DESC LIMIT 50",
+                "SELECT * FROM notifications WHERE user_id=? AND NOT EXISTS (SELECT 1 FROM notification_guards g WHERE g.notification_id=notifications.id AND g.cancelled=1) ORDER BY id DESC LIMIT 50",
                 (g.user["id"],),
             ),
             unread=db()
             .execute(
-                "SELECT COUNT(*) FROM notifications WHERE user_id=? AND read_at IS NULL",
+                "SELECT COUNT(*) FROM notifications WHERE user_id=? AND read_at IS NULL AND NOT EXISTS (SELECT 1 FROM notification_guards g WHERE g.notification_id=notifications.id AND g.cancelled=1)",
                 (g.user["id"],),
             )
             .fetchone()[0],

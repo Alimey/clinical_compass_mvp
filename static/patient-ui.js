@@ -445,7 +445,7 @@ function schoolVideos(items) {
 }
 function patientSettingsGeneral() {
   const push = state.integrations?.push?.subscriptions;
-  return `<section class="card"><h2>Уведомления и установка PWA</h2><div class="proposal-actions"><button class="button primary" data-ui="install">Установить PWA</button><button class="button" data-care="enable-push">Подключить push в браузере</button><button class="button quiet" data-care="disable-push">Отключить push</button></div><p class="caption">${push ? "Подписка браузера сохранена." : "Push ещё не подключены."} Для доставки нужны разрешение браузера, HTTPS и работающий сервер.</p><p class="caption">На iPhone: Safari → «Поделиться» → «На экран Домой». На Android: меню браузера → «Установить приложение».</p></section>`;
+  return `<section class="card"><h2>Уведомления и установка PWA</h2><div class="proposal-actions"><button class="button primary" data-ui="install">Установить PWA</button><button class="button" data-care="enable-push">Подключить push в браузере</button><button class="button quiet" data-care="disable-push">Отключить push</button><button class="button" data-test-push>Проверить уведомление</button></div><p class="caption">${push ? "Подписка браузера сохранена." : "Push ещё не подключены."} Для доставки нужны разрешение браузера, HTTPS и работающий сервер.</p><p class="caption">На iPhone: Safari → «Поделиться» → «На экран Домой». На Android: меню браузера → «Установить приложение».</p></section>`;
 }
 function patientConsentScreen() {
   const doc = new DOMParser().parseFromString(sectionSettings(), "text/html");

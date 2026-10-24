@@ -704,7 +704,7 @@ def register_sections(app, patient, require_role, payload, text, write_once):
                 last = (
                     db()
                     .execute(
-                        "SELECT MAX(created_at) FROM reports WHERE patient_id=?",
+                        "SELECT last_seen FROM user_presence WHERE user_id=?",
                         (ident,),
                     )
                     .fetchone()[0]
