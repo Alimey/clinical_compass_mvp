@@ -3,18 +3,7 @@
 // Original demo prompts, not reproductions or scoring keys of clinical instruments.
 const extraAssessments = Object.fromEntries(
   [
-    [
-      "mmpi",
-      "MMPI",
-      [
-        "Мне легко описывать своё состояние",
-        "Мне комфортно общаться",
-        "Я замечаю перемены настроения",
-        "Мне удаётся отдыхать",
-        "Я обращаюсь за поддержкой",
-        "Я могу говорить о трудностях",
-      ],
-    ],
+    ["mmpi", "MMPI", []],
     [
       "leonhard",
       "Опросник Леонгарда–Шмишека",
@@ -27,30 +16,8 @@ const extraAssessments = Object.fromEntries(
         "Мне комфортно менять планы",
       ],
     ],
-    [
-      "beck_hopelessness",
-      "Тест безнадёжности Бека",
-      [
-        "Мне трудно строить планы",
-        "Мне сложно представить приятные события",
-        "Я сомневаюсь в своих возможностях",
-        "Мне трудно замечать поддержку",
-        "Мне сложно думать о завтрашнем дне",
-        "Мне нужна помощь с ближайшим шагом",
-      ],
-    ],
-    [
-      "beck_depression",
-      "Тест депрессии Бека",
-      [
-        "Я замечаю грусть",
-        "Мне трудно начинать дела",
-        "Привычные занятия меньше радуют",
-        "Я чувствую усталость",
-        "Мне трудно сосредоточиться",
-        "Мой сон изменился",
-      ],
-    ],
+    ["beck_hopelessness", "Тест безнадёжности Бека", []],
+    ["beck_depression", "Тест депрессии Бека", []],
     [
       "spielberger",
       "Тревожность Спилбергера: ситуативная и личностная",
@@ -153,11 +120,11 @@ function assessmentAssignmentPanel(doctor) {
   const kinds = [
     "gad7",
     "phq9",
-    ...Object.keys(extraAssessments),
+    ...Object.keys(extraAssessments).filter((k) => !licensedAssessments.has(k)),
     "schulte",
     "serial7",
   ];
-  return `${doctor ? `<section class="card"><h2>Назначить шкалу или упражнение</h2><form id="assign-assessment-form"><label>Форма<select name="kind">${kinds.map((k) => `<option value="${k}">${e(assessmentTitle(k))}</option>`).join("")}</select></label><label>Срок выполнения · время устройства<input type="datetime-local" name="due_at" required></label><button class="button primary">Назначить пациенту</button></form></section>` : ""}<section class="assessment-assignments"><h2>${doctor ? "Задания пациенту" : "Назначено специалистом"}</h2>${assignments.length ? assignments.map((a) => `<article class="card"><h3>${e(assessmentTitle(a.kind))}</h3><p>До ${e(clinicDate(a.due_at))}</p><p class="chip">${a.status === "completed" ? "Выполнено" : a.status === "cancelled" ? "Отменено" : Date.parse(a.due_at) < Date.now() ? "Срок прошёл · можно заполнить" : "Ожидает выполнения"}</p>${a.status === "assigned" ? (doctor ? `<button class="button" data-cancel-assessment="${a.id}">Отменить задание</button>` : `<button class="button primary" data-ext="assessment" data-key="${a.kind}" data-assessment-assignment="${a.id}">Пройти ${e(assessmentTitle(a.kind))}</button>`) : ""}</article>`).join("") : '<p class="empty">Шкалы и упражнения пока не назначены.</p>'}</section>`;
+  return `${doctor ? `<section class="card"><h2>Назначить шкалу или упражнение</h2><form id="assign-assessment-form"><label>Форма<select name="kind">${kinds.map((k) => `<option value="${k}">${e(assessmentTitle(k))}</option>`).join("")}</select></label><label>Срок выполнения · время устройства<input type="datetime-local" name="due_at" required></label><button class="button primary">Назначить пациенту</button></form></section>` : ""}<section class="assessment-assignments"><h2>${doctor ? "Задания пациенту" : "Назначено специалистом"}</h2>${assignments.length ? assignments.map((a) => `<article class="card"><h3>${e(assessmentTitle(a.kind))}</h3>${licensedAssessments.has(a.kind) ? "<p>Проводится на приёме по лицензии.</p>" : ""}<p>До ${e(clinicDate(a.due_at))}</p><p class="chip">${a.status === "completed" ? "Выполнено" : a.status === "cancelled" ? "Отменено" : Date.parse(a.due_at) < Date.now() ? "Срок прошёл · можно заполнить" : "Ожидает выполнения"}</p>${a.status === "assigned" && (doctor || !licensedAssessments.has(a.kind)) ? (doctor ? `<button class="button" data-cancel-assessment="${a.id}">Отменить задание</button>` : `<button class="button primary" data-ext="assessment" data-key="${a.kind}" data-assessment-assignment="${a.id}">Пройти ${e(assessmentTitle(a.kind))}</button>`) : ""}</article>`).join("") : '<p class="empty">Шкалы и упражнения пока не назначены.</p>'}</section>`;
 }
 const unassignedSurveysPage = surveysPage;
 surveysPage = function () {
@@ -201,6 +168,7 @@ document.addEventListener("submit", (event) => {
   });
 });
 function extendedAssessment(key) {
+  if (licensedAssessments.has(key)) return licensedAssessmentNotice(key);
   if (key === "schulte") {
     const numbers = Array.from({ length: 25 }, (_, i) => i + 1);
     for (let i = numbers.length - 1; i > 0; i--) {

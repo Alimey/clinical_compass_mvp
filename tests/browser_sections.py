@@ -120,7 +120,7 @@ with tempfile.TemporaryDirectory() as temp:
                 rel.get_by_role("link", name="Позвонить", exact=True)
             ).to_have_attribute("href", "tel:+70000000002")
             nav(rel, "learn")
-            expect(rel.locator(".course-item")).to_have_count(4)
+            expect(rel.locator(".course-item")).to_have_count(3)
             for item in rel.locator(".course-item").all():
                 item.locator("summary").click()
                 expect(item.locator(".video-placeholder")).to_be_visible()
@@ -167,8 +167,12 @@ with tempfile.TemporaryDirectory() as temp:
             submit(pat, "#letter-form")
             nav(doc, "letters")
             expect(doc.locator("#content")).to_contain_text("Письмо E2E")
-            doc.locator(".letter-reply-form [name=body]").fill("Ответ E2E")
-            submit(doc, ".letter-reply-form")
+            letter = doc.locator("section.card").filter(
+                has=doc.get_by_role("heading", name="Письмо E2E", exact=True)
+            )
+            letter.locator(".letter-reply-form [name=body]").fill("Ответ E2E")
+            letter.get_by_role("button", name="Отправить ответ").click()
+            doc.wait_for_function("()=>!busy")
             nav(pat, "messages")
             expect(pat.locator("#content")).to_contain_text("Ответ E2E")
             nav(doc, "patients")

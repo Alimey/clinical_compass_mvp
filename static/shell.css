@@ -429,3 +429,15 @@
   flex-wrap: wrap;
   gap: 8px;
 }
+
+.demo-data-footer {
+  padding: 16px 24px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+@media (min-width: 1024px) {
+  .demo-data-footer {
+    margin-left: 260px;
+  }
+}

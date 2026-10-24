@@ -199,7 +199,7 @@ const refreshButton = () =>
   `<button class="button" data-action="refresh" aria-label="Обновить данные">${icon("refresh")}Обновить</button>`;
 const badge = (p) =>
   p.unread > 0
-    ? '<span class="chip red">Требует внимания</span>'
+    ? '<span class="chip red">Обязательно</span>'
     : '<span class="chip green">На наблюдении</span>';
 const avatar = (name, color = "mint", size = "") =>
   `<div class="avatar ${color} ${size}">${e(initials(name))}</div>`;
@@ -315,7 +315,7 @@ function proposals() {
     ? list
         .map(
           (p) =>
-            `<article class="proposal ${p.tier}"><span class="chip ${p.tier === "mandatory" ? "red" : "amber"}">${p.tier === "mandatory" ? "Обязательно в демо" : "Желательно в демо"}</span><h3>${e(p.title)}</h3><p>${e(p.reason)}</p><small class="caption">Правила ${e(p.rule_version)}${p.report_id ? " · отчёт #" + p.report_id : ""} · ${e(date(p.created_at))}</small><div class="proposal-actions"><button class="button small primary" data-action="resolve" data-id="${p.id}" data-status="accepted">Подтвердить</button><button class="button quiet small" data-action="resolve" data-id="${p.id}" data-status="rejected">Отклонить</button></div></article>`,
+            `<article class="proposal ${p.tier}"><span class="chip ${p.tier === "mandatory" ? "red" : "amber"}">${p.tier === "mandatory" ? "Обязательно" : "Желательно"}</span><h3>${e(p.title)}</h3><p>${e(p.reason)}</p><small class="caption">Основание: запись от ${e(date(p.created_at))}</small><div class="proposal-actions"><button class="button small primary" data-action="resolve" data-id="${p.id}" data-status="accepted">Подтвердить</button><button class="button quiet small" data-action="resolve" data-id="${p.id}" data-status="rejected">Отклонить</button></div></article>`,
         )
         .join("")
     : '<div class="empty">' +
@@ -365,7 +365,7 @@ function planPage(doctor = false) {
   <div class="plan-current"><span class="chip green">${choice ? "Подтверждено врачом" : "План ещё не согласован"}</span><h3>${choice ? e(choice.name) : "Решение остаётся за врачом"}</h3><p>${choice ? e(d.profile.plan_note) : "Система формирует только предложения. Выбор не применяется автоматически."}</p></div>
   ${
     doctor
-      ? `<div class="section-heading"><h2>Предложения к рассмотрению</h2><span class="chip neutral">Правила ${e(d.rule_version)}</span></div><div class="two-columns"><div class="card">${proposals()}</div><div class="card"><h2>Как работает согласование</h2><div class="routine-item"><div class="routine-icon">1</div><div><h3>Проверить основание</h3><p>Самоотчёт и версия учебного правила указаны в предложении</p></div></div><div class="routine-item"><div class="routine-icon">2</div><div><h3>Принять решение</h3><p>Подтвердить или отклонить с обоснованием</p></div></div><div class="routine-item"><div class="routine-icon">3</div><div><h3>Сохранить результат</h3><p>Решение записывается в журнал, пациент получает уведомление</p></div></div></div></div>
+      ? `<div class="section-heading"><h2>Предложения к рассмотрению</h2><span class="chip neutral">Правила ${e(d.rule_version)}</span></div><div class="two-columns"><div class="card">${proposals()}</div><div class="card"><h2>Как работает согласование</h2><div class="routine-item"><div class="routine-icon">1</div><div><h3>Проверить основание</h3><p>Посмотрите запись пациента и причину предложения</p></div></div><div class="routine-item"><div class="routine-icon">2</div><div><h3>Принять решение</h3><p>Подтвердить или отклонить с обоснованием</p></div></div><div class="routine-item"><div class="routine-icon">3</div><div><h3>Сохранить результат</h3><p>Решение записывается в журнал, пациент получает уведомление</p></div></div></div></div>
   <div class="section-heading"><h2>Вымышленные варианты сопровождения</h2></div><div class="catalog-grid">${d.catalog
     .map((c) => {
       const blocked = d.profile.intolerance === c.id,

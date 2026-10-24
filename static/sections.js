@@ -415,7 +415,7 @@ function messagesContent() {
     heading(
       "ЛЕЧАЩИЙ СПЕЦИАЛИСТ",
       "ИИ-помощник",
-      "Настоящий запрос к настроенной внешней модели.",
+      "Вопросы о самочувствии и подготовке к встрече.",
     ) +
     tabs +
     `<section class="card"><p class="caption">${state.integrations?.ai?.configured ? "Внешний API настроен" : "ИИ ещё не подключён"}. Помощник не ставит диагноз и не меняет назначения.</p>${(state.patientAi || []).map((m) => `<article class="report-item"><strong>${e(m.question)}</strong><p class="assistant-answer">${e(m.answer)}</p></article>`).join("")}<form id="patient-ai-form"><label>Ваш вопрос<textarea name="question" required maxlength="1000" rows="3"></textarea></label><button class="button primary" type="submit">Спросить помощника</button></form><p class="caption">Ответы этой беседы не сохраняются после выхода. Вопрос отправляется внешнему API, если он подключён.</p></section>`
@@ -424,7 +424,7 @@ function messagesContent() {
 function lettersPage() {
   const doctor = isDoctor(),
     items = doctor ? state.letters || [] : ws().letters;
-  return `${doctor ? heading("ОБРАЩЕНИЯ", "Письма пациентов", "Развёрнутые вопросы и ответы.") + `<button class="button full" data-action="nav" data-page="messages">Чаты с пациентами ${icon("chat")}</button>` : `<section class="card"><h2>Новое письмо</h2><form id="letter-form"><label>Тема обращения<select name="category">${["Вопрос о лечении", "Побочный эффект", "Запись на приём", "Документы", "Другое"].map((v) => `<option>${v}</option>`).join("")}</select></label><label>Заголовок<input name="subject" required maxlength="160"></label><label>Текст<textarea name="body" required maxlength="3000" rows="5"></textarea></label><button class="button primary" type="submit">Отправить письмо</button></form></section>`}${items.length ? items.map((l) => `<section class="card"><div class="card-heading"><h2>${e(l.subject)}</h2><span class="chip ${l.reply ? "green" : l.read_at ? "neutral" : "amber"}">${l.reply ? "Есть ответ" : l.read_at ? "Прочитано" : "Новое"}</span></div><p class="caption">${e(l.patient_name || l.category)} · ${e(clinicDate(l.created_at))}</p><p class="report-text">${e(l.body)}</p>${l.reply ? `<div class="source-note"><strong>Ответ специалиста</strong><p class="report-text">${e(l.reply)}</p></div>` : ""}${doctor ? `<form class="letter-reply-form" data-id="${l.id}"><label>Ответ<textarea name="body" required maxlength="3000" rows="3">${e(l.reply)}</textarea></label><button class="button primary" type="submit">Отправить ответ</button></form>` : ""}</section>`).join("") : '<section class="card"><p class="muted">Писем пока нет.</p></section>'}`;
+  return `${doctor ? heading("ОБРАЩЕНИЯ", "Письма пациентов", "Развёрнутые вопросы и ответы.") + `<button class="button full" data-action="nav" data-page="messages">Чаты с пациентами ${icon("chat")}</button>` : `<section class="card"><h2>Новое письмо</h2><form id="letter-form"><label>Тема обращения<select name="category">${letterTopics.map((v) => `<option>${v}</option>`).join("")}</select></label><label>Заголовок<input name="subject" required maxlength="160"></label><label>Текст<textarea name="body" required maxlength="3000" rows="5"></textarea></label><button class="button primary" type="submit">Отправить письмо</button></form></section>`}${items.length ? items.map((l) => `<section class="card"><div class="card-heading"><h2>${e(l.subject)}</h2><span class="chip ${l.reply ? "green" : l.read_at ? "neutral" : "amber"}">${l.reply ? "Есть ответ" : l.read_at ? "Прочитано" : "Новое"}</span></div><p class="caption">${e(l.patient_name || l.category)} · ${e(clinicDate(l.created_at))}</p><p class="report-text">${e(l.body)}</p>${l.reply ? `<div class="source-note"><strong>Ответ специалиста</strong><p class="report-text">${e(l.reply)}</p></div>` : ""}${doctor ? `<form class="letter-reply-form" data-id="${l.id}"><label>Ответ<textarea name="body" required maxlength="3000" rows="3">${e(l.reply)}</textarea></label><button class="button primary" type="submit">Отправить ответ</button></form>` : ""}</section>`).join("") : '<section class="card"><p class="muted">Писем пока нет.</p></section>'}`;
 }
 
 const scaleGuideDefinitions = {
@@ -548,7 +548,7 @@ function forumPage() {
     );
   return (
     heading("ОБРАТНАЯ СВЯЗЬ", "Форум врачей", "") +
-    `<section class="card"><details><summary>Новая тема</summary><form id="forum-form"><label>Раздел<select name="category">${["Опыт применения", "Безопасность", "Взаимодействия", "Вопрос коллегам"].map((v) => `<option>${v}</option>`).join("")}</select></label><label>Заголовок<input name="title" maxlength="160" required></label><label>Сообщение<textarea name="body" rows="5" maxlength="3000" required></textarea></label><button class="button primary" type="submit">Опубликовать тему</button></form></details></section>${(state.forum || []).map((t) => `<button class="card lesson-option" data-ext="forum-open" data-id="${t.id}"><span><small>${e(t.category)} · ${t.replies} сообщений</small><strong>${e(t.title)}</strong><small>${e(t.author)} · ${e(clinicDate(t.created_at))}</small></span>${icon("arrow")}</button>`).join("")}`
+    `<section class="card"><details><summary>Новая тема</summary><form id="forum-form"><label>Раздел<select name="category">${["Опыт применения", "Безопасность", "Взаимодействия", "Вопрос коллегам"].map((v) => `<option>${v}</option>`).join("")}</select></label><label>Заголовок<input name="title" maxlength="160" required></label><label>Сообщение<textarea name="body" rows="5" maxlength="3000" required></textarea></label><button class="button primary" type="submit">Опубликовать тему</button></form></details></section>${(state.forum || []).map((t) => `<button class="card lesson-option" data-ext="forum-open" data-id="${t.id}"><span><small>${e(t.category)} · ${messageCount(t.replies)}</small><strong>${e(t.title)}</strong><small>${e(t.author)} · ${e(clinicDate(t.created_at))}</small></span>${icon("arrow")}</button>`).join("")}`
   );
 }
 function researchPage() {
@@ -1146,6 +1146,8 @@ document.addEventListener("submit", (event) => {
     f.querySelectorAll("input").forEach(updateScaleGuide);
   }
 });
+
+applyProjectCopy();
 
 if (
   location.hash.startsWith("#join=") ||

@@ -112,16 +112,13 @@ with tempfile.TemporaryDirectory() as temp:
             doctor_page.locator('[data-action=patient][data-id="2"]').first.click()
             doctor_page.locator("[data-tab=scales]").click()
             assign_form = doctor_page.locator("#assign-assessment-form")
-            assign_form.locator("[name=kind]").select_option("mmpi")
+            assign_form.locator("[name=kind]").select_option("leonhard")
             assign_form.locator("[name=due_at]").fill("2030-01-01T12:00")
             assign_form.locator("button").click()
             expect(doctor_page.locator(".assessment-assignments")).to_contain_text(
-                "MMPI"
+                "Опросник Леонгарда–Шмишека"
             )
             for key in [
-                "leonhard",
-                "beck_hopelessness",
-                "beck_depression",
                 "spielberger",
                 "hcl33",
                 "mdq",
@@ -140,12 +137,9 @@ with tempfile.TemporaryDirectory() as temp:
             page.locator("[data-ext=sub][data-group=diary][data-key=scales]").click()
             expect(
                 page.locator(".assessment-assignments [data-ext=assessment]")
-            ).to_have_count(11)
+            ).to_have_count(8)
             for key in [
-                "mmpi",
                 "leonhard",
-                "beck_hopelessness",
-                "beck_depression",
                 "spielberger",
                 "hcl33",
                 "mdq",
@@ -217,7 +211,7 @@ with tempfile.TemporaryDirectory() as temp:
             assert not errors, errors
             browser.close()
             print(
-                "PASS: doctor assignment and deadline, patient completion, named private counter, tree navigation and color legend, nine demo forms with persistence, Schulte and serial subtraction, labyrinth pills/walls/keyboard/buttons, popping and regrowing berries, video titles, 5 widths"
+                "PASS: doctor assignment and deadline, patient completion, named private counter, tree navigation and color legend, six online demo forms with persistence, Schulte and serial subtraction, labyrinth pills/walls/keyboard/buttons, popping and regrowing berries, video titles, 5 widths"
             )
     finally:
         server.terminate()

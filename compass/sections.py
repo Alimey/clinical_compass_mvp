@@ -51,6 +51,7 @@ ASSIGNABLE_ASSESSMENTS = {
     "schulte",
     "serial7",
 }
+LICENSED_ASSESSMENTS = {"mmpi", "beck_hopelessness", "beck_depression"}
 
 
 def preferences(ident):
@@ -360,6 +361,8 @@ def register_sections(app, patient, require_role, payload, text, write_once):
         kind = text(data, "kind", 50, True)
         if kind not in ASSIGNABLE_ASSESSMENTS:
             raise ValueError("Неизвестная форма для назначения")
+        if kind in LICENSED_ASSESSMENTS:
+            abort(403, "Проводится на приёме по лицензии. Онлайн-форма недоступна")
         due = text(data, "due_at", 100, True)
         try:
             deadline = datetime.fromisoformat(due.replace("Z", "+00:00"))
@@ -415,6 +418,8 @@ def register_sections(app, patient, require_role, payload, text, write_once):
         account = patient(ident)
         data = payload()
         kind, answers = data.get("kind"), data.get("answers")
+        if isinstance(kind, str) and kind in LICENSED_ASSESSMENTS:
+            abort(403, "Проводится на приёме по лицензии. Онлайн-форма недоступна")
         sizes = {
             "gad7": (7, 3),
             "phq9": (9, 3),

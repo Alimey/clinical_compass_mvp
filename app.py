@@ -24,6 +24,7 @@ from compass.insights import init_insights, register_insights
 from compass.db import audit, db, init_db, notify, now, rows
 from compass.demo import seed
 from compass.rules import add_proposals, CATALOG, VERSION
+from compass.project_copy import init_project_copy
 
 
 def create_app(database=None, *, seed_demo=True, testing=False):
@@ -57,6 +58,7 @@ def create_app(database=None, *, seed_demo=True, testing=False):
         init_wellbeing()
         init_sections(seed_demo)
         init_insights()
+        init_project_copy(seed_demo)
 
     @app.before_request
     def authenticate():

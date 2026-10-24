@@ -35,10 +35,7 @@ class Revision8Test(unittest.TestCase):
 
     def test_demo_forms_exercises_and_role_validation(self):
         for kind in [
-            "mmpi",
             "leonhard",
-            "beck_hopelessness",
-            "beck_depression",
             "spielberger",
             "hcl33",
             "mdq",
@@ -85,7 +82,7 @@ class Revision8Test(unittest.TestCase):
         self.assertEqual(
             next(r for r in results if r["kind"] == "schulte")["score"], 27
         )
-        self.assertEqual(next(r for r in results if r["kind"] == "mmpi")["score"], 0)
+        self.assertEqual(next(r for r in results if r["kind"] == "cope")["score"], 0)
 
     def test_counter_title_is_saved_and_private(self):
         result = self.patient.post(
@@ -110,22 +107,22 @@ class Revision8Test(unittest.TestCase):
         headers = {"X-CSRF-Token": self.pc}
         self.assertEqual(
             self.patient.post(
-                path, json={"kind": "mmpi", "answers": [1] * 6}, headers=headers
+                path, json={"kind": "cope", "answers": [1] * 6}, headers=headers
             ).status_code,
             403,
         )
-        data = self.assigned_data("mmpi", [1] * 6)
+        data = self.assigned_data("cope", [1] * 6)
         self.assertEqual(
             self.patient.post(
                 "/api/patients/2/assessment-assignments",
-                json={"kind": "mmpi", "due_at": "2030-01-01T12:00:00Z"},
+                json={"kind": "cope", "due_at": "2030-01-01T12:00:00Z"},
                 headers=headers,
             ).status_code,
             403,
         )
         self.assertEqual(
             self.patient.post(
-                path, json={**data, "kind": "cope"}, headers=headers
+                path, json={**data, "kind": "leonhard"}, headers=headers
             ).status_code,
             403,
         )
