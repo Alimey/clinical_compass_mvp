@@ -1,0 +1,272 @@
+/* Home, entry, notifications and navigation share the app's existing palette. */
+.home-counter .stopwatch {
+  display: block;
+  margin: 24px 0;
+  font-size: clamp(1.5rem, 3vw, 2.75rem);
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.home-counter .proposal-actions {
+  margin: 0;
+}
+.home-season {
+  background: linear-gradient(145deg, var(--accent-soft), var(--surface));
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 14px;
+}
+.home-season h2,
+.home-season p {
+  margin: 0;
+}
+.season-symbol {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 18px;
+  background: var(--surface);
+  color: var(--accent);
+}
+.season-symbol .icon {
+  width: 28px;
+  height: 28px;
+}
+@media (min-width: 360px) and (max-width: 599px) {
+  body[data-role="patient"] .patient-dashboard .home-actions {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+  .patient-dashboard .home-actions > .quick-card {
+    grid-column: span 2;
+  }
+  .patient-dashboard .home-actions > .quick-card:nth-child(7) {
+    grid-column: 2 / span 2;
+  }
+  .patient-dashboard .home-actions > .quick-card:nth-child(8) {
+    grid-column: 4 / span 2;
+  }
+}
+@media (min-width: 1024px) {
+  .patient-dashboard > .home-counter {
+    grid-column: span 8;
+    margin: 0;
+  }
+  .patient-dashboard > .home-season {
+    grid-column: span 4;
+    margin: 0;
+  }
+}
+
+.login-layout .login-art {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  min-height: 210px;
+  padding: 22px;
+  background: var(--accent-soft);
+  color: var(--ink);
+  border-radius: 0 0 32px 32px;
+}
+.login-layout {
+  display: flex;
+  flex-direction: column;
+}
+.login-layout .login-art {
+  order: -1;
+}
+.entry-garden {
+  width: 120px;
+  flex: 0 0 120px;
+}
+.login-art .entry-garden .care-tree {
+  width: 100%;
+  max-width: none;
+  height: auto;
+}
+.entry-message {
+  max-width: 430px;
+}
+.entry-message blockquote {
+  margin: 0 0 16px;
+  font-size: 1.0625rem;
+  line-height: 1.55;
+  font-weight: 600;
+  text-wrap: balance;
+}
+.entry-message .text-button {
+  min-height: 44px;
+  font-size: 0.875rem;
+}
+@media (max-width: 359px) {
+  .login-layout .login-art {
+    padding: 18px 14px;
+    gap: 10px;
+  }
+  .entry-garden {
+    width: 96px;
+    flex-basis: 96px;
+  }
+  .entry-message blockquote {
+    font-size: 1rem;
+  }
+}
+@media (min-width: 1024px) {
+  .login-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .login-layout .login-art {
+    order: 0;
+    min-height: 100dvh;
+    flex-direction: column;
+    gap: 24px;
+    padding: 48px;
+    border-radius: 0 0 0 80px;
+    background: linear-gradient(145deg, var(--band), var(--band-2));
+    color: white;
+  }
+  .entry-garden {
+    width: 320px;
+    flex: 0 0 auto;
+  }
+  .entry-message blockquote {
+    font-size: 1.75rem;
+  }
+  .entry-message .text-button {
+    color: white;
+  }
+}
+
+#notification-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 2px;
+}
+#notification-list .notification-item {
+  display: block;
+  margin: 0;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+  color: var(--ink);
+  overflow-wrap: anywhere;
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease;
+}
+#notification-list .notification-item.unread {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  box-shadow: inset 3px 0 var(--accent);
+}
+#notification-list .notification-item strong::before {
+  display: none;
+}
+.notification-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+#notification-list .notification-item strong {
+  font-size: 1rem;
+  margin: 0;
+}
+.notification-state {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+.unread .notification-state {
+  color: var(--accent);
+}
+#notification-list .notification-item p {
+  font-size: 0.9375rem;
+  color: var(--ink);
+  margin: 10px 0;
+}
+#notification-list .notification-item time {
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+@media (prefers-reduced-motion: reduce) {
+  #notification-list .notification-item {
+    transition: none;
+  }
+}
+
+.page-back.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  min-width: 112px;
+  width: fit-content;
+  padding: 10px 16px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 3px 12px #17334a08;
+}
+.navigation-dock {
+  display: contents;
+}
+.nav-scroll-arrow {
+  display: none;
+}
+@media (max-width: 1023px) {
+  .navigation-dock {
+    position: fixed;
+    z-index: 30;
+    inset: auto 0 0;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 6px 4px max(8px, env(safe-area-inset-bottom));
+    border-radius: 24px 24px 0 0;
+    border-top: 1px solid var(--line);
+    background: var(--surface);
+    box-shadow: 0 -5px 28px #0b42650b;
+  }
+  .navigation-dock #navigation {
+    position: static;
+    flex: 1 1 0;
+    width: 0;
+    min-width: 0;
+    max-width: none;
+    transform: none;
+    padding: 0;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent;
+  }
+  .navigation-dock .nav-scroll-arrow {
+    display: grid;
+    place-items: center;
+    flex: 0 0 30px;
+    width: 30px;
+    height: 44px;
+    padding: 0;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font: inherit;
+    font-size: 1.75rem;
+  }
+  .navigation-dock .nav-scroll-arrow:disabled {
+    visibility: hidden;
+  }
+}

@@ -61,9 +61,9 @@ with tempfile.TemporaryDirectory() as temp:
             expect(page.locator(".patient-dashboard")).to_be_visible()
             page.locator(".home-tree-link").click()
             page.evaluate("()=>flowerQueue")
-            page.get_by_role("button", name="Моё дерево", exact=True).click()
-            expect(page.locator(".simple-tree")).to_be_visible()
-            expect(page.locator(".tree-flowers circle")).to_have_count(2)
+            page.locator("#navigation [data-page=move]").click()
+            expect(page.locator(".simple-tree")).to_have_count(0)
+            assert page.evaluate("state.wellbeing.tree_flowers.length") == 1
             form = page.locator(".activity-plan-form[data-key=walk]")
             form.get_by_role("button", name="В календарь").click()
             page.locator(".planned-exercise").get_by_role(

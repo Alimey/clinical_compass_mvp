@@ -228,7 +228,7 @@ function activityCalendar() {
 }
 function movementExperience() {
   const selected = state.activityDay || care().today;
-  return `<section class="card simple-tree"><button class="tree-touch" data-experience="tree-bloom" aria-label="Добавить цветок на дерево">${treeArt(carePoints(), true)}</button></section><div id="weekly-activity">${weeklyActivity()}</div><section class="card"><div class="card-heading"><h2>Календарь активности</h2><span class="chip neutral">МСК</span></div><p class="caption">Точка — запланированное занятие, зелёная — есть отметка о выполнении.</p><div id="activity-calendar-panel">${activityCalendar()}</div></section>
+  return `<div id="weekly-activity">${weeklyActivity()}</div><section class="card"><div class="card-heading"><h2>Календарь активности</h2><span class="chip neutral">МСК</span></div><p class="caption">Точка — запланированное занятие, зелёная — есть отметка о выполнении.</p><div id="activity-calendar-panel">${activityCalendar()}</div></section>
     <section class="card"><h2>Добавить упражнение</h2><div class="movement-exercise-list">${prototypeContent.exercises.map((item) => `<article class="movement-exercise"><div class="routine-icon">${icon("run")}</div><div><h3>${e(item.name)}</h3><p class="caption">${item.min} мин · ${e(item.desc)}</p><details><summary>Как выполнять</summary><ol>${item.steps.map((s) => `<li><strong>${e(s[0])}.</strong> ${e(s[1])}</li>`).join("")}</ol></details><form class="activity-plan-form" data-key="${item.id}"><label>Дата<input type="date" name="day" required value="${selected}"></label><button class="button primary" type="submit">В календарь</button></form></div></article>`).join("")}</div></section>${wearableCard()}`;
 }
 function doctorCalendar() {
@@ -362,7 +362,7 @@ function decorateExperience() {
   if (state.page !== "overview")
     $("#content").insertAdjacentHTML(
       "afterbegin",
-      `<button class="back-link page-back" data-experience="back">${icon("back")}Назад</button>`,
+      `<button class="button back-link page-back" data-experience="back" aria-label="Назад">${icon("back")}Назад</button>`,
     );
   if (state.page !== "help" || sub("help", "now") !== "calm") {
     stopGuidedExercise();
@@ -426,8 +426,7 @@ document.addEventListener("click", async (event) => {
     key = button.dataset.key;
   try {
     if (action === "back") {
-      if (history.state?.compassBack) history.back();
-      else await navigate("overview");
+      await goBack();
     } else if (action === "tree-bloom") {
       plantFlower(event, button);
     } else if (action === "month" || action === "calendar-day") {

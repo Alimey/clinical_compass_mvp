@@ -158,7 +158,7 @@ with tempfile.TemporaryDirectory() as temp:
             )
             page.set_viewport_size({"width": 390, "height": 844})
             page.evaluate("scrollTo(0,0)")
-            mobile_nav = page.locator("#navigation").bounding_box()
+            mobile_nav = page.locator(".navigation-dock").bounding_box()
             assert abs(mobile_nav["y"] + mobile_nav["height"] - 844) < 2
             assert abs(page.locator(".topbar").bounding_box()["y"]) < 2
             page.screenshot(

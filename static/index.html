@@ -21,6 +21,7 @@
     <link rel="stylesheet" href="/static/experience.css" />
     <link rel="stylesheet" href="/static/patient-ui.css" />
     <link rel="stylesheet" href="/static/games.css" />
+    <link rel="stylesheet" href="/static/shell.css" />
     <script src="/static/offline.js" defer></script>
     <script src="/static/app.js" defer></script>
     <script src="/static/care.js" defer></script>
@@ -46,7 +47,27 @@
           /><span>ПсиКомпас<small>Пространство заботы</small></span></a
         >
         <div class="workspace-label">МОЁ ПРОСТРАНСТВО</div>
-        <nav id="navigation" aria-label="Основная навигация"></nav>
+        <div class="navigation-dock">
+          <button
+            type="button"
+            class="nav-scroll-arrow"
+            id="nav-scroll-prev"
+            aria-label="Прокрутить разделы влево"
+            aria-controls="navigation"
+          >
+            ‹
+          </button>
+          <nav id="navigation" aria-label="Основная навигация"></nav>
+          <button
+            type="button"
+            class="nav-scroll-arrow"
+            id="nav-scroll-next"
+            aria-label="Прокрутить разделы вправо"
+            aria-controls="navigation"
+          >
+            ›
+          </button>
+        </div>
         <nav id="workspace-tools" aria-label="Инструменты пространства"></nav>
         <div class="sidebar-foot">
           <div id="sidebar-account"></div>
@@ -137,10 +158,6 @@
             ×
           </button>
         </div>
-        <p class="caption">
-          Внутри приложения · проверка каждые 5 секунд при открытой вкладке. Не
-          канал экстренной связи.
-        </p>
         <div id="notification-list"></div>
       </div>
     </div>

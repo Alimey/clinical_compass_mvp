@@ -68,7 +68,7 @@ let practiceSession = null;
 let practiceTicker = null;
 let homeTreePaused = false;
 
-function treeArt(points = 0, animated = false) {
+function treeArt(points = 0, animated = false, personal = !!state.user) {
   let seed = 17;
   const random = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
   const visible = 26;
@@ -79,7 +79,7 @@ function treeArt(points = 0, animated = false) {
     const y = 111 + Math.sin(angle) * radius * 76;
     return `<g class="tree-blossom${i === visible - 1 ? " new-blossom" : ""}" opacity="${i < visible ? 1 : 0.14}"><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(5 + random() * 5).toFixed(1)}" fill="${["#f2a3b9", "#fbd3de", "#e77f9e"][i % 3]}"/><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2" fill="#e77f9e"/></g>`;
   }).join("");
-  return `<svg class="care-tree${animated ? " animated-tree" : ""}" viewBox="0 0 300 300" role="img" aria-label="Цветущее дерево заботы"><ellipse cx="150" cy="283" rx="72" ry="7" fill="var(--line)"/><g class="tree-tap"><g class="tree-crown">${animated ? '<ellipse cx="150" cy="115" rx="109" ry="85" fill="#f2a3b9" opacity=".1"/>' : ""}<g fill="none" stroke="var(--trunk)" stroke-linecap="round"><path stroke-width="12" d="M150 278Q155 230 148 186Q138 140 153 92"/><path stroke-width="7" d="M150 216Q108 184 89 144M148 188Q183 165 211 123M147 161Q115 135 110 89M150 142Q174 123 183 76"/><path stroke-width="4" d="M122 193L76 177M102 167L106 124M176 171L222 165M186 151L181 111M140 147L152 112M120 125L87 110"/></g>${flowers}<g class="tree-flowers">${treeFlowerMarkup()}</g></g>${animated ? '<g class="tree-petal"><ellipse cx="218" cy="102" rx="4" ry="7" fill="#e77f9e"/></g><g class="tree-petal"><ellipse cx="83" cy="125" rx="4" ry="6" fill="#f2a3b9"/></g><g class="tree-petal"><ellipse cx="175" cy="83" rx="3" ry="6" fill="#e77f9e"/></g>' : ""}</g></svg>`;
+  return `<svg class="care-tree${animated ? " animated-tree" : ""}" viewBox="0 0 300 300" role="img" aria-label="Цветущее дерево заботы"><ellipse cx="150" cy="283" rx="72" ry="7" fill="var(--line)"/><g class="tree-tap"><g class="tree-crown">${animated ? '<ellipse cx="150" cy="115" rx="109" ry="85" fill="#f2a3b9" opacity=".1"/>' : ""}<g fill="none" stroke="var(--trunk)" stroke-linecap="round"><path stroke-width="12" d="M150 278Q155 230 148 186Q138 140 153 92"/><path stroke-width="7" d="M150 216Q108 184 89 144M148 188Q183 165 211 123M147 161Q115 135 110 89M150 142Q174 123 183 76"/><path stroke-width="4" d="M122 193L76 177M102 167L106 124M176 171L222 165M186 151L181 111M140 147L152 112M120 125L87 110"/></g>${flowers}<g class="tree-flowers">${personal ? treeFlowerMarkup() : ""}</g></g>${animated ? '<g class="tree-petal"><ellipse cx="218" cy="102" rx="4" ry="7" fill="#e77f9e"/></g><g class="tree-petal"><ellipse cx="83" cy="125" rx="4" ry="6" fill="#f2a3b9"/></g><g class="tree-petal"><ellipse cx="175" cy="83" rx="3" ry="6" fill="#e77f9e"/></g>' : ""}</g></svg>`;
 }
 
 function homeTree() {
@@ -148,13 +148,13 @@ patientOverview = function () {
   const actions = [...patientNavigation, ...patientTools];
   return `<div class="patient-dashboard"><div class="today-heading"><div><p class="eyebrow">${e(day)}</p><h1>Здравствуйте, ${e(name)}</h1><p class="muted">Небольшие шаги. Каждый день.</p></div></div>
     <div class="quick-grid home-actions" aria-label="Быстрые действия">${actions.map(([page, glyph, label]) => `<button class="quick-card" data-action="nav" data-page="${page}"><span class="action-circle">${icon(glyph)}</span><strong>${label}</strong></button>`).join("")}</div>
-    <section class="welcome-garden"><div><h2>Забота рядом.<br>В вашем ритме.</h2><p>Замечайте своё состояние и оставайтесь на связи со специалистом.</p><button class="button primary" data-action="nav" data-page="move">Моё дерево ${icon("arrow")}</button></div>${homeTree()}</section>
+    <section class="welcome-garden"><div><h2>Забота рядом.<br>В вашем ритме.</h2><p>Замечайте своё состояние и оставайтесь на связи со специалистом.</p></div>${homeTree()}</section>
     ${appointmentStrip()}
     ${pending.length ? `<section class="notice info survey-reminder"><div><h2>${pending.length === 1 ? "Вас ждёт опрос" : "Вас ждут опросы"}</h2><p>${e(pending[0].title)} · до ${e(clinicDate(pending[0].due_at))}</p></div><button class="button primary" data-action="nav" data-page="surveys">Назначенные опросы · ${pending.length} ${icon("arrow")}</button></section>` : ""}
     ${medicationPreview()}
     <section class="card mood-card"><h2>Как настроение?</h2>${moodFaces(-1, true)}<button class="button primary full" data-ui="open-diary">Заполнить дневник ${icon("arrow")}</button></section>
     <section class="card specialist-card">${specialistContact()}<button class="button full" data-action="nav" data-page="messages">${icon("chat")}Написать врачу</button></section>
-    <section class="card home-trend"><div class="card-heading"><h2>Моя динамика</h2><button class="text-button" data-action="history">История</button></div>${chart(state.detail.reports)}</section></div>`;
+    ${streakPage(true)}${seasonalNote()}</div>`;
 };
 function specialistContact() {
   const doctor = state.detail.doctor;
@@ -341,8 +341,10 @@ renderLogin = function (error = "") {
   const title = $(".login-form-side h1");
   if (title) title.innerHTML = "Забота рядом.<br>Каждый день.";
   const art = $(".login-art");
-  if (art)
-    art.innerHTML = `${careIllustration()}<p class="eyebrow">ПРОСТРАНСТВО ЗАБОТЫ</p><h2>Рядом. Даже между встречами.</h2><p>Замечать изменения.<br>Оставаться на связи.</p>`;
+  if (art) {
+    art.removeAttribute("aria-hidden");
+    art.innerHTML = `<div class="entry-garden">${treeArt(0, true, false)}</div><div class="entry-message"><blockquote id="entry-quote">${e(entryQuotes[entryQuoteIndex])}</blockquote><button class="text-button" type="button" data-entry-quote>Другая мысль ${icon("refresh")}</button></div>`;
+  }
 };
 function decoratePsicompas() {
   const doctor = isDoctor();
@@ -382,7 +384,10 @@ function decoratePsicompas() {
     const navigation = $("#navigation"),
       active = navigation.querySelector("[aria-current=page]");
     if (active) {
-      const left = active.offsetLeft,
+      const left =
+          active.getBoundingClientRect().left -
+          navigation.getBoundingClientRect().left +
+          navigation.scrollLeft,
         right = left + active.offsetWidth;
       if (left < navigation.scrollLeft) navigation.scrollLeft = left;
       else if (right > navigation.scrollLeft + navigation.clientWidth)
@@ -390,6 +395,7 @@ function decoratePsicompas() {
     }
   }
   if (state.page !== "move" && practiceSession?.running) pausePractice();
+  updateNavigationArrows();
   updateThemeControl();
   rememberRoute();
 }
@@ -423,54 +429,107 @@ const pageSets = {
     "medications",
   ]),
 };
-let restoringRoute = false;
-function rememberRoute() {
-  if (restoringRoute || !state.user) return;
-  const route = {
+let restoringRoute = false,
+  navigationSession = null,
+  nextHistoryMode = null;
+const routeParents = {
+  card: "patients",
+  builder: "settings",
+  about: "settings",
+  scenarios: "settings",
+  tour: "settings",
+  research: "settings",
+};
+function currentRoute() {
+  return {
     page: state.page,
     selected: state.selected,
     tab: state.tab,
     user: state.user.id,
   };
-  const old = history.state?.compass;
-  if (old && JSON.stringify(old) === JSON.stringify(route)) return;
-  const method =
-    old?.user === route.user && old.page !== route.page
-      ? "pushState"
-      : "replaceState";
+}
+function ownedTrail() {
+  const entry = history.state;
+  if (
+    !state.user ||
+    entry?.compassSession !== navigationSession ||
+    entry.compass?.user !== state.user.id
+  )
+    return [];
+  return Array.isArray(entry.compassTrail) ? entry.compassTrail : [];
+}
+function writeRoute(route, trail, method = "replaceState") {
   history[method](
     {
       compass: route,
-      compassBack:
-        method === "pushState" ||
-        (old?.user === route.user && history.state?.compassBack),
+      compassTrail: trail,
+      compassSession: navigationSession,
+      compassBack: trail.length > 1,
     },
     "",
-    "#page=" + encodeURIComponent(state.page),
+    "#page=" + encodeURIComponent(route.page),
   );
+}
+function beginNavigationSession() {
+  navigationSession =
+    Date.now().toString(36) + Math.random().toString(36).slice(2);
+  nextHistoryMode = null;
+  const home = { ...currentRoute(), page: "overview", tab: "overview" };
+  writeRoute(home, [home]);
+}
+function prepareNavigation(page, id) {
+  if (restoringRoute || !state.user) return false;
+  const trail = ownedTrail();
+  const index = trail.findIndex(
+    (r) =>
+      r.page === page && (page !== "card" || !id || r.selected === Number(id)),
+  );
+  if (index >= 0 && index < trail.length - 1) {
+    history.go(index - trail.length + 1);
+    return true;
+  }
+  nextHistoryMode = routeParents[state.page] === page ? "replaceState" : null;
+  return false;
+}
+function rememberRoute() {
+  if (restoringRoute || !state.user) return;
+  if (!navigationSession) beginNavigationSession();
+  const route = currentRoute(),
+    trail = ownedTrail(),
+    previous = trail.at(-1);
+  if (previous && JSON.stringify(previous) === JSON.stringify(route)) {
+    nextHistoryMode = null;
+    return;
+  }
+  const method =
+    nextHistoryMode ||
+    (previous?.page === route.page ? "replaceState" : "pushState");
+  nextHistoryMode = null;
+  const next =
+    method === "replaceState"
+      ? [...trail.slice(0, -1), route]
+      : [...trail, route];
+  writeRoute(route, next, method);
+}
+async function goBack() {
+  if (busy || !state.user) return;
+  if (ownedTrail().length > 1) history.back();
+  else if (state.page !== "overview")
+    await navigate(routeParents[state.page] || "overview");
 }
 window.addEventListener("popstate", async (event) => {
   if (!state.user) return;
   const route = event.state?.compass;
   if (
     !route ||
+    event.state?.compassSession !== navigationSession ||
     route.user !== state.user.id ||
-    !pageSets[state.user.role]?.has(route.page)
-  )
-    return;
-  if (busy) {
-    history.replaceState(
-      {
-        compass: {
-          page: state.page,
-          selected: state.selected,
-          tab: state.tab,
-          user: state.user.id,
-        },
-      },
-      "",
-      "#page=" + state.page,
-    );
+    !pageSets[state.user.role]?.has(route.page) ||
+    busy
+  ) {
+    const current = currentRoute(),
+      trail = ownedTrail();
+    writeRoute(current, trail.length ? trail : [current]);
     return;
   }
   restoringRoute = true;
@@ -481,6 +540,68 @@ window.addEventListener("popstate", async (event) => {
     restoringRoute = false;
   }
 });
+function updateNavigationArrows() {
+  const nav = $("#navigation"),
+    mobile = innerWidth < 1024;
+  $("#nav-scroll-prev").disabled = !mobile || nav.scrollLeft <= 2;
+  $("#nav-scroll-next").disabled =
+    !mobile || nav.scrollLeft >= nav.scrollWidth - nav.clientWidth - 2;
+}
+for (const [id, direction] of [
+  ["nav-scroll-prev", -1],
+  ["nav-scroll-next", 1],
+])
+  $("#" + id).onclick = () => {
+    const nav = $("#navigation");
+    nav.scrollBy({
+      left: direction * Math.max(160, nav.clientWidth * 0.8),
+      behavior: matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "instant"
+        : "smooth",
+    });
+  };
+$("#navigation").addEventListener("scroll", updateNavigationArrows, {
+  passive: true,
+});
+new ResizeObserver(updateNavigationArrows).observe($("#navigation"));
+const entryQuotes = [
+  "Сегодня можно двигаться в своём темпе.",
+  "Даже маленький шаг заслуживает внимания.",
+  "Необязательно успевать всё сразу.",
+  "Можно сделать паузу и попросить поддержки.",
+  "Забота о себе складывается из небольших действий.",
+];
+let entryQuoteIndex = Math.floor(Date.now() / 86400000) % entryQuotes.length;
+document.addEventListener("click", (event) => {
+  if (event.target.closest("[data-entry-quote]")) {
+    entryQuoteIndex = (entryQuoteIndex + 1) % entryQuotes.length;
+    $("#entry-quote").textContent = entryQuotes[entryQuoteIndex];
+  }
+});
+function seasonalNote() {
+  const month = Number(care().today.slice(5, 7));
+  const [title, text] =
+    month >= 9 && month <= 11
+      ? [
+          "Световой день становится короче",
+          "Если есть возможность, найдите несколько минут для прогулки при дневном свете.",
+        ]
+      : month === 12 || month <= 2
+        ? [
+            "Больше света в зимний день",
+            "Можно выбрать светлое время для небольшой прогулки или побыть у окна в перерыве.",
+          ]
+        : month <= 5
+          ? [
+              "Светлых часов становится больше",
+              "Небольшая прогулка может стать приятной паузой в привычных делах.",
+            ]
+          : [
+              "Лето — время небольших прогулок",
+              "Выбирайте комфортное время для отдыха на свежем воздухе.",
+            ];
+  return `<section class="card home-season"><span class="season-symbol" aria-hidden="true">${icon("sun")}</span><h2>${title}</h2><p>${text}</p></section>`;
+}
 function updateThemeControl() {
   const dark =
     document.documentElement.dataset.theme === "dark" ||
@@ -573,6 +694,8 @@ document.addEventListener("visibilitychange", () => {
 });
 const baseClearSession = clearSession;
 clearSession = function () {
+  navigationSession = null;
+  nextHistoryMode = null;
   pausePractice();
   practiceSession = null;
   baseClearSession();

@@ -161,6 +161,9 @@ function clearSession() {
     selected: null,
   };
   retryKeys.clear();
+  notificationReads.clear();
+  state.notificationSource = [];
+  state.notificationTotal = 0;
   $("#app-shell").hidden = true;
   $("#content").replaceChildren();
   $("#notifications-panel").hidden = true;
@@ -635,6 +638,7 @@ async function login(username, password) {
       filter: "all",
       diary: "form",
     };
+    beginNavigationSession();
     $("#login-screen").hidden = true;
     $("#login-screen").replaceChildren();
     $("#app-shell").hidden = false;
@@ -690,6 +694,7 @@ async function navigate(page, id) {
         state.sectionTabs = { ...state.sectionTabs, [alias[1]]: alias[2] };
     }
   }
+  if (prepareNavigation(page, id)) return;
   $("#notifications-panel").hidden = true;
   $("#notifications-button").setAttribute("aria-expanded", "false");
   state.page = page;
@@ -786,27 +791,7 @@ document.addEventListener("click", async (event) => {
         button.disabled = false;
       }
     }
-    if (action === "notification") {
-      const notification = state.notifications.find((n) => n.id === Number(id));
-      await api("/api/notifications/read", { id: Number(id) });
-      if (state.user.role === "doctor") {
-        state.tab = notification.alert_id
-          ? "overview"
-          : notification.title === "Новое сообщение"
-            ? "chat"
-            : "overview";
-        await navigate("card", notification.patient_id);
-      } else
-        await navigate(
-          notification.title === "Новое сообщение"
-            ? "messages"
-            : notification.title === "Решение по плану" ||
-                notification.title === "Новое решение врача"
-              ? "plan"
-              : "overview",
-        );
-      await pollNotifications();
-    }
+    if (action === "notification") await readNotification(Number(id));
   } catch (error) {
     toast(error.message, true);
   }
@@ -926,6 +911,58 @@ async function refreshChat() {
   }
   await acknowledgeMessages(selected);
 }
+const notificationReads = new Map();
+function renderNotifications(patchOnly = false) {
+  const source = state.notificationSource || [],
+    owner = state.user?.id;
+  state.notifications = source.map((n) =>
+    notificationReads.get(n.id)?.owner === owner
+      ? { ...n, read_at: notificationReads.get(n.id).stamp }
+      : n,
+  );
+  const locallyRead = source.filter(
+    (n) => !n.read_at && notificationReads.get(n.id)?.owner === owner,
+  ).length;
+  const unread = Math.max(0, (state.notificationTotal || 0) - locallyRead);
+  $("#notification-count").textContent = unread > 99 ? "99+" : String(unread);
+  $("#notification-count").hidden = !unread;
+  if (!patchOnly)
+    $("#notification-list").innerHTML = state.notifications.length
+      ? state.notifications
+          .map(
+            (n) =>
+              `<button class="notification-item ${n.read_at ? "" : "unread"}" data-action="notification" data-id="${n.id}"><span class="notification-heading"><strong>${e(n.title)}</strong><span class="notification-state">${n.read_at ? "Прочитано" : "Новое"}</span></span><p>${e(n.body)}</p><time datetime="${e(n.created_at)}">${e(date(n.created_at))}</time></button>`,
+          )
+          .join("")
+      : '<div class="empty">Уведомлений пока нет</div>';
+  else
+    for (const n of state.notifications) {
+      const button = $(`#notification-list [data-id="${n.id}"]`);
+      if (button) {
+        button.classList.toggle("unread", !n.read_at);
+        button.querySelector(".notification-state").textContent = n.read_at
+          ? "Прочитано"
+          : "Новое";
+      }
+    }
+}
+async function readNotification(id) {
+  const item = state.notifications.find((n) => n.id === id),
+    owner = state.user?.id;
+  if (!item || item.read_at || !owner) return;
+  const optimistic = { owner, stamp: new Date().toISOString() };
+  notificationReads.set(id, optimistic);
+  renderNotifications(true);
+  try {
+    await api("/api/notifications/read", { id });
+  } catch (error) {
+    if (state.user?.id === owner && notificationReads.get(id) === optimistic) {
+      notificationReads.delete(id);
+      renderNotifications(true);
+    }
+    throw error;
+  }
+}
 async function pollNotifications(initial = false) {
   if (!state.user || pollBusy || !navigator.onLine) return;
   pollBusy = true;
@@ -946,18 +983,9 @@ async function pollNotifications(initial = false) {
         if (!n.delivered_at) n.delivered_at = ack.delivered_at;
       });
     }
-    state.notifications = result.items;
-    $("#notification-count").textContent =
-      result.unread > 99 ? "99+" : result.unread;
-    $("#notification-count").hidden = !result.unread;
-    $("#notification-list").innerHTML = result.items.length
-      ? result.items
-          .map(
-            (n) =>
-              `<button class="notification-item ${n.read_at ? "" : "unread"}" data-action="notification" data-id="${n.id}"><strong>${e(n.title)}</strong><p>${e(n.body)}</p><time>${e(date(n.created_at))}${n.delivered_at ? " · получено приложением " + e(date(n.delivered_at)) : ""}</time>${n.read_at ? '<span class="chip neutral">Просмотрено</span>' : ""}</button>`,
-          )
-          .join("")
-      : '<div class="empty">Новых уведомлений пока нет</div>';
+    state.notificationSource = result.items;
+    state.notificationTotal = result.unread;
+    renderNotifications();
     if (!initial && result.items[0]?.id && previous !== result.items[0].id) {
       if (
         !busy &&
@@ -1063,6 +1091,7 @@ async function boot() {
     }
     state.user = result.user;
     state.csrf = result.csrf;
+    beginNavigationSession();
     $("#login-screen").hidden = true;
     $("#app-shell").hidden = false;
     await load();

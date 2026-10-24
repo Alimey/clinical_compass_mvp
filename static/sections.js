@@ -354,9 +354,9 @@ function trustedForm() {
       "",
     )}<button class="button primary" type="submit">Сохранить контакт</button></form><button class="button quiet full" data-action="nav" data-page="consents">Что разрешено близкому</button></section>`;
 }
-function streakPage() {
+function streakPage(compact = false) {
   const p = pref();
-  return `<section class="card stopwatch-card"><p>Личный отсчёт времени с выбранного вами момента — например, начала периода без самоповреждения. Пользуйтесь им, если это помогает; он не оценивает успешность лечения.</p>${p.streak_on && p.streak_start ? `<output id="streak-display" class="stopwatch" aria-label="Прошло времени">${stopwatchValue()}</output><div class="proposal-actions"><button class="button" data-ext="streak-restart">Начать заново</button><button class="button quiet" data-ext="streak-off">Остановить отсчёт</button></div>` : '<button class="button primary" data-experience="streak-start">Начать отсчёт</button>'}</section>`;
+  return `<section class="card stopwatch-card${compact ? " home-counter" : ""}">${compact ? "<h2>Мой отсчёт</h2>" : "<p>Личный отсчёт времени с выбранного вами момента — например, начала периода без самоповреждения. Пользуйтесь им, если это помогает; он не оценивает успешность лечения.</p>"}${p.streak_on && p.streak_start ? `<output id="streak-display" class="stopwatch" aria-label="Прошло времени">${stopwatchValue()}</output><div class="proposal-actions"><button class="button" data-ext="streak-restart">Начать заново</button><button class="button quiet" data-ext="streak-off">Остановить отсчёт</button></div>` : '<button class="button primary" data-experience="streak-start">Начать отсчёт</button>'}</section>`;
 }
 function gamesPage() {
   return compassGames.page();

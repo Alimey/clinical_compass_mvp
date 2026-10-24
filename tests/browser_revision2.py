@@ -162,16 +162,10 @@ with tempfile.TemporaryDirectory() as temp:
             assert page.evaluate(
                 "window.beforeTree===document.querySelector('.home-tree-link svg')"
             )
-            page.get_by_role("button", name="Моё дерево", exact=True).click()
-            expect(page.locator(".simple-tree")).to_be_visible()
+            page.locator("#navigation [data-page=move]").click()
+            expect(page.locator(".simple-tree")).to_have_count(0)
             expect(page.locator("#tree-bloom-status")).to_have_count(0)
-            expect(page.locator(".tree-flowers circle")).to_have_count(6)
-            assert (
-                page.locator(".flower-bloom > circle:first-child").evaluate_all(
-                    "els=>els.map(el=>Number(el.getAttribute('r')))"
-                )
-                == radii
-            )
+            expect(page.locator(".care-tree")).to_have_count(0)
             page.locator(".activity-plan-form[data-key=walk] button").click()
             expect(page.locator(".weekly-activity progress")).to_have_attribute(
                 "max", "1200"
@@ -386,7 +380,7 @@ with tempfile.TemporaryDirectory() as temp:
             assert not errors, errors
             browser.close()
             print(
-                "PASS: instant positioned home/movement flowers, uninterrupted tree animation, weekly activity, combined diary and draft retention, automatic AI UI states/cache, medication table/marks, school video placeholders, sequential crisis/grounding, synchronized 12s breathing, automatic exercise counts and congratulations, full-width Plan/SOS/settings, renamed navigation and 5 widths"
+                "PASS: instant positioned home flowers, tree removed from movement, uninterrupted tree animation, weekly activity, combined diary and draft retention, automatic AI UI states/cache, medication table/marks, school video placeholders, sequential crisis/grounding, synchronized 12s breathing, automatic exercise counts and congratulations, full-width Plan/SOS/settings, renamed navigation and 5 widths"
             )
     finally:
         server.terminate()

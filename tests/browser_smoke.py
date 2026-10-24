@@ -109,11 +109,15 @@ with tempfile.TemporaryDirectory() as temp:
                 "отметил(а) опасения", timeout=10000
             )
             doctor.locator("#notification-list .notification-item").first.click()
+            expect(doctor.locator("#notifications-panel")).to_be_visible()
+            doctor.locator("#close-notifications").click()
+            doctor.locator('[data-action=patient][data-id="2"]').first.click()
             expect(
                 doctor.get_by_role("heading", name="Александра Морозова")
             ).to_be_visible()
             doctor.get_by_role("button", name="Отметить просмотренным").first.click()
             expect(doctor.locator("#toast")).to_contain_text("Сигнал отмечен")
+            doctor.wait_for_function("()=>!busy")
             doctor.get_by_role("button", name="План и варианты", exact=True).click()
             expect(
                 doctor.get_by_role("button", name="Учебная несовместимость")
