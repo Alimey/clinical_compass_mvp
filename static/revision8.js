@@ -295,12 +295,12 @@ document.addEventListener("click", async (event) => {
 treePage = function () {
   return (
     heading("МОЁ ДЕРЕВО", "Мои цветы заботы", "") +
-    `<section class="card earned-tree">${treeArt(carePoints(), true)}<ul class="tree-legend">${[
+    `<section class="card earned-tree"><button class="tree-touch" data-experience="tree-bloom" aria-label="Добавить маленький розовый цветок">${treeArt(carePoints(), true)}</button><ul class="tree-legend">${[
       ["#e4b83f", "Жёлтые — отмеченный приём лекарства"],
       ["#5199dc", "Синие — завершённая консультация"],
       ["#a786c9", "Сиреневые — запись в дневнике"],
       ["#6bad81", "Зелёные — завершённое упражнение"],
-      ["#f2a3b9", "Розовые — касание дерева"],
+      ["#f2a3b9", "Маленькие розовые — касание дерева"],
     ]
       .map(
         ([color, label]) =>
@@ -367,7 +367,7 @@ const labMaze = (() => {
       (m.player.x === m.ghost.x && m.player.y === m.ghost.y);
   }
   function draw(c, m) {
-    c.fillStyle = "#edf5fa";
+    c.fillStyle = "#faf6ef";
     c.fillRect(0, 0, 720, 500);
     c.fillStyle = "#086c94";
     c.font = "bold 24px sans-serif";
@@ -378,21 +378,47 @@ const labMaze = (() => {
     maze.forEach((row, y) =>
       [...row].forEach((cell, x) => {
         if (cell === "#") {
-          c.fillStyle = "#176c91";
+          c.fillStyle = "#695a82";
           c.fillRect(ox + x * size + 2, oy + y * size + 2, 32, 32);
         } else if (m.pills.has(`${x},${y}`)) {
           c.save();
           c.translate(ox + x * size + 18, oy + y * size + 18);
-          c.rotate(-0.6);
-          c.fillStyle = "#de7e9b";
-          c.fillRect(-8, -4, 8, 8);
-          c.fillStyle = "#fff";
-          c.fillRect(0, -4, 8, 8);
+          c.lineWidth = 2;
+          if ((x + y) % 3 === 0) {
+            c.fillStyle = "#31958f";
+            c.strokeStyle = "#1d6867";
+            c.beginPath();
+            c.arc(0, 0, 7.5, 0, Math.PI * 2);
+            c.fill();
+            c.stroke();
+            c.strokeStyle = "#d6f3e7";
+            c.beginPath();
+            c.moveTo(-4, 0);
+            c.lineTo(4, 0);
+            c.stroke();
+          } else {
+            c.rotate((x % 2 ? -1 : 1) * 0.55);
+            c.beginPath();
+            c.roundRect(-11, -5.5, 22, 11, 5.5);
+            c.fillStyle = "#e5ad48";
+            c.fill();
+            c.save();
+            c.clip();
+            c.fillStyle = "#bc5377";
+            c.fillRect(-11, -6, 11, 12);
+            c.restore();
+            c.strokeStyle = "#733d5b";
+            c.stroke();
+            c.beginPath();
+            c.moveTo(0, -5);
+            c.lineTo(0, 5);
+            c.stroke();
+          }
           c.restore();
         }
       }),
     );
-    c.fillStyle = "#ecc44d";
+    c.fillStyle = "#248bd0";
     c.beginPath();
     c.arc(
       ox + m.player.x * size + 18,

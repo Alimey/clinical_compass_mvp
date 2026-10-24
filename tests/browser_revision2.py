@@ -88,10 +88,12 @@ with tempfile.TemporaryDirectory() as temp:
             page.evaluate(
                 """()=>{window.originalFetch=window.fetch;window.treeSaves=[];window.fetch=(url,...args)=>String(url).endsWith('/tree')?new Promise((resolve,reject)=>window.treeSaves.push(()=>window.originalFetch(url,...args).then(resolve,reject))):window.originalFetch(url,...args)}"""
             )
+            page.locator(".home-tree-link").click()
+            expect(page.locator(".earned-tree")).to_be_visible()
             page.evaluate(
-                "window.beforeTree=document.querySelector('.home-tree-link svg')"
+                "window.beforeTree=document.querySelector('.earned-tree svg')"
             )
-            tree = page.locator(".home-tree-link")
+            tree = page.locator(".earned-tree .tree-touch")
             # The click now opens a detail page; exercise the animation helper
             # separately here. Real click navigation is covered by revision8.
             page.evaluate("state.wellbeing.tree_rewards=[];syncTreeFlowers()")
@@ -149,8 +151,8 @@ with tempfile.TemporaryDirectory() as temp:
             radii = tree.locator(".flower-bloom > circle:first-child").evaluate_all(
                 "els=>els.map(el=>Number(el.getAttribute('r')))"
             )
-            assert len(set(radii)) == 3 and all(4.5 <= r <= 9 for r in radii), radii
-            assert page.url.endswith("#page=overview")
+            assert len(set(radii)) == 3 and all(3 <= r <= 4.5 for r in radii), radii
+            assert page.url.endswith("#page=tree")
             page.evaluate(
                 "()=>{window.fetch=window.originalFetch;window.treeSaves.forEach(release=>release())}"
             )
@@ -170,7 +172,7 @@ with tempfile.TemporaryDirectory() as temp:
                 tree.locator(".tree-tap").evaluate("el=>el.getAnimations().length") == 0
             )
             assert page.evaluate(
-                "window.beforeTree===document.querySelector('.home-tree-link svg')"
+                "window.beforeTree===document.querySelector('.earned-tree svg')"
             )
             page.locator("#navigation [data-page=move]").click()
             expect(page.locator(".simple-tree")).to_have_count(0)
@@ -390,7 +392,7 @@ with tempfile.TemporaryDirectory() as temp:
             assert not errors, errors
             browser.close()
             print(
-                "PASS: instant positioned home flowers, tree removed from movement, uninterrupted tree animation, weekly activity, combined diary and draft retention, automatic AI UI states/cache, medication table/marks, school video placeholders, sequential crisis/grounding, synchronized 12s breathing, automatic exercise counts and congratulations, full-width Plan/SOS/settings, renamed navigation and 5 widths"
+                "PASS: instant positioned detail-tree flowers, tree removed from movement, uninterrupted tree animation, weekly activity, combined diary and draft retention, automatic AI UI states/cache, medication table/marks, school video placeholders, sequential crisis/grounding, synchronized 12s breathing, automatic exercise counts and congratulations, full-width Plan/SOS/settings, renamed navigation and 5 widths"
             )
     finally:
         server.terminate()

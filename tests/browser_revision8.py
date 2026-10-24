@@ -60,10 +60,44 @@ with tempfile.TemporaryDirectory() as temp:
             form.locator("input").fill("Мои спокойные дни")
             form.locator("button").click()
             expect(page.locator(".home-counter h2")).to_have_text("Мои спокойные дни")
+            before_flowers = page.evaluate("state.wellbeing.tree_flowers.length")
             page.locator(".home-tree-link").click()
             expect(page.locator(".earned-tree")).to_be_visible()
+            assert (
+                page.evaluate("state.wellbeing.tree_flowers.length") == before_flowers
+            )
+            page.emulate_media(reduced_motion="no-preference")
+            detail_tree = page.locator(".earned-tree .tree-touch")
+            detail_tree.click()
+            assert (
+                detail_tree.locator(".tree-tap").evaluate(
+                    "el=>el.getAnimations().length"
+                )
+                == 1
+            )
             expect(page.locator(".tree-legend li")).to_have_count(5)
             page.evaluate("()=>flowerQueue")
+            assert (
+                page.evaluate("state.wellbeing.tree_flowers.length")
+                == before_flowers + 1
+            )
+            assert page.url.endswith("#page=tree")
+            manual_sizes = detail_tree.locator(
+                ".tree-flowers [data-flower] > .flower-bloom > circle:first-child"
+            ).evaluate_all(
+                "els=>els.filter(el=>!el.parentElement.parentElement.dataset.flower.includes('-')).map(el=>Number(el.getAttribute('r')))"
+            )
+            earned_sizes = page.evaluate(
+                "state.wellbeing.tree_rewards.map(f=>f.radius)"
+            )
+            assert manual_sizes and max(manual_sizes) <= 4.5
+            assert earned_sizes and min(earned_sizes) >= 8
+            assert detail_tree.locator(
+                ".tree-flowers [data-flower]:last-child circle"
+            ).evaluate_all(
+                "els=>els.every(el=>['#f2a3b9','#e77f9e'].includes(el.getAttribute('fill')))"
+            )
+            page.emulate_media(reduced_motion="reduce")
             page.screenshot(path=str(ART / "revision8-tree.png"), full_page=True)
             doctor_context = browser.new_context(
                 viewport={"width": 1440, "height": 1000}
@@ -145,6 +179,12 @@ with tempfile.TemporaryDirectory() as temp:
             page.locator("[data-game-select=lab]").click()
             canvas = page.locator("#game-canvas")
             expect(page.locator("#game-status")).to_contain_text("Собрано пилюль: 0")
+            pixels = canvas.evaluate(
+                "el=>{const c=el.getContext('2d');return [[100,70],[139,112],[181,110]].map(([x,y])=>Array.from(c.getImageData(x*2,y*2,1,1).data).slice(0,3))}"
+            )
+            assert pixels[0] == [105, 90, 130], pixels
+            assert pixels[1] == [36, 139, 208], pixels
+            assert pixels[2] == [49, 149, 143], pixels
             canvas.press("ArrowUp")
             expect(page.locator("#game-status")).to_contain_text("Собрано пилюль: 0")
             canvas.press("ArrowRight")

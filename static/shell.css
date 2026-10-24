@@ -382,6 +382,18 @@
 .earned-tree .tree-blossom {
   display: none;
 }
+.earned-tree .tree-touch {
+  max-width: 480px;
+}
+.earned-tree .tree-touch > svg {
+  width: 100%;
+  display: block;
+}
+.earned-tree .tree-touch:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 4px;
+  border-radius: 24px;
+}
 .tree-legend {
   padding: 0;
   list-style: none;

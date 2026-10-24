@@ -60,6 +60,7 @@ with tempfile.TemporaryDirectory() as temp:
             page.get_by_role("button", name="Войти как Александра").click()
             expect(page.locator(".patient-dashboard")).to_be_visible()
             page.locator(".home-tree-link").click()
+            page.locator(".earned-tree .tree-touch").click()
             page.evaluate("()=>flowerQueue")
             page.locator("#navigation [data-page=move]").click()
             expect(page.locator(".simple-tree")).to_have_count(0)

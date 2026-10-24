@@ -28,7 +28,9 @@ const newPracticeId = () =>
   globalThis.crypto?.randomUUID?.() ||
   Date.now() + "-" + Math.random().toString(36).slice(2);
 function flowerDots(flower) {
-  const radius = Number(flower.radius) || 6;
+  const radius = flower.kind
+    ? Math.max(8, Number(flower.radius) || 8)
+    : Math.min(4.5, Math.max(3, Number(flower.radius) || 3.75));
   const color = {
     medication: "#e4b83f",
     visit: "#5199dc",
@@ -115,7 +117,7 @@ function plantFlower(event, button) {
     owner,
     x: Math.max(7, Math.min(290, point.x)),
     y: Math.max(7, Math.min(290, point.y)),
-    radius: Number((4.5 + Math.random() * 4.5).toFixed(2)),
+    radius: Number((3 + Math.random() * 1.5).toFixed(2)),
   };
   pendingFlowers.set(flower.id, flower);
   syncTreeFlowers();

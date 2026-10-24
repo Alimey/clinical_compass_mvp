@@ -88,7 +88,7 @@ def earned_flowers(ident):
                     "kind": kind,
                     "x": round(150 + math.cos(angle) * radius * 95, 2),
                     "y": round(112 + math.sin(angle) * radius * 72, 2),
-                    "radius": 5 + seed % 4,
+                    "radius": 8 + seed % 3,
                 }
             )
     return flowers
