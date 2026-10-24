@@ -278,6 +278,84 @@ treePage = function () {
   );
 };
 const labMaze = (() => {
+  // One vector mark is shared by the game picker, heading and canvas.
+  const brandColor = "#087d9c";
+  const brandPetal =
+    "M40 13C29 7 15 14 13 26C11 37 21 44 31 40L39 33L29 24L22 30L31 37C24 39 18 35 18 29C18 20 29 14 40 13Z";
+  const brandIcon = () =>
+    `<svg class="maze-brand-mark" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><circle cx="32" cy="32" r="28" fill="white" stroke="${brandColor}" stroke-width="3"/><g fill="${brandColor}"><path d="${brandPetal}"/><path d="${brandPetal}" transform="rotate(180 32 32)"/></g></svg>`;
+  const petal = new Path2D(brandPetal);
+  function drawBrand(c, x, y, size) {
+    c.save();
+    c.translate(x, y);
+    c.scale(size / 64, size / 64);
+    c.fillStyle = "#ffffff";
+    c.strokeStyle = brandColor;
+    c.lineWidth = 3;
+    c.beginPath();
+    c.arc(32, 32, 28, 0, Math.PI * 2);
+    c.fill();
+    c.stroke();
+    c.fillStyle = brandColor;
+    c.fill(petal);
+    c.translate(32, 32);
+    c.rotate(Math.PI);
+    c.translate(-32, -32);
+    c.fill(petal);
+    c.restore();
+  }
+  function drawCarton(c, x, y, cells) {
+    const w = cells * 36 - 4,
+      h = 32,
+      compact = cells === 1;
+    c.save();
+    c.translate(x + 2, y + 2);
+    c.fillStyle = "#ded7e6";
+    c.beginPath();
+    c.roundRect(1, 2, w, h, 3);
+    c.fill();
+    const paper = c.createLinearGradient(0, 0, w, h);
+    paper.addColorStop(0, "#ffffff");
+    paper.addColorStop(1, "#eeeef0");
+    c.fillStyle = paper;
+    c.strokeStyle = "#9385a2";
+    c.lineWidth = 1;
+    c.beginPath();
+    c.roundRect(0.5, 0.5, w - 1, h - 1, 2.5);
+    c.fill();
+    c.stroke();
+    c.save();
+    c.clip();
+    c.fillStyle = "#b6a0c5";
+    c.fillRect(0, 0, compact ? 5 : 7, h);
+    c.fillStyle = "#d2c2dc";
+    c.fillRect(0, 0, w, 3);
+    c.fillStyle = "#b6a0c5";
+    c.fillRect(0, 0, compact ? 7 : 11, 5);
+    c.fillRect(w - 9, 0, 9, 3);
+    c.restore();
+    c.fillStyle = "#292c30";
+    c.font = `700 ${compact ? 5.2 : 9}px sans-serif`;
+    c.fillText(
+      "АВИАНДР",
+      compact ? 7 : 11,
+      compact ? 12 : 15,
+      w - (compact ? 9 : 15),
+    );
+    c.fillStyle = "#88b99c";
+    c.beginPath();
+    c.roundRect(w - (compact ? 17 : 24), 23, compact ? 14 : 21, 6, 2);
+    c.fill();
+    c.fillStyle = "#ffffff";
+    c.font = `700 ${compact ? 4.5 : 5}px sans-serif`;
+    c.fillText("20 мг", w - (compact ? 15 : 20), 27.5);
+    if (!compact) {
+      c.fillStyle = "#9c91a8";
+      for (let i = 0; i < 4; i++) c.fillRect(11, 20 + i * 2, 2, 1);
+      drawBrand(c, w - 11, 5, 7);
+    }
+    c.restore();
+  }
   const maze = [
     "###############",
     "#.............#",
@@ -339,16 +417,26 @@ const labMaze = (() => {
     c.fillRect(0, 0, 720, 500);
     c.fillStyle = "#086c94";
     c.font = "bold 24px sans-serif";
-    c.fillText("◈ ХИМРАР · Лабиринт", 30, 37);
+    drawBrand(c, 30, 10, 34);
+    c.fillText("ХИМРАР · Лабиринт", 76, 37);
     const size = 36,
       ox = 90,
       oy = 58;
+    // Join adjacent wall cells into cartons while preserving the collision grid.
+    maze.forEach((row, y) => {
+      for (let x = 0; x < row.length; ) {
+        if (row[x] !== "#") {
+          x++;
+          continue;
+        }
+        const cells = row[x + 1] === "#" ? 2 : 1;
+        drawCarton(c, ox + x * size, oy + y * size, cells);
+        x += cells;
+      }
+    });
     maze.forEach((row, y) =>
       [...row].forEach((cell, x) => {
-        if (cell === "#") {
-          c.fillStyle = "#695a82";
-          c.fillRect(ox + x * size + 2, oy + y * size + 2, 32, 32);
-        } else if (m.pills.has(`${x},${y}`)) {
+        if (cell !== "#" && m.pills.has(`${x},${y}`)) {
           c.save();
           c.translate(ox + x * size + 18, oy + y * size + 18);
           c.lineWidth = 2;
@@ -431,5 +519,5 @@ const labMaze = (() => {
           `<button class="button" data-game-action="lab-step" data-dx="${x}" data-dy="${y}">${t}</button>`,
       )
       .join("")}</div>`;
-  return { create, step, draw, controls };
+  return { create, step, draw, controls, brandIcon };
 })();

@@ -7,7 +7,7 @@ const compassGames = (() => {
   const definitions = {
     lab: [
       "Лабиринт ХимРАР",
-      "◈",
+      labMaze.brandIcon(),
       "Собирайте пилюли стрелками, кнопками или касанием соседней клетки. Избегайте розового шарика. Это игра, без связи с назначениями.",
     ],
     meadow: [
@@ -296,7 +296,7 @@ const compassGames = (() => {
       );
     return (
       picker +
-      `<section class="card mini-game" id="mini-game-stage" data-mini-game="${selected}"><div class="card-heading"><h2>${definitions[selected][0]}</h2><div class="game-heading-actions">${button("choose", "Все игры")}${button("reset", "Начать заново")}</div></div><p id="game-instruction">${definitions[selected][2]}</p><div class="game-workspace"><div class="game-controls">${controls(selected, m)}</div><canvas id="game-canvas" width="1440" height="1000" tabindex="0" role="application" aria-label="${definitions[selected][0]}: игровое поле" aria-describedby="game-instruction game-keyboard"></canvas></div><div class="game-readout"><output id="game-status" aria-live="off"></output>${selected === "jam" ? '<progress id="jam-fill" max="100" value="0" aria-label="Наполнение банки"></progress>' : ""}</div><span id="game-announcement" class="visually-hidden" role="status"></span><details class="game-keyboard"><summary>Управление с клавиатуры</summary><p id="game-keyboard">Стрелки перемещают указатель. Enter или пробел — действие. Кнопки над полем доступны клавишей Tab.</p></details></section>`
+      `<section class="card mini-game" id="mini-game-stage" data-mini-game="${selected}"><div class="card-heading"><h2>${selected === "lab" ? labMaze.brandIcon() : ""}${definitions[selected][0]}</h2><div class="game-heading-actions">${button("choose", "Все игры")}${button("reset", "Начать заново")}</div></div><p id="game-instruction">${definitions[selected][2]}</p><div class="game-workspace"><div class="game-controls">${controls(selected, m)}</div><canvas id="game-canvas" width="1440" height="1000" tabindex="0" role="application" aria-label="${definitions[selected][0]}: игровое поле" aria-describedby="game-instruction game-keyboard"></canvas></div><div class="game-readout"><output id="game-status" aria-live="off"></output>${selected === "jam" ? '<progress id="jam-fill" max="100" value="0" aria-label="Наполнение банки"></progress>' : ""}</div><span id="game-announcement" class="visually-hidden" role="status"></span><details class="game-keyboard"><summary>Управление с клавиатуры</summary><p id="game-keyboard">Стрелки перемещают указатель. Enter или пробел — действие. Кнопки над полем доступны клавишей Tab.</p></details></section>`
     );
   }
   function reset() {

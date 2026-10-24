@@ -172,11 +172,17 @@ with tempfile.TemporaryDirectory() as temp:
             page.locator("[data-ext=sub][data-group=help][data-key=games]").click()
             page.locator("[data-game-select=lab]").click()
             canvas = page.locator("#game-canvas")
+            expect(
+                page.locator("[data-game-select=lab] .maze-brand-mark")
+            ).to_be_visible()
+            expect(
+                page.locator("[data-mini-game=lab] h2 .maze-brand-mark")
+            ).to_be_visible()
             expect(page.locator("#game-status")).to_contain_text("Собрано пилюль: 0")
             pixels = canvas.evaluate(
-                "el=>{const c=el.getContext('2d');return [[100,70],[139,112],[181,110]].map(([x,y])=>Array.from(c.getImageData(x*2,y*2,1,1).data).slice(0,3))}"
+                "el=>{const c=el.getContext('2d');return [[96,70],[139,112],[181,110]].map(([x,y])=>Array.from(c.getImageData(x*2,y*2,1,1).data).slice(0,3))}"
             )
-            assert pixels[0] == [105, 90, 130], pixels
+            assert pixels[0] == [182, 160, 197], pixels
             assert pixels[1] == [36, 139, 208], pixels
             assert pixels[2] == [49, 149, 143], pixels
             canvas.press("ArrowUp")
