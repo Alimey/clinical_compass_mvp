@@ -359,7 +359,7 @@ function streakPage() {
   return `<section class="card stopwatch-card"><p>Личный отсчёт времени с выбранного вами момента — например, начала периода без самоповреждения. Пользуйтесь им, если это помогает; он не оценивает успешность лечения.</p>${p.streak_on && p.streak_start ? `<output id="streak-display" class="stopwatch" aria-label="Прошло времени">${stopwatchValue()}</output><div class="proposal-actions"><button class="button" data-ext="streak-restart">Начать заново</button><button class="button quiet" data-ext="streak-off">Остановить отсчёт</button></div>` : '<button class="button primary" data-experience="streak-start">Начать отсчёт</button>'}</section>`;
 }
 function gamesPage() {
-  return `<section class="card"><h2>Пузырьки</h2><p class="caption">Касайтесь пузырьков, чтобы немного переключиться.</p><div class="bubble-field">${Array.from({ length: 20 }, (_, i) => `<button class="bubble ${i % 3 === 0 ? "big" : ""}" data-ext="bubble" aria-label="Пузырёк ${i + 1}"></button>`).join("")}</div><p id="bubble-count" class="caption">Касаний: ${state.bubbles || 0}</p></section>`;
+  return compassGames.page();
 }
 function consentsPage() {
   const p = pref();
@@ -763,9 +763,11 @@ decoratePsicompas = function () {
   }
   if (state.page !== "help" || sub("help", "now") !== "calm") stopBreathing();
   decorateExperience();
+  compassGames.mount();
 };
 const sectionClear = clearSession;
 clearSession = function () {
+  compassGames.reset();
   pendingFlowers.clear();
   ++insightRequest;
   stopGuidedExercise();
@@ -787,6 +789,7 @@ clearSession = function () {
     "scaleGuideScores",
     "emotion",
     "memoryCards",
+    "bubbles",
     "memoryOpen",
     "memoryMatched",
     "activityDay",

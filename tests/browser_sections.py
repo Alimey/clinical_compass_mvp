@@ -194,6 +194,7 @@ with tempfile.TemporaryDirectory() as temp:
             pat.get_by_role("button", name="Ознакомился(ась) с условиями").click()
             expect(pat.locator("#content")).to_contain_text("Пациент ознакомился")
             tab(pat, "help", "games")
+            pat.locator('[data-game-select="bubbles"]').click()
             pat.get_by_role("button", name="Пузырёк 1", exact=True).click()
             expect(pat.locator("#bubble-count")).to_contain_text("1")
             expect(
