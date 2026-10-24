@@ -8,7 +8,7 @@ const compassGames = (() => {
     meadow: [
       "Полянка",
       "🌼",
-      "Ведите корзинкой по полянке: собирайте цветы и грибы, обходя камни.",
+      "Удерживайте кнопку мыши или палец и ведите корзинку. Отпустите, чтобы остановиться. Камни нужно обходить.",
     ],
     balls: [
       "Шарики",
@@ -28,7 +28,7 @@ const compassGames = (() => {
     lava: [
       "Лавовая лампа",
       "🪔",
-      "Выберите цвет и наблюдайте, как лава медленно поднимается и опускается.",
+      "Выберите цвет. Нажмите внутри лампы и удерживайте, чтобы перемещать лаву; после отпускания она снова поплывёт сама.",
     ],
     sand: [
       "Сад камней",
@@ -57,6 +57,12 @@ const compassGames = (() => {
     white: "#fffaf4",
     orange: "#e9a058",
   };
+  const fruitNames = {
+    red: "клубника",
+    purple: "черника",
+    orange: "абрикос",
+    rose: "малина",
+  };
   const colorNames = {
     brown: "каштановый",
     black: "тёмный",
@@ -83,8 +89,8 @@ const compassGames = (() => {
     scrollToStage = false;
   const button = (action, title, extra = "") =>
     `<button type="button" class="button" data-game-action="${action}" ${extra}>${title}</button>`;
-  function palette(action, keys, value, title) {
-    return `<fieldset class="game-palette"><legend>${title}</legend>${keys.map((key) => `<button type="button" class="game-swatch" data-game-action="${action}" data-color="${key}" aria-label="${title}: ${colorNames[key]}" aria-pressed="${key === value}"><span data-game-tone="${key}" aria-hidden="true"></span></button>`).join("")}</fieldset>`;
+  function palette(action, keys, value, title, names = colorNames) {
+    return `<fieldset class="game-palette${names === fruitNames ? " game-fruits" : ""}"><legend>${title}</legend>${keys.map((key) => `<button type="button" class="${names === fruitNames ? "game-fruit" : "game-swatch"}" data-game-action="${action}" data-color="${key}" aria-label="${title}: ${names[key]}" aria-pressed="${key === value}"><span data-game-tone="${key}" aria-hidden="true"></span>${names === fruitNames ? names[key] : ""}</button>`).join("")}</fieldset>`;
   }
   function create(key) {
     const m = {
@@ -97,7 +103,6 @@ const compassGames = (() => {
     if (key === "meadow") {
       Object.assign(m, {
         basket: { x: 360, y: 415 },
-        path: [],
         collected: 0,
         rocks: [
           { x: 145, y: 150, r: 40 },
@@ -115,7 +120,7 @@ const compassGames = (() => {
         addBall(m, { x: 100 + (i % 6) * 103, y: 320 - Math.floor(i / 6) * 78 });
     } else if (key === "salon")
       Object.assign(m, {
-        lengths: Array(25).fill(155),
+        lengths: Array(41).fill(155),
         hair: "brown",
         lips: "rose",
         bow: null,
@@ -129,7 +134,12 @@ const compassGames = (() => {
         frosting: "rose",
         stroke: null,
       });
-    else if (key === "lava") Object.assign(m, { color: "mint" });
+    else if (key === "lava")
+      Object.assign(m, {
+        color: "mint",
+        grabbed: null,
+        blobs: Array.from({ length: 7 }, (_, i) => lavaHome(i, 0)),
+      });
     else if (key === "sand")
       Object.assign(m, { strokes: [], stroke: null, tool: "rake", width: 30 });
     else if (key === "jam")
@@ -166,6 +176,7 @@ const compassGames = (() => {
       );
     if (key === "salon")
       return (
+        '<div class="game-tools">' +
         button("trim", "Подстричь") +
         button("grow", "Отрастить") +
         button(
@@ -173,6 +184,7 @@ const compassGames = (() => {
           m.bow ? "Убрать бантик" : "Добавить бантик",
           `aria-pressed="${!!m.bow}"`,
         ) +
+        "</div>" +
         palette(
           "hair",
           ["brown", "black", "blond", "rose", "purple"],
@@ -202,7 +214,7 @@ const compassGames = (() => {
           "color",
           ["rose", "white", "purple", "mint", "gold"],
           m.color,
-          "Крем",
+          "Цвет украшения",
         ) +
         button("undo", "Отменить украшение")
       );
@@ -242,6 +254,7 @@ const compassGames = (() => {
           ["red", "purple", "orange", "rose"],
           m.color,
           "Варенье",
+          fruitNames,
         ) +
         button(
           "pour",
@@ -276,7 +289,7 @@ const compassGames = (() => {
       );
     return (
       picker +
-      `<section class="card mini-game" id="mini-game-stage" data-mini-game="${selected}"><div class="card-heading"><h2>${definitions[selected][0]}</h2><div class="game-heading-actions">${button("choose", "Все игры")}${button("reset", "Начать заново")}</div></div><p id="game-instruction">${definitions[selected][2]}</p><div class="game-controls">${controls(selected, m)}</div><canvas id="game-canvas" width="1440" height="1000" tabindex="0" role="application" aria-label="${definitions[selected][0]}: игровое поле" aria-describedby="game-instruction game-keyboard"></canvas><div class="game-readout"><output id="game-status" aria-live="off"></output>${selected === "jam" ? '<progress id="jam-fill" max="100" value="0" aria-label="Наполнение банки"></progress>' : ""}</div><span id="game-announcement" class="visually-hidden" role="status"></span><details class="game-keyboard"><summary>Управление с клавиатуры</summary><p id="game-keyboard">Стрелки перемещают указатель. Enter или пробел — действие. Кнопки над полем доступны клавишей Tab.</p></details></section>`
+      `<section class="card mini-game" id="mini-game-stage" data-mini-game="${selected}"><div class="card-heading"><h2>${definitions[selected][0]}</h2><div class="game-heading-actions">${button("choose", "Все игры")}${button("reset", "Начать заново")}</div></div><p id="game-instruction">${definitions[selected][2]}</p><div class="game-workspace"><div class="game-controls">${controls(selected, m)}</div><canvas id="game-canvas" width="1440" height="1000" tabindex="0" role="application" aria-label="${definitions[selected][0]}: игровое поле" aria-describedby="game-instruction game-keyboard"></canvas></div><div class="game-readout"><output id="game-status" aria-live="off"></output>${selected === "jam" ? '<progress id="jam-fill" max="100" value="0" aria-label="Наполнение банки"></progress>' : ""}</div><span id="game-announcement" class="visually-hidden" role="status"></span><details class="game-keyboard"><summary>Управление с клавиатуры</summary><p id="game-keyboard">Стрелки перемещают указатель. Enter или пробел — действие. Кнопки над полем доступны клавишей Tab.</p></details></section>`
     );
   }
   function reset() {
@@ -421,89 +434,34 @@ const compassGames = (() => {
       m.rocks.every((r) => distance(p, r) > r.r + 27)
     );
   }
-  function clearSegment(m, a, b) {
-    const steps = Math.max(1, Math.ceil(distance(a, b) / 10));
-    for (let i = 1; i <= steps; i++)
-      if (
-        !free(m, {
-          x: a.x + ((b.x - a.x) * i) / steps,
-          y: a.y + ((b.y - a.y) * i) / steps,
-        })
-      )
-        return false;
-    return true;
-  }
-  function route(m, target) {
-    target = { x: clamp(target.x, 30, 690), y: clamp(target.y, 34, 468) };
-    if (clearSegment(m, m.basket, target)) {
-      m.path = [target];
-      return;
-    }
-    const step = 24,
-      nx = 29,
-      ny = 20,
-      point = (id) => ({
-        x: 24 + (id % nx) * step,
-        y: 24 + Math.floor(id / nx) * step,
-      });
-    const grid = Array.from({ length: nx * ny }, (_, i) => free(m, point(i)));
-    const nearest = (p) => {
-      let best = -1,
-        d = Infinity;
-      grid.forEach((ok, i) => {
-        const v = distance(p, point(i));
-        if (ok && v < d) {
-          d = v;
-          best = i;
-        }
-      });
-      return best;
-    };
-    const start = nearest(m.basket),
-      end = nearest(target),
-      queue = [start],
-      prev = new Map([[start, null]]);
-    for (let i = 0; i < queue.length && !prev.has(end); i++)
-      for (const [dx, dy] of [
-        [1, 0],
-        [-1, 0],
-        [0, 1],
-        [0, -1],
-        [1, 1],
-        [-1, 1],
-        [1, -1],
-        [-1, -1],
-      ]) {
-        const x = (queue[i] % nx) + dx,
-          y = Math.floor(queue[i] / nx) + dy,
-          id = y * nx + x;
-        if (
-          x < 0 ||
-          x >= nx ||
-          y < 0 ||
-          y >= ny ||
-          !grid[id] ||
-          prev.has(id) ||
-          !clearSegment(m, point(queue[i]), point(id))
-        )
-          continue;
-        prev.set(id, queue[i]);
-        queue.push(id);
+  // Follow a held pointer directly; stones block movement instead of planning a detour.
+  function moveBasket(m, target, dt) {
+    const goal = { x: clamp(target.x, 30, 690), y: clamp(target.y, 34, 468) },
+      d = distance(m.basket, goal);
+    if (!d) return;
+    const travel = Math.min(d, 1200 * dt, d * (1 - Math.exp(-22 * dt))),
+      steps = Math.max(1, Math.ceil(travel / 4));
+    for (let i = 0; i < steps; i++) {
+      const dx =
+          (((goal.x - m.basket.x) / Math.max(0.01, distance(m.basket, goal))) *
+            travel) /
+          steps,
+        dy =
+          (((goal.y - m.basket.y) / Math.max(0.01, distance(m.basket, goal))) *
+            travel) /
+          steps;
+      const next = { x: m.basket.x + dx, y: m.basket.y + dy };
+      if (free(m, next)) m.basket = next;
+      else {
+        const choices = [
+          { x: next.x, y: m.basket.y },
+          { x: m.basket.x, y: next.y },
+        ]
+          .filter((p) => free(m, p))
+          .sort((a, b) => distance(a, goal) - distance(b, goal));
+        if (choices.length) m.basket = choices[0];
       }
-    if (!prev.has(end)) return;
-    const path = [];
-    for (let id = end; id !== null; id = prev.get(id)) path.unshift(point(id));
-    if (free(m, target)) path.push(target);
-    const smooth = [];
-    let from = m.basket;
-    for (let i = 0; i < path.length; ) {
-      let j = path.length - 1;
-      while (j > i && !clearSegment(m, from, path[j])) j--;
-      smooth.push(path[j]);
-      from = path[j];
-      i = j + 1;
     }
-    m.path = smooth;
   }
   function addBall(m, p) {
     if (m.balls.length >= 48) return false;
@@ -599,16 +557,7 @@ const compassGames = (() => {
   function tick(key, m, dt) {
     m.t += dt;
     if (key === "meadow") {
-      if (m.path.length) {
-        const goal = m.path[0],
-          d = distance(m.basket, goal),
-          step = Math.min(d, 235 * dt);
-        if (d < 2) m.path.shift();
-        else {
-          m.basket.x += ((goal.x - m.basket.x) / d) * step;
-          m.basket.y += ((goal.y - m.basket.y) / d) * step;
-        }
-      }
+      if (m.pointer) moveBasket(m, m.pointer, dt);
       for (let i = m.items.length - 1; i >= 0; i--)
         if (distance(m.items[i], m.basket) < 33) {
           m.items.splice(i, 1);
@@ -619,6 +568,14 @@ const compassGames = (() => {
         m.regrow.shift();
         m.items.push(growItem(m));
       }
+    } else if (key === "lava") {
+      m.blobs.forEach((blob, i) => {
+        const target =
+            m.grabbed === i && m.pointer ? m.pointer : lavaHome(i, m.t),
+          gain = 1 - Math.exp(-(m.grabbed === i ? 18 : 0.75) * dt);
+        blob.x += (target.x - blob.x) * gain;
+        blob.y += (target.y - blob.y) * gain;
+      });
     } else if (key === "balls" && !m.paused) updateBalls(m, dt);
     else if (key === "jam") {
       if (m.pouring && !m.transfer && !m.dragging)
@@ -702,9 +659,26 @@ const compassGames = (() => {
       );
     }
   }
-  function hairRoot(i) {
-    const a = Math.PI + (i / 24) * Math.PI;
-    return { x: 360 + Math.cos(a) * 100, y: 210 + Math.sin(a) * 100 };
+  function hairRoot(i, count = 41) {
+    const x = 256 + (i * 208) / (count - 1);
+    return {
+      x,
+      y: 210 - Math.sqrt(Math.max(0, 1 - ((x - 360) / 106) ** 2)) * 106,
+    };
+  }
+  function hairPath(c, m) {
+    const end = (i) => 210 + m.lengths[i],
+      last = m.lengths.length - 1;
+    c.beginPath();
+    c.moveTo(256, 210);
+    c.bezierCurveTo(252, 72, 468, 72, 464, 210);
+    c.lineTo(464, end(last) - 6);
+    c.quadraticCurveTo(464, end(last), 458, end(last));
+    for (let i = last - 1; i > 0; i--)
+      c.lineTo(hairRoot(i, m.lengths.length).x, end(i));
+    c.lineTo(262, end(0));
+    c.quadraticCurveTo(256, end(0), 256, end(0) - 6);
+    c.closePath();
   }
   function drawSalon(c, m) {
     c.fillStyle = "#eee6ef";
@@ -712,25 +686,36 @@ const compassGames = (() => {
     round(c, 180, 30, 360, 430, 150, "#fff9f4", "#d6c4d3");
     ellipse(c, 360, 460, 155, 24, "#ddd0dc");
     round(c, 240, 370, 240, 115, 65, "#79a7ba");
-    round(c, 334, 297, 52, 93, 20, "#e8bda4");
+    hairPath(c, m);
+    c.fillStyle = colors[m.hair];
+    c.fill();
+    c.save();
+    c.clip();
+    const shine = c.createLinearGradient(256, 0, 464, 0);
+    shine.addColorStop(0, "#0000000c");
+    shine.addColorStop(0.45, "#ffffff18");
+    shine.addColorStop(1, "#0000000e");
+    c.fillStyle = shine;
+    c.fillRect(250, 90, 220, 350);
     m.lengths.forEach((len, i) => {
-      const r = hairRoot(i),
-        side = (i - 12) / 12;
+      const r = hairRoot(i, m.lengths.length);
       c.beginPath();
       c.moveTo(r.x, r.y);
       c.bezierCurveTo(
-        r.x + side * 12,
-        r.y + 50,
-        r.x + side * 17,
-        r.y + len * 0.7,
-        r.x + side * 20,
-        r.y + len,
+        r.x - 3,
+        r.y + 45,
+        r.x + 3,
+        210 + len * 0.6,
+        r.x,
+        210 + len,
       );
-      c.strokeStyle = colors[m.hair];
-      c.lineWidth = 17;
-      c.lineCap = "round";
+      c.strokeStyle = i % 2 ? "#ffffff13" : "#0000000a";
+      c.lineWidth = 1.2;
+      c.lineCap = "butt";
       c.stroke();
     });
+    c.restore();
+    round(c, 334, 297, 52, 93, 20, "#e8bda4");
     ellipse(c, 277, 235, 13, 23, "#f2cbb5");
     ellipse(c, 443, 235, 13, 23, "#f2cbb5");
     ellipse(c, 360, 229, 80, 102, "#f6d6c0");
@@ -836,6 +821,33 @@ const compassGames = (() => {
       }
     }
   }
+  function lavaHome(i, t) {
+    const phase = t * 0.16 + i * 1.9;
+    return {
+      x: 360 + 70 * Math.sin(phase * 0.71 + i),
+      y: 245 + 146 * Math.sin(phase),
+      r: 26 + (i % 3) * 10,
+    };
+  }
+  function inLamp(p) {
+    if (p.x < 222 || p.x > 498 || p.y < 55 || p.y > 433) return false;
+    const dx = Math.max(302 - p.x, 0, p.x - 418),
+      dy = Math.max(135 - p.y, 0, p.y - 353);
+    return dx * dx + dy * dy <= 80 * 80;
+  }
+  function aimLava(m, p, begin = false) {
+    if (begin) {
+      if (!inLamp(p)) return;
+      m.grabbed = m.blobs.reduce(
+        (best, b, i) =>
+          distance(b, p) < distance(m.blobs[best], p) ? i : best,
+        0,
+      );
+    }
+    if (m.grabbed === null) return;
+    m.pointer = { x: clamp(p.x, 252, 468), y: clamp(p.y, 92, 398) };
+    if (m.paused) Object.assign(m.blobs[m.grabbed], m.pointer);
+  }
   function drawLava(c, m) {
     const bg = c.createRadialGradient(360, 250, 40, 360, 250, 480);
     bg.addColorStop(0, "#27465a");
@@ -857,9 +869,7 @@ const compassGames = (() => {
     ellipse(c, 360, 52, 100, 24, colors[m.color]);
     for (let i = 0; i < 7; i++) {
       const t = m.t * 0.16 + i * 1.9,
-        x = 360 + 70 * Math.sin(t * 0.71 + i),
-        y = 245 + 146 * Math.sin(t),
-        r = 26 + (i % 3) * 10;
+        { x, y, r } = m.blobs[i];
       c.save();
       c.translate(x, y);
       c.rotate(Math.sin(t) * 0.24);
@@ -871,6 +881,11 @@ const compassGames = (() => {
         r * (1.2 - Math.sin(t) * 0.15),
         colors[m.color],
       );
+      if (m.grabbed === i) {
+        c.strokeStyle = "#ffffffa0";
+        c.lineWidth = 2;
+        c.stroke();
+      }
       c.restore();
     }
     c.shadowBlur = 0;
@@ -920,6 +935,201 @@ const compassGames = (() => {
       { x: 609, y: 103, r: 37 },
     ].forEach((r) => stone(c, r));
   }
+  function fruit(c, x, y, kind, scale = 1) {
+    c.save();
+    c.translate(x, y);
+    c.scale(scale, scale);
+    if (kind === "red") {
+      const g = c.createLinearGradient(-10, -15, 12, 18);
+      g.addColorStop(0, "#f09194");
+      g.addColorStop(1, "#b94160");
+      c.beginPath();
+      c.moveTo(0, -10);
+      c.bezierCurveTo(-23, -24, -22, 0, -8, 13);
+      c.quadraticCurveTo(0, 24, 8, 13);
+      c.bezierCurveTo(22, 0, 23, -24, 0, -10);
+      c.fillStyle = g;
+      c.fill();
+      for (let row = 0; row < 3; row++)
+        for (let col = 0; col < 3 - row; col++)
+          ellipse(c, -8 + row * 3 + col * 7, -5 + row * 8, 1.2, 2, "#ffe5a1");
+      ellipse(c, -10, -7, 3, 5, "#ffffff30");
+    } else if (kind === "purple") {
+      for (const [dx, dy] of [
+        [-7, 4],
+        [6, 5],
+        [0, -7],
+      ]) {
+        const g = c.createRadialGradient(dx - 3, dy - 4, 1, dx, dy, 11);
+        g.addColorStop(0, "#a391c7");
+        g.addColorStop(1, "#63568b");
+        ellipse(c, dx, dy, 10, 10, g);
+        c.beginPath();
+        for (let i = 0; i < 10; i++) {
+          const a = (i * Math.PI) / 5,
+            r = i % 2 ? 2 : 4;
+          c.lineTo(dx + Math.cos(a) * r, dy + Math.sin(a) * r);
+        }
+        c.closePath();
+        c.fillStyle = "#554773";
+        c.fill();
+        ellipse(c, dx - 4, dy - 4, 2, 2, "#ffffff55");
+      }
+    } else if (kind === "orange") {
+      const g = c.createLinearGradient(-14, 0, 14, 4);
+      g.addColorStop(0, "#f2bf70");
+      g.addColorStop(1, "#e38b56");
+      ellipse(c, 0, 2, 15, 17, g);
+      c.beginPath();
+      c.moveTo(0, -13);
+      c.bezierCurveTo(7, -4, 5, 13, 0, 18);
+      c.strokeStyle = "#cb834e";
+      c.lineWidth = 1.5;
+      c.stroke();
+      ellipse(c, -7, -3, 3, 6, "#fff5c940");
+    } else {
+      for (const [dx, dy, r] of [
+        [-7, -7, 5],
+        [1, -10, 5],
+        [8, -6, 5],
+        [-10, 1, 5],
+        [-2, -1, 6],
+        [8, 2, 5],
+        [-6, 8, 5],
+        [3, 9, 5],
+        [0, 15, 4],
+      ]) {
+        ellipse(c, dx, dy, r, r, dx < 0 ? "#df7b9d" : "#c65c86");
+        ellipse(c, dx - 1.5, dy - 1.5, 1.3, 1.3, "#ffccd450");
+      }
+    }
+    if (kind !== "purple") {
+      c.beginPath();
+      c.moveTo(-1, -12);
+      c.quadraticCurveTo(-17, -24, -13, -11);
+      c.lineTo(0, -15);
+      c.lineTo(10, -9);
+      c.quadraticCurveTo(15, -23, 1, -16);
+      c.closePath();
+      c.fillStyle = "#6f9d65";
+      c.fill();
+      line(
+        c,
+        [
+          { x: 0, y: -13 },
+          { x: 2, y: -21 },
+        ],
+        "#698d55",
+        2,
+      );
+    }
+    c.restore();
+  }
+  function jamPot(c, m) {
+    const angle = m.pouring ? 0.14 : 0,
+      x = 270,
+      y = 235;
+    c.save();
+    c.translate(x, y);
+    c.rotate(angle);
+    c.lineWidth = 7;
+    round(c, -117, -24, 37, 28, 11, null, "#7b909d");
+    round(c, 80, -24, 37, 28, 11, null, "#7b909d");
+    const metal = c.createLinearGradient(-84, 0, 84, 0);
+    metal.addColorStop(0, "#829dab");
+    metal.addColorStop(0.43, "#d3e0e5");
+    metal.addColorStop(1, "#8aa3af");
+    c.beginPath();
+    c.moveTo(-83, -35);
+    c.lineTo(83, -35);
+    c.lineTo(77, 37);
+    c.quadraticCurveTo(75, 52, 57, 54);
+    c.lineTo(-57, 54);
+    c.quadraticCurveTo(-75, 52, -77, 37);
+    c.closePath();
+    c.fillStyle = metal;
+    c.fill();
+    c.strokeStyle = "#819ba9";
+    c.lineWidth = 1.5;
+    c.stroke();
+    ellipse(c, 0, -35, 85, 16, "#d8e4e8");
+    ellipse(c, 0, -35, 74, 10, colors[m.color]);
+    line(
+      c,
+      [
+        { x: -35, y: -61 },
+        { x: -5, y: -29 },
+      ],
+      "#aa7d51",
+      7,
+    );
+    ellipse(c, -5, -29, 6, 9, "#b88a5b");
+    line(
+      c,
+      [
+        { x: -65, y: -13 },
+        { x: -62, y: 27 },
+      ],
+      "#ffffff55",
+      4,
+    );
+    line(
+      c,
+      [
+        { x: -55, y: 39 },
+        { x: 55, y: 39 },
+      ],
+      "#728f9d55",
+      2,
+    );
+    c.restore();
+    return {
+      x: x + 82 * Math.cos(angle) + 34 * Math.sin(angle),
+      y: y + 82 * Math.sin(angle) - 34 * Math.cos(angle),
+    };
+  }
+  function fruitBowl(c, kind) {
+    ellipse(c, 128, 430, 73, 8, "#a4917926");
+    c.beginPath();
+    c.moveTo(52, 386);
+    c.quadraticCurveTo(62, 428, 128, 428);
+    c.quadraticCurveTo(194, 428, 204, 386);
+    c.closePath();
+    c.fillStyle = "#fffaf0";
+    c.fill();
+    ellipse(c, 128, 386, 76, 14, "#d5e2d7");
+    for (const [x, y] of [
+      [100, 353],
+      [130, 351],
+      [159, 354],
+      [86, 377],
+      [114, 375],
+      [144, 375],
+      [173, 376],
+    ])
+      fruit(c, x, y, kind, 0.95);
+    c.beginPath();
+    c.moveTo(52, 386);
+    c.bezierCurveTo(88, 405, 168, 405, 204, 386);
+    c.quadraticCurveTo(194, 428, 128, 428);
+    c.quadraticCurveTo(62, 428, 52, 386);
+    c.fillStyle = "#fbf9ee";
+    c.fill();
+    c.beginPath();
+    c.ellipse(128, 386, 76, 14, 0, 0, Math.PI);
+    c.strokeStyle = "#aabeb6";
+    c.lineWidth = 3;
+    c.stroke();
+    line(
+      c,
+      [
+        { x: 82, y: 414 },
+        { x: 174, y: 414 },
+      ],
+      "#c2d3cc",
+      2,
+    );
+  }
   function jar(c, x, y, fill, color, scale = 1, lid = false) {
     c.save();
     c.translate(x, y);
@@ -934,7 +1144,7 @@ const compassGames = (() => {
     c.restore();
     round(c, -43, -64, 86, 13, 4, lid ? "#b6ab83" : "#c7d5d7");
     round(c, -25, -3, 50, 31, 7, "#fff6e9cc");
-    blossom(c, 0, 12, 9, colors[color]);
+    fruit(c, 0, 12, color, 0.55);
     c.restore();
   }
   function drawJam(c, m) {
@@ -973,19 +1183,23 @@ const compassGames = (() => {
       "#cfb390",
       4,
     );
-    ellipse(c, 360, 192, 73, 15, "#c1d4d9");
-    round(c, 295, 185, 130, 57, 20, "#9db8c4");
-    ellipse(c, 360, 187, 59, 10, colors[m.color]);
-    if (m.pouring && !m.dragging && !m.transfer)
-      line(
-        c,
-        [
-          { x: 360, y: 240 },
-          { x: 360 + Math.sin(m.t * 12) * 2, y: m.jar.y - 54 },
-        ],
-        colors[m.color],
-        9,
+    const spout = jamPot(c, m);
+    if (m.pouring && !m.dragging && !m.transfer) {
+      c.beginPath();
+      c.moveTo(spout.x, spout.y);
+      c.bezierCurveTo(
+        spout.x + 8,
+        spout.y + 28,
+        m.jar.x - 5 + Math.sin(m.t * 12) * 2,
+        m.jar.y - 90,
+        m.jar.x,
+        m.jar.y - 54,
       );
+      c.strokeStyle = colors[m.color];
+      c.lineWidth = 9;
+      c.lineCap = "round";
+      c.stroke();
+    }
     jar(
       c,
       m.jar.x,
@@ -995,16 +1209,7 @@ const compassGames = (() => {
       m.transfer ? 1 - 0.42 * clamp(m.transfer.t / 0.6, 0, 1) : 1,
       !!m.transfer,
     );
-    ellipse(c, 132, 423, 60, 11, "#cfbda4");
-    for (let i = 0; i < 9; i++)
-      ellipse(
-        c,
-        100 + (i % 4) * 20,
-        403 - Math.floor(i / 4) * 14,
-        13,
-        15,
-        colors[m.color],
-      );
+    fruitBowl(c, m.color);
   }
   const drawFunctions = {
     meadow: drawMeadow,
@@ -1078,7 +1283,7 @@ const compassGames = (() => {
     }
     function wantsMotion() {
       if (key === "balls" || key === "lava") return !m.paused;
-      if (key === "meadow") return m.path.length > 0 || m.regrow.length > 0;
+      if (key === "meadow") return !!m.pointer || m.regrow.length > 0;
       if (key === "jam") return m.pouring || !!m.transfer;
       return false;
     }
@@ -1109,15 +1314,20 @@ const compassGames = (() => {
         y: clamp(((event.clientY - r.top) / r.height) * H, 0, H),
       };
     }
-    function trimAt(p) {
-      for (let i = 0; i < 25; i++) {
-        const r = hairRoot(i);
-        if (
-          Math.abs(p.x - r.x) < 30 &&
-          p.y >= r.y &&
-          (Math.abs(p.x - 360) > 58 || p.y < 178)
-        )
-          m.lengths[i] = clamp(p.y - r.y, 20, m.lengths[i]);
+    function trimAt(p, from = p) {
+      if (Math.max(p.y, from.y) < 225) return;
+      for (let i = 0; i < m.lengths.length; i++) {
+        const x = hairRoot(i, m.lengths.length).x;
+        if (x < Math.min(p.x, from.x) - 10 || x > Math.max(p.x, from.x) + 10)
+          continue;
+        const t =
+            Math.abs(p.x - from.x) > 1
+              ? clamp((x - from.x) / (p.x - from.x), 0, 1)
+              : p.y < from.y
+                ? 1
+                : 0,
+          y = from.y + (p.y - from.y) * t;
+        m.lengths[i] = Math.min(m.lengths[i], clamp(y - 210, 20, 225));
       }
     }
     function decorate(p, begin = false) {
@@ -1149,7 +1359,8 @@ const compassGames = (() => {
     }
     function begin(p) {
       m.cursor = p;
-      if (key === "meadow") route(m, p);
+      if (key === "meadow") m.pointer = { ...p };
+      if (key === "lava") aimLava(m, p, true);
       if (key === "balls") {
         let b = [...m.balls].reverse().find((b) => distance(b, p) <= b.r + 4);
         if (!b && addBall(m, p)) b = m.balls.at(-1);
@@ -1185,11 +1396,8 @@ const compassGames = (() => {
     }
     function move(p, pressed) {
       m.cursor = p;
-      if (
-        key === "meadow" &&
-        (!previousPoint || distance(previousPoint, p) > 10)
-      )
-        route(m, p);
+      if (pressed && key === "meadow") m.pointer = { ...p };
+      if (pressed && key === "lava") aimLava(m, p);
       if (key === "balls" && m.dragging) {
         const b = m.balls.find((b) => b.id === m.dragging);
         if (b) {
@@ -1204,7 +1412,7 @@ const compassGames = (() => {
       if (pressed && key === "salon") {
         if (m.dragging)
           m.bow = { x: clamp(p.x, 230, 490), y: clamp(p.y, 80, 370) };
-        else trimAt(p);
+        else trimAt(p, previousPoint || p);
       }
       if (
         pressed &&
@@ -1227,13 +1435,18 @@ const compassGames = (() => {
       start();
     }
     function end() {
+      m.pointer = null;
+      if (key === "lava") m.grabbed = null;
       if (key === "jam" && m.dragging) {
         if (m.jar.y < 205 && !shelfJar(m)) m.jar = { x: 360, y: 365 };
         else if (m.jar.y >= 205) m.jar = { x: 360, y: 365 };
       }
       m.dragging = key === "balls" ? null : false;
       m.stroke = null;
+      const releasedPointer = activePointer;
       activePointer = null;
+      if (releasedPointer !== null && canvas.hasPointerCapture(releasedPointer))
+        canvas.releasePointerCapture(releasedPointer);
       previousPoint = null;
       draw();
       start();
@@ -1256,7 +1469,15 @@ const compassGames = (() => {
       "pointermove",
       (event) => {
         if (activePointer !== null && activePointer !== event.pointerId) return;
-        if (activePointer !== null || key === "meadow") {
+        if (
+          activePointer !== null &&
+          event.pointerType === "mouse" &&
+          !(event.buttons & 1)
+        ) {
+          end();
+          return;
+        }
+        if (activePointer !== null) {
           event.preventDefault();
           move(point(event), activePointer !== null);
         }
@@ -1277,6 +1498,13 @@ const compassGames = (() => {
         },
         { signal },
       );
+    window.addEventListener(
+      "blur",
+      () => {
+        if (activePointer !== null) end();
+      },
+      { signal },
+    );
     canvas.addEventListener(
       "keydown",
       (event) => {
@@ -1303,7 +1531,12 @@ const compassGames = (() => {
             x: clamp(m.cursor.x + x, 20, 700),
             y: clamp(m.cursor.y + y, 20, 480),
           };
-          if (key === "meadow") route(m, m.cursor);
+          if (key === "meadow") {
+            m.pointer = null;
+            moveBasket(m, { x: m.basket.x + x, y: m.basket.y + y }, 0.1);
+            m.cursor = { ...m.basket };
+            tick(key, m, 0);
+          }
           draw();
           start();
         }
@@ -1413,9 +1646,12 @@ const compassGames = (() => {
       "visibilitychange",
       () => {
         if (document.hidden) {
+          if (activePointer !== null) end();
           cancelAnimationFrame(frame);
           frame = 0;
           last = 0;
+          m.pointer = null;
+          if (key === "lava") m.grabbed = null;
         } else start();
       },
       { signal },
@@ -1440,6 +1676,7 @@ const compassGames = (() => {
       m.dragging = null;
       m.stroke = null;
       m.pointer = null;
+      if (key === "lava") m.grabbed = null;
       if (key === "jam") m.pouring = false;
     };
     draw();

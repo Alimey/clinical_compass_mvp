@@ -137,8 +137,40 @@ with tempfile.TemporaryDirectory() as temp:
 
             games()
             expect(page.locator(".game-choice")).to_have_count(8)
-            click_world(250, 320)
+            canvas = page.locator("#game-canvas")
+            canvas.scroll_into_view_if_needed()
+            box = canvas.bounding_box()
+
+            def mouse_world(x, y):
+                page.mouse.move(
+                    box["x"] + x / 720 * box["width"],
+                    box["y"] + y / 500 * box["height"],
+                    steps=5,
+                )
+
+            before = pixels()
+            mouse_world(650, 80)
+            page.wait_for_timeout(180)
+            assert pixels() == before, "Hover must not move the basket"
+            page.mouse.down()
+            page.wait_for_timeout(80)
+            assert pixels() != before, "A held press must move the basket"
+            page.mouse.up()
+            before = pixels()
+            page.wait_for_timeout(180)
+            assert pixels() == before, "Release must stop the basket immediately"
+            mouse_world(600, 100)
+            page.mouse.down()
+            page.wait_for_timeout(50)
+            page.evaluate("window.dispatchEvent(new Event('blur'))")
+            before = pixels()
+            page.wait_for_timeout(160)
+            assert pixels() == before, "Losing focus must end the gesture"
+            page.mouse.up()
+            mouse_world(250, 320)
+            page.mouse.down()
             expect(status()).to_have_text(re.compile(r"Собрано: [1-9]"), timeout=5000)
+            page.mouse.up()
             page.locator("#game-canvas").press("ArrowRight")
             snapshot("meadow")
 
@@ -182,11 +214,22 @@ with tempfile.TemporaryDirectory() as temp:
             drag_world([(422, 148), (390, 130), (300, 155)])
             assert pixels() != before
             before = int(status().inner_text().split(": ")[1])
-            drag_world([(250, 300), (260, 260), (270, 220)])
+            drag_world([(250, 300), (300, 300), (360, 300), (420, 300), (470, 300)])
             assert int(status().inner_text().split(": ")[1]) < before
+            # A straight sweep leaves an even, visible cut on both sides of the face.
+            edges = page.locator("#game-canvas").evaluate(
+                "el=>{const c=el.getContext('2d');return [270,280,440,450].map(x=>{let last=0;for(let y=270;y<360;y++){const p=c.getImageData(x*2,y*2,1,1).data;if(p[0]<210&&p[1]<190)last=y;}return last;})}"
+            )
+            assert (
+                all(297 <= y <= 302 for y in edges) and max(edges) - min(edges) <= 2
+            ), edges
             snapshot("salon")
 
             choose("cake")
+            expect(page.locator(".game-palette legend")).to_have_text("Цвет украшения")
+            page.get_by_role(
+                "button", name="Цвет украшения: мятный", exact=True
+            ).click()
             expect(status()).to_have_text("Украшений: 0")
             click_world(360, 250)
             expect(status()).to_have_text("Украшений: 1")
@@ -210,6 +253,14 @@ with tempfile.TemporaryDirectory() as temp:
             draws = page.evaluate("window.gameDraws")
             page.wait_for_timeout(200)
             assert pixels() == before and page.evaluate("window.gameDraws") == draws
+            before = pixels()
+            click_world(100, 200)
+            assert pixels() == before, "Outside the glass should not grab lava"
+            drag_world([(360, 250), (400, 300), (430, 340)])
+            assert pixels() != before, "Dragging should move lava even while paused"
+            before = pixels()
+            page.wait_for_timeout(200)
+            assert pixels() == before
             page.get_by_role("button", name="Цвет лавы: сиреневый", exact=True).click()
             assert pixels() != before
             snapshot("lava")
@@ -244,7 +295,7 @@ with tempfile.TemporaryDirectory() as temp:
             page.locator("[data-game-action=pour]").click()
             page.locator("[data-game-action=shelf]").click()
             expect(status()).to_have_text("Банка: 0% · На полке: 1 из 6", timeout=4000)
-            page.get_by_role("button", name="Варенье: абрикосовый", exact=True).click()
+            page.get_by_role("button", name="Варенье: абрикос", exact=True).click()
             page.locator("[data-game-action=pour]").click()
             page.wait_for_function("()=>document.querySelector('#jam-fill').value>=15")
             page.locator("[data-game-action=pour]").click()
@@ -279,9 +330,26 @@ with tempfile.TemporaryDirectory() as temp:
                     assert page.evaluate(
                         "document.documentElement.scrollWidth<=innerWidth"
                     ), (width, key)
+                    if key == "salon":
+                        groups = page.locator(".game-palette").all()
+                        hair, lips = groups[0].bounding_box(), groups[1].bounding_box()
+                        assert lips["y"] >= hair["y"] + hair["height"], (
+                            width,
+                            "palette separation",
+                        )
+                        if width >= 1024:
+                            art = page.locator("#game-canvas").bounding_box()
+                            assert hair["x"] >= art["x"] + art["width"], (
+                                width,
+                                "salon sidebar",
+                            )
+                        if width in (390, 1440):
+                            page.locator(".game-workspace").screenshot(
+                                path=str(ART / f"revision5-salon-{width}.png")
+                            )
             page.evaluate("navigator.serviceWorker.ready")
             paths = page.evaluate(
-                "async()=>{const c=await caches.open('compass-shell-v12');return(await c.keys()).map(r=>new URL(r.url).pathname)}"
+                "async()=>{const c=await caches.open('compass-shell-v13');return(await c.keys()).map(r=>new URL(r.url).pathname)}"
             )
             assert "/static/games.js" in paths and "/static/games.css" in paths
             context.set_offline(True)
@@ -365,8 +433,26 @@ with tempfile.TemporaryDirectory() as temp:
             expect(
                 mobile.locator("#game-status"), str(mobile.evaluate("window.touchLog"))
             ).to_have_text("Штрихов: 3")
+            choose("meadow", mobile)
+            box = mobile.locator("#game-canvas").bounding_box()
+            before = pixels(mobile)
+            finger("touchStart", 650, 80)
+            mobile.wait_for_timeout(90)
+            assert pixels(mobile) != before
+            finger("touchEnd")
+            before = pixels(mobile)
+            mobile.wait_for_timeout(180)
+            assert pixels(mobile) == before
             choose("lava", mobile)
             expect(mobile.locator("[data-game-action=pause]")).to_have_text("Запустить")
+            before = pixels(mobile)
+            mobile.wait_for_timeout(180)
+            assert pixels(mobile) == before
+            box = mobile.locator("#game-canvas").bounding_box()
+            finger("touchStart", 360, 250)
+            finger("touchMove", 400, 330)
+            finger("touchEnd")
+            assert pixels(mobile) != before
             before = pixels(mobile)
             mobile.wait_for_timeout(180)
             assert pixels(mobile) == before

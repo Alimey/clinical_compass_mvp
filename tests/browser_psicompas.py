@@ -153,7 +153,7 @@ with tempfile.TemporaryDirectory() as temp:
                     ), (width, name)
             page.evaluate("navigator.serviceWorker.ready")
             cached = page.evaluate(
-                """async()=>{const c=await caches.open('compass-shell-v12');return (await c.keys()).map(r=>new URL(r.url).pathname)}"""
+                """async()=>{const c=await caches.open('compass-shell-v13');return (await c.keys()).map(r=>new URL(r.url).pathname)}"""
             )
             assert (
                 "/static/patient-ui.js" in cached and "/static/patient-ui.css" in cached
