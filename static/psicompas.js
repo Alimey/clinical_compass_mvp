@@ -345,6 +345,11 @@ renderLogin = function (error = "") {
     art.removeAttribute("aria-hidden");
     art.innerHTML = `<div class="entry-garden">${treeArt(0, true, false)}</div><div class="entry-message"><blockquote id="entry-quote">${e(entryQuotes[entryQuoteIndex])}</blockquote><button class="text-button" type="button" data-entry-quote>Другая мысль ${icon("refresh")}</button></div>`;
   }
+  $("#login-form").insertAdjacentHTML(
+    "afterend",
+    '<div class="registration-actions"><button type="button" class="button full" data-registration="open">Создать аккаунт</button><button type="button" class="text-button" data-registration="invitation">Есть приглашение?</button></div>',
+  );
+  decoratePublicEntry();
 };
 function decoratePsicompas() {
   const doctor = isDoctor();
@@ -607,10 +612,17 @@ function updateThemeControl() {
     document.documentElement.dataset.theme === "dark" ||
     (!document.documentElement.dataset.theme &&
       matchMedia("(prefers-color-scheme: dark)").matches);
-  $("#theme-toggle").setAttribute(
-    "aria-label",
-    dark ? "Включить светлую тему" : "Включить тёмную тему",
-  );
+  for (const control of document.querySelectorAll(
+    "#theme-toggle, [data-theme-toggle]",
+  )) {
+    const label = dark ? "Включить светлую тему" : "Включить тёмную тему";
+    control.setAttribute("aria-label", label);
+    control.title = label;
+    control.setAttribute("aria-pressed", String(dark));
+    control.innerHTML = dark
+      ? icon("sun")
+      : '<span aria-hidden="true">◐</span>';
+  }
   $("meta[name=theme-color]").content = dark ? "#08405e" : "#0b6390";
 }
 try {
@@ -618,7 +630,7 @@ try {
   if (["light", "dark"].includes(theme))
     document.documentElement.dataset.theme = theme;
 } catch {}
-$("#theme-toggle").onclick = () => {
+function toggleTheme() {
   const current =
     document.documentElement.dataset.theme ||
     (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
@@ -628,7 +640,15 @@ $("#theme-toggle").onclick = () => {
     localStorage.setItem("psicompas-theme", theme);
   } catch {}
   updateThemeControl();
-};
+}
+$("#theme-toggle").onclick = toggleTheme;
+document.addEventListener("click", (event) => {
+  if (event.target.closest("[data-theme-toggle]")) toggleTheme();
+});
+matchMedia("(prefers-color-scheme: dark)").addEventListener(
+  "change",
+  updateThemeControl,
+);
 function practiceSecondsLeft() {
   if (!practiceSession) return 0;
   return Math.max(

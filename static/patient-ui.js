@@ -441,7 +441,11 @@ function patientSettingsGeneral() {
 function patientConsentScreen() {
   const doc = new DOMParser().parseFromString(sectionSettings(), "text/html");
   const offline = doc.querySelector("#offline-save-form")?.closest(".card");
-  return stripHeading(consentsPage()) + (offline?.outerHTML || "");
+  return (
+    stripHeading(consentsPage()) +
+    '<section class="card"><h2>Пригласить близкого</h2><p>Близкий создаст свой аккаунт по ссылке. Доступ к сигналам включается вами в согласиях выше.</p><button class="button primary" data-registration="invite-relative">Создать приглашение</button><div id="relative-invite-result"></div></section>' +
+    (offline?.outerHTML || "")
+  );
 }
 function crisisSteps(key, steps) {
   return `<details class="card emotion-accordion" data-emotion="${key}"><summary>${steps[0]}${icon("plus")}</summary><div class="emotion-step" data-step="0"><p class="caption step-label">Шаг 1 из ${steps.length - 1}</p><p class="emotion-current">${e(steps[1])}</p><button class="button primary" data-patient="emotion-next" data-key="${key}">Дальше</button></div>${key === "harm" ? '<a class="button danger" href="tel:112">Позвонить 112</a>' : ""}</details>`;

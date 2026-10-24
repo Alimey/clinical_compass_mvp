@@ -218,7 +218,15 @@ function overview() {
   const d = state.detail,
     doctor = state.user.role === "doctor",
     last = d?.reports[0];
-  if (!d) return '<div class="empty">Пациентов пока нет</div>';
+  if (!d)
+    return (
+      heading(
+        "КАБИНЕТ ВРАЧА",
+        `Добрый день, ${e(state.user.name.split(" ")[0])}`,
+        "",
+      ) +
+      '<section class="card welcome-doctor"><h2>Пригласите первого пациента</h2><p>Создайте ссылку: после регистрации карточка пациента появится в вашем кабинете.</p><button class="button primary" data-care="invite">Пригласить пациента</button><div id="invite-result"></div></section>'
+    );
   if (!doctor) return patientOverview();
   const alerts = state.patients.reduce((n, p) => n + p.unread, 0),
     messages = state.patients.reduce((n, p) => n + p.unread_messages, 0);
@@ -531,7 +539,38 @@ async function load() {
   state.patients = patients;
   if (!patients.some((p) => p.id === state.selected))
     state.selected = patients[0]?.id;
-  if (!state.selected) return;
+  if (!state.selected) {
+    const endpoints = {
+      appointments: "/api/appointments",
+      templates: "/api/surveys/templates",
+      integrations: "/api/integrations",
+      letters: "/api/letters",
+      forum: "/api/forum",
+      research: "/api/research",
+    };
+    const values = await Promise.all(
+      Object.values(endpoints).map((path) => api(path)),
+    );
+    if (!state.user || version !== selectionVersion) return;
+    Object.assign(
+      state,
+      Object.fromEntries(
+        Object.keys(endpoints).map((key, i) => [key, values[i]]),
+      ),
+      {
+        detail: null,
+        workspace: null,
+        wellbeing: null,
+        messages: [],
+        audit: [],
+        aiRuns: [],
+        escalations: [],
+        slots: [],
+      },
+    );
+    render();
+    return;
+  }
   const selected = state.selected;
   const [
     detail,

@@ -37,7 +37,7 @@ const compatibilityOptions = [
 ];
 let compatibilityRequest = 0;
 function compatibilityProfileNote(profile) {
-  const option = state.detail.catalog.find(
+  const option = (state.detail?.catalog || []).find(
     (item) => item.id === profile?.intolerance,
   );
   return option
@@ -49,9 +49,9 @@ function compatibilityCalculator() {
     (p) => p.id === (state.compatibilityPatient || state.selected),
   );
   const profile =
-    state.detail.patient.id === selected?.id
+    state.detail?.patient.id === selected?.id && selected
       ? state.detail.profile
-      : state.compatibilityProfile?.id === selected?.id
+      : selected && state.compatibilityProfile?.id === selected.id
         ? state.compatibilityProfile.profile
         : null;
   state.compatibilityProfile =
@@ -83,7 +83,7 @@ function showCompatibility(form) {
   const known =
     Number(data.patient) === state.compatibilityProfile?.id
       ? state.compatibilityProfile.profile.intolerance
-      : Number(data.patient) === state.detail.patient.id
+      : Number(data.patient) === state.detail?.patient.id
         ? state.detail.profile.intolerance
         : "";
   if (known === data.choice)

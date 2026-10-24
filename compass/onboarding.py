@@ -29,6 +29,7 @@ def init_onboarding():
     db().executescript(
         """
     CREATE TABLE IF NOT EXISTS invites(token_hash TEXT PRIMARY KEY, doctor_id INTEGER NOT NULL REFERENCES users(id), expires_at REAL NOT NULL, used_by INTEGER REFERENCES users(id), telegram_chat INTEGER, created_at TEXT NOT NULL);
+    CREATE TABLE IF NOT EXISTS relative_invites(token_hash TEXT PRIMARY KEY, patient_id INTEGER NOT NULL REFERENCES users(id), expires_at REAL NOT NULL, used_by INTEGER REFERENCES users(id), created_at TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS activations(token_hash TEXT PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id), expires_at REAL NOT NULL, used_at TEXT);
     CREATE TABLE IF NOT EXISTS telegram_sessions(chat_id INTEGER PRIMARY KEY, invite_hash TEXT NOT NULL, stage TEXT NOT NULL, data_json TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS telegram_updates(update_id INTEGER PRIMARY KEY, created_at TEXT NOT NULL);
@@ -37,6 +38,34 @@ def init_onboarding():
     """
     )
     db().commit()
+
+
+def available_phone(value):
+    phone = phone_number(value)
+    if any(
+        db().execute(query, (phone,)).fetchone()
+        for query in (
+            "SELECT 1 FROM credentials WHERE username=?",
+            "SELECT 1 FROM demographics WHERE phone=?",
+            "SELECT 1 FROM contacts WHERE phone=?",
+        )
+    ):
+        abort(409, "Этот телефон уже зарегистрирован. Войдите в свой аккаунт")
+    return phone
+
+
+def relative_invite_record(token):
+    item = (
+        db()
+        .execute("SELECT * FROM relative_invites WHERE token_hash=?", (digest(token),))
+        .fetchone()
+    )
+    if not item or item["used_by"] is not None or item["expires_at"] <= time.time():
+        abort(
+            410,
+            "Приглашение истекло или уже использовано. Попросите новую ссылку у пациента",
+        )
+    return item
 
 
 def invite_record(token, chat_id=None):
@@ -152,6 +181,90 @@ def provision(token, data, password=None, chat_id=None):
 
 
 def register_onboarding(app, require_role, payload, text, write_once):
+    def account_fields(data):
+        name = text(data, "name", 100, True)
+        if len(name) < 2:
+            raise ValueError("Имя: от 2 до 100 символов")
+        password = text(data, "password", 200, True)
+        if len(password) < 8:
+            raise ValueError("Пароль: от 8 до 200 символов")
+        return name, password
+
+    @app.post("/api/intake/doctor")
+    def register_doctor():
+        data = payload()
+        name, password = account_fields(data)
+        profession = text(data, "profession", 100)
+        organization = text(data, "organization", 100)
+        with db() as con:
+            con.execute("BEGIN IMMEDIATE")
+            phone = available_phone(data.get("phone"))
+            ident = con.execute(
+                "INSERT INTO users(role,name) VALUES('doctor',?)", (name,)
+            ).lastrowid
+            con.execute(
+                "INSERT INTO credentials VALUES(?,?,?)",
+                (ident, phone, generate_password_hash(password)),
+            )
+            con.execute(
+                "INSERT INTO contacts VALUES(?,?,?,?)",
+                (ident, phone, profession, organization),
+            )
+        return jsonify(id=ident, username=phone), 201
+
+    @app.post("/api/relative-invites")
+    def create_relative_invite():
+        require_role("patient")
+        payload()
+        token = secrets.token_urlsafe(24)
+        with db() as con:
+            con.execute(
+                "INSERT INTO relative_invites VALUES(?,?,?,NULL,?)",
+                (digest(token), g.user["id"], time.time() + 72 * 3600, now()),
+            )
+        return jsonify(token=token, expires_in_hours=72), 201
+
+    @app.post("/api/intake/relative-info")
+    def relative_info():
+        data = payload()
+        invitation = relative_invite_record(text(data, "token", 100, True))
+        patient = rows(
+            "SELECT name FROM users WHERE id=?", (invitation["patient_id"],)
+        )[0]
+        return jsonify(patient=patient)
+
+    @app.post("/api/intake/relative")
+    def register_relative():
+        data = payload()
+        name, password = account_fields(data)
+        token = text(data, "token", 100, True)
+        with db() as con:
+            con.execute("BEGIN IMMEDIATE")
+            invitation = relative_invite_record(token)
+            phone = available_phone(data.get("phone"))
+            ident = con.execute(
+                "INSERT INTO users(role,name) VALUES('relative',?)", (name,)
+            ).lastrowid
+            con.execute(
+                "INSERT INTO credentials VALUES(?,?,?)",
+                (ident, phone, generate_password_hash(password)),
+            )
+            con.execute(
+                "INSERT INTO relative_links VALUES(?,?)",
+                (ident, invitation["patient_id"]),
+            )
+            con.execute(
+                "UPDATE relative_invites SET used_by=? WHERE token_hash=?",
+                (ident, invitation["token_hash"]),
+            )
+            audit(
+                ident,
+                invitation["patient_id"],
+                "relative.registered",
+                "Близкий зарегистрировался по приглашению пациента",
+            )
+        return jsonify(id=ident, username=phone), 201
+
     @app.post("/api/invites")
     def create_invite():
         require_role("doctor")
