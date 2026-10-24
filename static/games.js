@@ -5,6 +5,11 @@ const compassGames = (() => {
   const W = 720,
     H = 500;
   const definitions = {
+    lab: [
+      "Лабиринт ХимРАР",
+      "◈",
+      "Собирайте пилюли стрелками, кнопками или касанием соседней клетки. Избегайте розового шарика. Это игра, без связи с назначениями.",
+    ],
     meadow: [
       "Полянка",
       "🌼",
@@ -100,6 +105,7 @@ const compassGames = (() => {
       cursor: { x: W / 2, y: H / 2 },
       keyboard: false,
     };
+    if (key === "lab") Object.assign(m, labMaze.create());
     if (key === "meadow") {
       Object.assign(m, {
         basket: { x: 360, y: 415 },
@@ -159,6 +165,7 @@ const compassGames = (() => {
     return models.get(selected);
   }
   function controls(key, m) {
+    if (key === "lab") return labMaze.controls();
     if (key === "balls")
       return (
         button("add-ball", "Добавить шарик") +
@@ -556,6 +563,7 @@ const compassGames = (() => {
   }
   function tick(key, m, dt) {
     m.t += dt;
+
     if (key === "meadow") {
       if (m.pointer) moveBasket(m, m.pointer, dt);
       for (let i = m.items.length - 1; i >= 0; i--)
@@ -578,6 +586,10 @@ const compassGames = (() => {
       });
     } else if (key === "balls" && !m.paused) updateBalls(m, dt);
     else if (key === "jam") {
+      if (m.fruitPop) {
+        m.fruitPop.time += dt;
+        if (m.fruitPop.time > 0.75) m.fruitPop = null;
+      }
       if (m.pouring && !m.transfer && !m.dragging)
         m.fill = Math.min(1, m.fill + dt * 0.28);
       if (m.fill >= 1) m.pouring = false;
@@ -1088,7 +1100,16 @@ const compassGames = (() => {
       y: y + 82 * Math.sin(angle) - 34 * Math.cos(angle),
     };
   }
-  function fruitBowl(c, kind) {
+  const jamFruitPositions = [
+    [100, 353],
+    [130, 351],
+    [159, 354],
+    [86, 377],
+    [114, 375],
+    [144, 375],
+    [173, 376],
+  ];
+  function fruitBowl(c, kind, m) {
     ellipse(c, 128, 430, 73, 8, "#a4917926");
     c.beginPath();
     c.moveTo(52, 386);
@@ -1098,16 +1119,26 @@ const compassGames = (() => {
     c.fillStyle = "#fffaf0";
     c.fill();
     ellipse(c, 128, 386, 76, 14, "#d5e2d7");
-    for (const [x, y] of [
-      [100, 353],
-      [130, 351],
-      [159, 354],
-      [86, 377],
-      [114, 375],
-      [144, 375],
-      [173, 376],
-    ])
-      fruit(c, x, y, kind, 0.95);
+    jamFruitPositions.forEach(([x, y], index) => {
+      if (m.fruitPop?.index === index) {
+        const t = m.fruitPop.time;
+        if (t < 0.3) {
+          for (let n = 0; n < 8; n++) {
+            const a = (n * Math.PI) / 4;
+            c.fillStyle = colors[kind];
+            c.beginPath();
+            c.arc(
+              x + Math.cos(a) * t * 90,
+              y + Math.sin(a) * t * 90,
+              Math.max(1, 4 - t * 10),
+              0,
+              Math.PI * 2,
+            );
+            c.fill();
+          }
+        } else fruit(c, x, y, kind, Math.min(0.95, (t - 0.3) * 2.4));
+      } else fruit(c, x, y, kind, 0.95);
+    });
     c.beginPath();
     c.moveTo(52, 386);
     c.bezierCurveTo(88, 405, 168, 405, 204, 386);
@@ -1209,7 +1240,7 @@ const compassGames = (() => {
       m.transfer ? 1 - 0.42 * clamp(m.transfer.t / 0.6, 0, 1) : 1,
       !!m.transfer,
     );
-    fruitBowl(c, m.color);
+    fruitBowl(c, m.color, m);
   }
   const drawFunctions = {
     meadow: drawMeadow,
@@ -1219,8 +1250,11 @@ const compassGames = (() => {
     lava: drawLava,
     sand: drawSand,
     jam: drawJam,
+    lab: labMaze.draw,
   };
   function readout(key, m) {
+    if (key === "lab")
+      return `Собрано пилюль: ${m.collected} · Осталось: ${m.pills.size}`;
     if (key === "meadow") return `Собрано: ${m.collected}`;
     if (key === "balls") return `Шариков: ${m.balls.length} из 48`;
     if (key === "salon")
@@ -1230,7 +1264,7 @@ const compassGames = (() => {
       return m.paused ? "Лампа на паузе" : "Лава движется медленно";
     if (key === "sand") return `Штрихов: ${m.strokes.length}`;
     if (key === "jam")
-      return `Банка: ${Math.round(m.fill * 100)}% · На полке: ${m.shelf.length} из 6`;
+      return `Банка: ${Math.round(m.fill * 100)}% · На полке: ${m.shelf.length} из 6${m.popped ? ` · Ягод лопнуто: ${m.popped}` : ""}`;
     return "";
   }
   function mount() {
@@ -1284,7 +1318,7 @@ const compassGames = (() => {
     function wantsMotion() {
       if (key === "balls" || key === "lava") return !m.paused;
       if (key === "meadow") return !!m.pointer || m.regrow.length > 0;
-      if (key === "jam") return m.pouring || !!m.transfer;
+      if (key === "jam") return m.pouring || !!m.transfer || !!m.fruitPop;
       return false;
     }
     function run(now) {
@@ -1358,6 +1392,13 @@ const compassGames = (() => {
           });
     }
     function begin(p) {
+      if (key === "lab") {
+        const x = Math.floor((p.x - 90) / 36),
+          y = Math.floor((p.y - 58) / 36);
+        const dx = x - m.player.x,
+          dy = y - m.player.y;
+        if (Math.abs(dx) + Math.abs(dy) === 1) labMaze.step(m, dx, dy);
+      }
       m.cursor = p;
       if (key === "meadow") m.pointer = { ...p };
       if (key === "lava") aimLava(m, p, true);
@@ -1381,6 +1422,16 @@ const compassGames = (() => {
         if (m.strokes.length > 60) m.strokes.shift();
       }
       if (key === "jam" && !m.transfer) {
+        const berry = jamFruitPositions.findIndex(
+          ([x, y]) => Math.hypot(x - p.x, y - p.y) < 18,
+        );
+        if (berry >= 0) {
+          m.fruitPop = { index: berry, time: 0 };
+          m.popped = (m.popped || 0) + 1;
+          draw();
+          start();
+          return;
+        }
         if (
           m.fill > 0.05 &&
           Math.abs(p.x - m.jar.x) < 65 &&
@@ -1509,6 +1560,21 @@ const compassGames = (() => {
       "keydown",
       (event) => {
         if (
+          key === "lab" &&
+          ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(
+            event.key,
+          )
+        ) {
+          event.preventDefault();
+          labMaze.step(
+            m,
+            event.key === "ArrowLeft" ? -1 : event.key === "ArrowRight" ? 1 : 0,
+            event.key === "ArrowUp" ? -1 : event.key === "ArrowDown" ? 1 : 0,
+          );
+          draw();
+          return;
+        }
+        if (
           ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(
             event.key,
           )
@@ -1531,6 +1597,7 @@ const compassGames = (() => {
             x: clamp(m.cursor.x + x, 20, 700),
             y: clamp(m.cursor.y + y, 20, 480),
           };
+
           if (key === "meadow") {
             m.pointer = null;
             moveBasket(m, { x: m.basket.x + x, y: m.basket.y + y }, 0.1);
@@ -1554,6 +1621,8 @@ const compassGames = (() => {
         const b = event.target.closest("[data-game-action]");
         if (!b || b.disabled) return;
         const action = b.dataset.gameAction;
+        if (action === "lab-step")
+          labMaze.step(m, Number(b.dataset.dx), Number(b.dataset.dy));
         if (action === "choose") {
           document
             .querySelector("#game-picker")

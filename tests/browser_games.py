@@ -136,7 +136,7 @@ with tempfile.TemporaryDirectory() as temp:
                 (ART / f"game-{name}.png").write_bytes(base64.b64decode(data))
 
             games()
-            expect(page.locator(".game-choice")).to_have_count(8)
+            expect(page.locator(".game-choice")).to_have_count(9)
             canvas = page.locator("#game-canvas")
             canvas.scroll_into_view_if_needed()
             box = canvas.bounding_box()
@@ -349,7 +349,7 @@ with tempfile.TemporaryDirectory() as temp:
                             )
             page.evaluate("navigator.serviceWorker.ready")
             paths = page.evaluate(
-                "async()=>{const c=await caches.open('compass-shell-v15');return(await c.keys()).map(r=>new URL(r.url).pathname)}"
+                "async()=>{const c=await caches.open('compass-shell-v16');return(await c.keys()).map(r=>new URL(r.url).pathname)}"
             )
             assert "/static/games.js" in paths and "/static/games.css" in paths
             context.set_offline(True)

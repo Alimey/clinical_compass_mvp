@@ -718,7 +718,7 @@ async function navigate(page, id) {
   if (busy) return;
   if (state.user?.role === "patient") {
     const alias = {
-      tree: ["move"],
+      tree: ["tree"],
       surveys: ["diary", "diary", "scales"],
       medications: ["diary", "diary", "meds"],
       plan: ["diary", "diary", "meds"],

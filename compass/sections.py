@@ -30,6 +30,7 @@ DEFAULTS = {
     "relative_name": "",
     "relative_phone": "",
     "relative_relation": "",
+    "streak_label": "Мой отсчёт",
     "streak_on": False,
     "streak_start": "",
     "streak_best": 0,
@@ -336,7 +337,27 @@ def register_sections(app, patient, require_role, payload, text, write_once):
         account = patient(ident)
         data = payload()
         kind, answers = data.get("kind"), data.get("answers")
-        sizes = {"gad7": (7, 3), "phq9": (9, 3), "hama": (14, 4)}
+        sizes = {
+            "gad7": (7, 3),
+            "phq9": (9, 3),
+            "hama": (14, 4),
+            **{
+                k: (6, 3)
+                for k in (
+                    "mmpi",
+                    "leonhard",
+                    "beck_hopelessness",
+                    "beck_depression",
+                    "spielberger",
+                    "hcl33",
+                    "mdq",
+                    "dembo",
+                    "cope",
+                )
+            },
+            "schulte": (1, 36000),
+            "serial7": (13, 100),
+        }
         if not isinstance(kind, str) or kind not in sizes:
             raise ValueError("Неизвестная шкала")
         require_role("doctor" if kind == "hama" else "patient")
@@ -351,7 +372,29 @@ def register_sections(app, patient, require_role, payload, text, write_once):
         def save():
             cur = db().execute(
                 "INSERT INTO assessments(patient_id,actor_id,kind,answers_json,score,created_at) VALUES(?,?,?,?,?,?)",
-                (ident, g.user["id"], kind, json.dumps(answers), sum(answers), now()),
+                (
+                    ident,
+                    g.user["id"],
+                    kind,
+                    json.dumps(answers),
+                    (
+                        sum(answers)
+                        if kind in ("gad7", "phq9", "hama")
+                        else (
+                            answers[0]
+                            if kind == "schulte"
+                            else (
+                                sum(
+                                    v == 100 - 7 * (i + 1)
+                                    for i, v in enumerate(answers)
+                                )
+                                if kind == "serial7"
+                                else 0
+                            )
+                        )
+                    ),
+                    now(),
+                ),
             )
             audit(g.user["id"], ident, "assessment.created", "Учебная шкала " + kind)
             if g.user["role"] == "patient":

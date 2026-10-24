@@ -83,7 +83,7 @@ function treeArt(points = 0, animated = false, personal = !!state.user) {
 }
 
 function homeTree() {
-  return `<figure class="home-tree-scene"><button class="home-tree-link" data-experience="tree-bloom" aria-label="Добавить цветок на дерево">${treeArt(carePoints(), true)}</button></figure>`;
+  return `<figure class="home-tree-scene"><button class="home-tree-link" data-experience="tree-bloom" aria-label="Открыть моё дерево">${treeArt(carePoints(), true)}</button></figure>`;
 }
 function careIllustration() {
   return `<svg class="care-illustration" viewBox="0 0 300 240" aria-hidden="true"><ellipse cx="168" cy="214" rx="108" ry="12" fill="var(--accent)" opacity=".06"/><path d="M51 120c-6-61 54-92 110-91 64 1 119 47 106 106-13 58-101 79-153 61-31-10-59-36-63-76Z" fill="var(--accent)" opacity=".07"/><rect x="189" y="30" width="78" height="46" rx="16" fill="var(--surface)"/><path d="m204 65-5 15 24-9" fill="var(--surface)"/><path d="M206 53h10l5-10 7 22 8-14h14" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M85 205c-7-21-11-45-2-67 4-12 12-20 25-24l26-2c21 7 34 28 36 50l3 43Z" fill="var(--accent)"/><path d="m112 115-17 25 21 43 26-48-13-22" fill="var(--surface)"/><path d="M114 98v21c1 11 16 11 18 0V98" fill="#dfb99e"/><ellipse cx="122" cy="78" rx="25" ry="31" fill="#ebcbb4"/><path d="M97 84c-15-29 0-56 24-55 28 1 37 20 30 50-10-1-14-16-15-22-8 10-22 14-38 13Z" fill="#244653"/><path d="M111 85h1m20 0h1" stroke="#244653" stroke-width="3" stroke-linecap="round"/><path d="M117 98q7 5 13-1" fill="none" stroke="#ad7662" stroke-width="2" stroke-linecap="round"/><path d="m100 170 33-5 28 22-34 12-30-14" fill="#ebcbb4"/><rect x="128" y="153" width="54" height="66" rx="5" transform="rotate(-14 128 153)" fill="var(--surface)"/><path d="m143 169 24-6m-21 17 24-6m-21 17 18-5" stroke="var(--accent)" opacity=".35" stroke-width="3" stroke-linecap="round"/><path d="M69 213h115" stroke="var(--accent)" stroke-width="7" stroke-linecap="round"/><path d="M230 209v-49m0 24c-21-4-29-16-27-26 17-2 28 11 27 26Zm0-12c2-21 13-30 26-28 1 16-11 27-26 28Z" fill="var(--accent)" opacity=".45"/><path d="M211 202h37l-6 17h-25Z" fill="var(--accent)" opacity=".6"/><circle cx="62" cy="80" r="17" fill="var(--surface)"/><path d="M55 80h14m-7-7v14" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/></svg>`;
@@ -352,6 +352,7 @@ renderLogin = function (error = "") {
   decoratePublicEntry();
 };
 function decoratePsicompas() {
+  if (state.page === "tree") $("#breadcrumb").textContent = "Моё дерево";
   const doctor = isDoctor();
   $("#session-role").textContent = `${doctor ? "Специалист" : "Пациент"}`;
   $("#more-button").hidden = false;

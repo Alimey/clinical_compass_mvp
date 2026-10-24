@@ -92,10 +92,20 @@ with tempfile.TemporaryDirectory() as temp:
                 "window.beforeTree=document.querySelector('.home-tree-link svg')"
             )
             tree = page.locator(".home-tree-link")
+            # The click now opens a detail page; exercise the animation helper
+            # separately here. Real click navigation is covered by revision8.
+            page.evaluate("state.wellbeing.tree_rewards=[];syncTreeFlowers()")
+
+            def tap_tree(x, y):
+                tree.evaluate(
+                    "(el,p)=>{const r=el.getBoundingClientRect();plantFlower({detail:1,clientX:r.left+p.x,clientY:r.top+p.y},el)}",
+                    {"x": x, "y": y},
+                )
+
             page.evaluate(
                 "window.originalRandom=Math.random;window.testFlowerSizes=[.05,.95,.45];Math.random=()=>window.testFlowerSizes.shift()??.5"
             )
-            tree.click(position={"x": 110, "y": 90})
+            tap_tree(110, 90)
             expect(tree.locator(".tree-flowers circle")).to_have_count(2)
             assert (
                 tree.locator(".tree-tap").evaluate("el=>el.getAnimations().length") == 0
@@ -104,12 +114,12 @@ with tempfile.TemporaryDirectory() as temp:
                 "window.firstFlower=document.querySelector('.tree-flowers [data-flower]')"
             )
             page.emulate_media(reduced_motion="no-preference")
-            tree.click(position={"x": 140, "y": 110})
+            tap_tree(140, 110)
             expect(tree.locator(".tree-flowers circle")).to_have_count(4)
             page.evaluate(
                 "window.previousTap=document.querySelector('.tree-tap').getAnimations()[0];window.windAnimation=document.querySelector('.tree-crown').getAnimations()[0]"
             )
-            tree.click(position={"x": 120, "y": 100})
+            tap_tree(120, 100)
             expect(tree.locator(".tree-flowers circle")).to_have_count(6)
             assert page.evaluate("window.previousTap.playState") == "idle"
             assert (

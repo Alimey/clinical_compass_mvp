@@ -29,11 +29,18 @@ const newPracticeId = () =>
   Date.now() + "-" + Math.random().toString(36).slice(2);
 function flowerDots(flower) {
   const radius = Number(flower.radius) || 6;
-  return `<g data-flower="${e(flower.id)}" transform="translate(${Number(flower.x).toFixed(2)} ${Number(flower.y).toFixed(2)})"><g class="flower-bloom"><circle cx="0" cy="0" r="${radius.toFixed(2)}" fill="#f2a3b9"/><circle cx="${(radius * 1.16).toFixed(2)}" cy="${(-radius * 0.83).toFixed(2)}" r="${(radius * 0.66).toFixed(2)}" fill="#e77f9e"/></g></g>`;
+  const color = {
+    medication: "#e4b83f",
+    visit: "#5199dc",
+    diary: "#a786c9",
+    activity: "#6bad81",
+  }[flower.kind];
+  return `<g data-flower="${e(flower.id)}" transform="translate(${Number(flower.x).toFixed(2)} ${Number(flower.y).toFixed(2)})"><g class="flower-bloom"><circle cx="0" cy="0" r="${radius.toFixed(2)}" fill="${color || "#f2a3b9"}"/><circle cx="${(radius * 1.16).toFixed(2)}" cy="${(-radius * 0.83).toFixed(2)}" r="${(radius * 0.66).toFixed(2)}" fill="${color || "#e77f9e"}"/></g></g>`;
 }
 function visibleTreeFlowers() {
   return [
     ...(state.wellbeing?.tree_flowers || []),
+    ...(state.wellbeing?.tree_rewards || []),
     ...Array.from(pendingFlowers.values()).filter(
       (f) => f.owner === state.user?.id,
     ),

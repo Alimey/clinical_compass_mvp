@@ -429,6 +429,7 @@ document.addEventListener("click", async (event) => {
       await goBack();
     } else if (action === "tree-bloom") {
       plantFlower(event, button);
+      await navigate("tree");
     } else if (action === "month" || action === "calendar-day") {
       const group = button.dataset.group,
         prefix =

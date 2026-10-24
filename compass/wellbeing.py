@@ -65,6 +65,35 @@ def init_wellbeing():
     con.commit()
 
 
+def earned_flowers(ident):
+    sources = [
+        ("medication", "medication_marks", "status='taken'"),
+        ("visit", "appointments", "status='completed'"),
+        ("diary", "reports", "1=1"),
+        ("activity", "wellbeing_activities", "kind='practice'"),
+    ]
+    flowers = []
+    for kind, table, condition in sources:
+        for record in rows(
+            f"SELECT id FROM {table} WHERE patient_id=? AND {condition} ORDER BY id DESC LIMIT 30",
+            (ident,),
+        ):
+            # Stable positions are derived from actual records, never added on refresh.
+            seed = record["id"] * 137 + len(kind) * 47
+            angle = seed * 2.399963
+            radius = 0.25 + (seed % 67) / 100
+            flowers.append(
+                {
+                    "id": f"{kind}-{record['id']}",
+                    "kind": kind,
+                    "x": round(150 + math.cos(angle) * radius * 95, 2),
+                    "y": round(112 + math.sin(angle) * radius * 72, 2),
+                    "radius": 5 + seed % 4,
+                }
+            )
+    return flowers
+
+
 def register_wellbeing(app, patient, require_role, payload, write_once):
     @app.get("/api/patients/<int:ident>/wellbeing")
     def wellbeing(ident):
@@ -87,6 +116,7 @@ def register_wellbeing(app, patient, require_role, payload, write_once):
             (ident,),
         )
         return jsonify(
+            tree_rewards=earned_flowers(ident) if g.user["id"] == ident else [],
             activities=activities,
             lessons=lessons,
             tree_blossoms=tree[0]["blossoms"] if tree else 0,

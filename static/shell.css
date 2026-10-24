@@ -342,3 +342,78 @@
     visibility: hidden;
   }
 }
+.schulte-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+  max-width: 450px;
+  margin: 24px auto;
+}
+.schulte-grid .button {
+  padding: 8px;
+  min-height: 52px;
+  font-size: 1.3rem;
+  justify-content: center;
+}
+.schulte-grid .button:disabled {
+  opacity: 0.3;
+}
+.extended-assessments .button {
+  margin: 8px 0;
+  text-align: left;
+  white-space: normal;
+}
+.counter-label-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: end;
+  margin: 20px 0;
+}
+.counter-label-form label {
+  flex: 1 1 180px;
+  margin: 0;
+}
+.earned-tree > svg {
+  display: block;
+  width: min(100%, 480px);
+  margin: auto;
+}
+.earned-tree .tree-blossom {
+  display: none;
+}
+.tree-legend {
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 16px;
+}
+.tree-legend li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.legend-flower {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #f2a3b9;
+}
+.legend-flower[data-color="#e4b83f"] {
+  background: #e4b83f;
+}
+.legend-flower[data-color="#5199dc"] {
+  background: #5199dc;
+}
+.legend-flower[data-color="#a786c9"] {
+  background: #a786c9;
+}
+.legend-flower[data-color="#6bad81"] {
+  background: #6bad81;
+}
+.maze-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
