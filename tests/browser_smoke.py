@@ -136,7 +136,7 @@ with tempfile.TemporaryDirectory() as temp:
             patient.locator("#navigation [data-page=diary]").click()
             patient.locator("[data-ext=sub][data-group=diary][data-key=meds]").click()
             expect(patient.locator(".medication-schedule")).to_contain_text(
-                "ДЕМО-Альфа"
+                "Авиандр 20 мг"
             )
             assert patient.evaluate("state.detail.profile.plan") == "demo-alpha"
             patient.locator("#navigation [data-page=messages]").click()
