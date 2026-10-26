@@ -693,6 +693,18 @@ dialog,
 .search-field {
   max-width: none;
 }
+.search-field > svg {
+  left: 16px;
+  top: 50%;
+  width: 20px;
+  height: 20px;
+  transform: translateY(-50%);
+  color: var(--muted);
+  pointer-events: none;
+}
+.search-field > input[type="search"] {
+  padding-left: 48px;
+}
 .filter-group {
   flex-wrap: wrap;
 }
