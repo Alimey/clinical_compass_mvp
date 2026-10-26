@@ -5,11 +5,6 @@ const compassGames = (() => {
   const W = 720,
     H = 500;
   const definitions = {
-    lab: [
-      "Лабиринт ХимРАР",
-      labMaze.brandIcon(),
-      "Собирайте пилюли стрелками, кнопками или касанием соседней клетки. Избегайте розового шарика. Это игра, без связи с назначениями.",
-    ],
     meadow: [
       "Полянка",
       "🌼",
@@ -105,7 +100,6 @@ const compassGames = (() => {
       cursor: { x: W / 2, y: H / 2 },
       keyboard: false,
     };
-    if (key === "lab") Object.assign(m, labMaze.create());
     if (key === "meadow") {
       Object.assign(m, {
         basket: { x: 360, y: 415 },
@@ -165,7 +159,6 @@ const compassGames = (() => {
     return models.get(selected);
   }
   function controls(key, m) {
-    if (key === "lab") return labMaze.controls();
     if (key === "balls")
       return (
         button("add-ball", "Добавить шарик") +
@@ -296,7 +289,7 @@ const compassGames = (() => {
       );
     return (
       picker +
-      `<section class="card mini-game" id="mini-game-stage" data-mini-game="${selected}"><div class="card-heading"><h2>${selected === "lab" ? labMaze.brandIcon() : ""}${definitions[selected][0]}</h2><div class="game-heading-actions">${button("choose", "Все игры")}${button("reset", "Начать заново")}</div></div><p id="game-instruction">${definitions[selected][2]}</p><div class="game-workspace"><div class="game-controls">${controls(selected, m)}</div><canvas id="game-canvas" width="1440" height="1000" tabindex="0" role="application" aria-label="${definitions[selected][0]}: игровое поле" aria-describedby="game-instruction game-keyboard"></canvas></div><div class="game-readout"><output id="game-status" aria-live="off"></output>${selected === "jam" ? '<progress id="jam-fill" max="100" value="0" aria-label="Наполнение банки"></progress>' : ""}</div><span id="game-announcement" class="visually-hidden" role="status"></span><details class="game-keyboard"><summary>Управление с клавиатуры</summary><p id="game-keyboard">Стрелки перемещают указатель. Enter или пробел — действие. Кнопки над полем доступны клавишей Tab.</p></details></section>`
+      `<section class="card mini-game" id="mini-game-stage" data-mini-game="${selected}"><div class="card-heading"><h2>${definitions[selected][0]}</h2><div class="game-heading-actions">${button("choose", "Все игры")}${button("reset", "Начать заново")}</div></div><p id="game-instruction">${definitions[selected][2]}</p><div class="game-workspace"><div class="game-controls">${controls(selected, m)}</div><canvas id="game-canvas" width="1440" height="1000" tabindex="0" role="application" aria-label="${definitions[selected][0]}: игровое поле" aria-describedby="game-instruction game-keyboard"></canvas></div><div class="game-readout"><output id="game-status" aria-live="off"></output>${selected === "jam" ? '<progress id="jam-fill" max="100" value="0" aria-label="Наполнение банки"></progress>' : ""}</div><span id="game-announcement" class="visually-hidden" role="status"></span><details class="game-keyboard"><summary>Управление с клавиатуры</summary><p id="game-keyboard">Стрелки перемещают указатель. Enter или пробел — действие. Кнопки над полем доступны клавишей Tab.</p></details></section>`
     );
   }
   function reset() {
@@ -1250,11 +1243,8 @@ const compassGames = (() => {
     lava: drawLava,
     sand: drawSand,
     jam: drawJam,
-    lab: labMaze.draw,
   };
   function readout(key, m) {
-    if (key === "lab")
-      return `Собрано пилюль: ${m.collected} · Осталось: ${m.pills.size}`;
     if (key === "meadow") return `Собрано: ${m.collected}`;
     if (key === "balls") return `Шариков: ${m.balls.length} из 48`;
     if (key === "salon")
@@ -1315,9 +1305,6 @@ const compassGames = (() => {
       }
       refresh();
     }
-    // The maze is static between moves, so redraw once when its image arrives.
-    if (key === "lab")
-      labMaze.brandImage.addEventListener("load", draw, { once: true, signal });
     function wantsMotion() {
       if (key === "balls" || key === "lava") return !m.paused;
       if (key === "meadow") return !!m.pointer || m.regrow.length > 0;
@@ -1395,13 +1382,6 @@ const compassGames = (() => {
           });
     }
     function begin(p) {
-      if (key === "lab") {
-        const x = Math.floor((p.x - 90) / 36),
-          y = Math.floor((p.y - 58) / 36);
-        const dx = x - m.player.x,
-          dy = y - m.player.y;
-        if (Math.abs(dx) + Math.abs(dy) === 1) labMaze.step(m, dx, dy);
-      }
       m.cursor = p;
       if (key === "meadow") m.pointer = { ...p };
       if (key === "lava") aimLava(m, p, true);
@@ -1563,21 +1543,6 @@ const compassGames = (() => {
       "keydown",
       (event) => {
         if (
-          key === "lab" &&
-          ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(
-            event.key,
-          )
-        ) {
-          event.preventDefault();
-          labMaze.step(
-            m,
-            event.key === "ArrowLeft" ? -1 : event.key === "ArrowRight" ? 1 : 0,
-            event.key === "ArrowUp" ? -1 : event.key === "ArrowDown" ? 1 : 0,
-          );
-          draw();
-          return;
-        }
-        if (
           ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(
             event.key,
           )
@@ -1624,8 +1589,6 @@ const compassGames = (() => {
         const b = event.target.closest("[data-game-action]");
         if (!b || b.disabled) return;
         const action = b.dataset.gameAction;
-        if (action === "lab-step")
-          labMaze.step(m, Number(b.dataset.dx), Number(b.dataset.dy));
         if (action === "choose") {
           document
             .querySelector("#game-picker")

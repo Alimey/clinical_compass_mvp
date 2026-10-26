@@ -424,11 +424,6 @@
 .legend-flower[data-color="#6bad81"] {
   background: #6bad81;
 }
-.maze-controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
 
 .demo-data-footer {
   padding: 16px 24px;

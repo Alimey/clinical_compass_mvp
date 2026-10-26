@@ -170,28 +170,6 @@ with tempfile.TemporaryDirectory() as temp:
             page.wait_for_function("()=>!busy")
             page.locator("#navigation [data-page=help]").click()
             page.locator("[data-ext=sub][data-group=help][data-key=games]").click()
-            page.locator("[data-game-select=lab]").click()
-            canvas = page.locator("#game-canvas")
-            expect(
-                page.locator("[data-game-select=lab] .maze-brand-mark")
-            ).to_be_visible()
-            expect(
-                page.locator("[data-mini-game=lab] h2 .maze-brand-mark")
-            ).to_be_visible()
-            expect(page.locator("#game-status")).to_contain_text("Собрано пилюль: 0")
-            pixels = canvas.evaluate(
-                "el=>{const c=el.getContext('2d');return [[96,70],[139,112],[181,110]].map(([x,y])=>Array.from(c.getImageData(x*2,y*2,1,1).data).slice(0,3))}"
-            )
-            assert pixels[0] == [182, 160, 197], pixels
-            assert pixels[1] == [36, 139, 208], pixels
-            assert pixels[2] == [49, 149, 143], pixels
-            canvas.press("ArrowUp")
-            expect(page.locator("#game-status")).to_contain_text("Собрано пилюль: 0")
-            canvas.press("ArrowRight")
-            expect(page.locator("#game-status")).to_contain_text("Собрано пилюль: 1")
-            page.locator('[data-game-action=lab-step][data-dx="1"]').click()
-            expect(page.locator("#game-status")).to_contain_text("Собрано пилюль: 2")
-            page.screenshot(path=str(ART / "revision8-labyrinth.png"), full_page=True)
             for width in [320, 390, 768, 1024, 1440]:
                 page.set_viewport_size({"width": width, "height": 1000})
                 assert page.evaluate(
@@ -217,7 +195,7 @@ with tempfile.TemporaryDirectory() as temp:
             assert not errors, errors
             browser.close()
             print(
-                "PASS: doctor assignment and deadline, patient completion, named private counter, tree navigation and color legend, six online demo forms with persistence, Schulte and serial subtraction, labyrinth pills/walls/keyboard/buttons, popping and regrowing berries, video titles, 5 widths"
+                "PASS: doctor assignment and deadline, patient completion, named private counter, tree navigation and color legend, six online demo forms with persistence, Schulte and serial subtraction, popping and regrowing berries, video titles, 5 widths"
             )
     finally:
         server.terminate()
