@@ -134,9 +134,36 @@ with tempfile.TemporaryDirectory() as temp:
             )
             doc.locator("#compatibility-form [type=submit]").click()
             expect(doc.locator("#compatibility-result")).to_contain_text(
-                "Есть опасности"
+                "Назначать нельзя"
+            )
+            expect(doc.locator("#compatibility-result")).to_have_attribute(
+                "data-level", "blocked"
             )
             doc.locator("#compatibility-form [name=allergy]").uncheck()
+            doc.locator("#compatibility-form [name=contraindication]").check()
+            doc.locator("#compatibility-form [name=cardio]").check()
+            doc.locator("#compatibility-form [type=submit]").click()
+            expect(doc.locator("#compatibility-result h2")).to_have_text(
+                "Назначать нельзя"
+            )
+            expect(doc.locator("#compatibility-result")).to_contain_text(
+                "Противопоказание"
+            )
+            expect(doc.locator("#compatibility-result")).to_contain_text(
+                "Причины запрета"
+            )
+            expect(doc.locator("#compatibility-result")).to_contain_text(
+                "Дополнительно проверить"
+            )
+            doc.locator("#compatibility-form [name=contraindication]").uncheck()
+            expect(doc.locator("#compatibility-result")).to_have_attribute(
+                "data-level", "unverified"
+            )
+            doc.locator("#compatibility-form [type=submit]").click()
+            expect(doc.locator("#compatibility-result")).to_have_attribute(
+                "data-level", "caution"
+            )
+            doc.locator("#compatibility-form [name=cardio]").uncheck()
             doc.locator("#compatibility-form [name=other]").select_option("demo-gamma")
             doc.locator("#compatibility-form [type=submit]").click()
             expect(doc.locator("#compatibility-result")).to_contain_text(

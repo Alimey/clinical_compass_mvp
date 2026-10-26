@@ -604,6 +604,15 @@ body[data-role="patient"] #content {
 .compatibility-status {
   align-self: start;
 }
+#compatibility-result[data-level="blocked"] {
+  padding: 18px;
+  border: 1px solid var(--must);
+  border-radius: 14px;
+  background: var(--must-soft);
+}
+#compatibility-result[data-level="blocked"] h2 {
+  color: var(--must);
+}
 .compatibility-status ul {
   padding-left: 20px;
 }

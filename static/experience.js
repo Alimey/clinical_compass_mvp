@@ -56,12 +56,11 @@ function compatibilityCalculator() {
         : null;
   state.compatibilityProfile =
     selected && profile ? { id: selected.id, profile } : null;
-  return `<div class="compatibility-layout"><section class="card"><form id="compatibility-form"><label>Пациент или свой сценарий<select name="patient" id="compatibility-patient"><option value="manual">Задать характеристики вручную</option>${state.patients.map((p) => `<option value="${p.id}" ${p.id === selected?.id ? "selected" : ""}>${e(p.name)}</option>`).join("")}</select></label><p id="compatibility-profile" class="caption">${selected ? `Пациент: ${e(selected.name)}. ${e(compatibilityProfileNote(profile))}` : "Укажите характеристики учебного случая."}</p><label>Основной препарат<select name="choice">${compatibilityOptions.map(([key, title]) => `<option value="${key}">${title}</option>`).join("")}</select></label><div class="form-grid"><label>Возраст<input name="age" type="number" min="0" max="120" value="${selected?.age || 40}" required></label><label>СКФ · учебное поле<input name="egfr" type="number" min="0" max="200" value="90" required></label></div><label>Печень · учебное поле<select name="liver"><option>Нет ограничений</option><option>Есть ограничение</option></select></label><fieldset class="compatibility-factors"><legend>Характеристики и противопоказания</legend>${[
+  return `<div class="compatibility-layout"><section class="card"><form id="compatibility-form"><label>Пациент или свой сценарий<select name="patient" id="compatibility-patient"><option value="manual">Задать характеристики вручную</option>${state.patients.map((p) => `<option value="${p.id}" ${p.id === selected?.id ? "selected" : ""}>${e(p.name)}</option>`).join("")}</select></label><p id="compatibility-profile" class="caption">${selected ? `Пациент: ${e(selected.name)}. ${e(compatibilityProfileNote(profile))}` : "Укажите характеристики учебного случая."}</p><label>Основной препарат<select name="choice">${compatibilityOptions.map(([key, title]) => `<option value="${key}">${title}</option>`).join("")}</select></label><div class="form-grid"><label>Возраст<input name="age" type="number" min="0" max="120" value="${selected?.age || 40}" required></label><label>СКФ · учебное поле<input name="egfr" type="number" min="0" max="200" value="90" required></label></div><label>Печень · учебное поле<select name="liver"><option>Нет ограничений</option><option>Есть ограничение</option></select></label><fieldset class="compatibility-factors"><legend>Противопоказания</legend><label class="consent-switch"><input name="allergy" type="checkbox"><span>Аллергия на выбранный препарат</span></label><label class="consent-switch"><input name="contraindication" type="checkbox"><span>Противопоказание к выбранному препарату подтверждено по инструкции</span></label></fieldset><fieldset class="compatibility-factors"><legend>Факторы для дополнительной проверки</legend>${[
     ["pregnancy", "Беременность / лактация"],
     ["epilepsy", "Эпилепсия"],
     ["cardio", "Сердечно-сосудистые заболевания"],
     ["diabetes", "Диабет"],
-    ["allergy", "Аллергия на выбранный препарат · сценарий"],
   ]
     .map(
       ([key, label]) =>
@@ -80,6 +79,10 @@ function showCompatibility(form) {
     .split(" · ")[0];
   if (form.elements.allergy.checked)
     blocks.push("В сценарии указана аллергия на выбранный препарат.");
+  if (form.elements.contraindication.checked)
+    blocks.push(
+      "Врач отметил подтверждённое противопоказание к выбранному препарату по инструкции.",
+    );
   const known =
     Number(data.patient) === state.compatibilityProfile?.id
       ? state.compatibilityProfile.profile.intolerance
@@ -123,12 +126,17 @@ function showCompatibility(form) {
         : `${primary} + ДЕМО-Бета: пример предупреждения о сочетании.`,
     );
   const status = blocks.length
-    ? "Есть опасности в демо-сценарии"
+    ? "Назначать нельзя"
     : cautions.length
       ? "Нужна дополнительная проверка"
       : "Учебные ограничения не отмечены";
-  $("#compatibility-result").innerHTML =
-    `<span class="chip ${blocks.length ? "red" : cautions.length ? "amber" : "green"}">${blocks.length ? "Ограничение" : cautions.length ? "Внимание" : "Демо-проверка завершена"}</span><h2>${status}</h2><p><strong>${e(primary)}</strong> · ${e(form.elements.patient.selectedOptions[0].textContent)} · возраст ${e(data.age)}</p>${[...blocks, ...cautions].length ? `<ul>${[...blocks, ...cautions].map((text) => `<li>${e(text)}</li>`).join("")}</ul>` : "<p>В заданном учебном случае правила не нашли отмеченных ограничений.</p>"}`;
+  const result = $("#compatibility-result");
+  result.dataset.level = blocks.length
+    ? "blocked"
+    : cautions.length
+      ? "caution"
+      : "clear";
+  result.innerHTML = `<span class="chip ${blocks.length ? "red" : cautions.length ? "amber" : "green"}">${blocks.length ? "Противопоказание" : cautions.length ? "Внимание" : "Демо-проверка завершена"}</span><h2>${status}</h2><p><strong>${e(primary)}</strong> · ${e(form.elements.patient.selectedOptions[0].textContent)} · возраст ${e(data.age)}</p>${blocks.length ? `<h3>Причины запрета</h3><ul>${blocks.map((reason) => `<li>${e(reason)}</li>`).join("")}</ul>` : ""}${cautions.length ? `<h3>Дополнительно проверить</h3><ul>${cautions.map((reason) => `<li>${e(reason)}</li>`).join("")}</ul>` : ""}${!blocks.length && !cautions.length ? "<p>В заданном учебном случае правила не нашли отмеченных ограничений.</p>" : ""}`;
 }
 document.addEventListener("change", async (event) => {
   if (event.target.id !== "compatibility-patient") return;
@@ -168,9 +176,18 @@ for (const eventName of ["input", "change"])
     if (
       event.target.closest("#compatibility-form") &&
       $("#compatibility-result")
-    )
-      $("#compatibility-result").innerHTML =
-        "<p>Параметры изменены. Нажмите «Проверить сценарий».</p>";
+    ) {
+      const drugChanged = event.target.name === "choice";
+      if (drugChanged) {
+        // Drug-specific confirmations must be checked again for a new choice.
+        event.target.form.elements.allergy.checked = false;
+        event.target.form.elements.contraindication.checked = false;
+      }
+      $("#compatibility-result").dataset.level = "unverified";
+      $("#compatibility-result").innerHTML = drugChanged
+        ? "<p>Препарат изменён. Проверьте противопоказания для нового препарата и нажмите «Проверить сценарий».</p>"
+        : "<p>Параметры изменены. Нажмите «Проверить сценарий».</p>";
+    }
   });
 
 function monthGrid(month, selected, items, group) {
