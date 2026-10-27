@@ -29,6 +29,8 @@ const paths = {
   send: "m22 2-7 20-4-9L2 9 22 2ZM22 2 11 13",
   plus: "M12 5v14M5 12h14",
   leaf: "M20 3C8 2 2 9 5 16s15 6 15-13ZM5 19 15 9",
+  run: "M15 4h.01M17 4a2 2 0 1 1-4 0 2 2 0 0 1 4 0ZM4 11l4-3 4 2 3-3 4 3h3M12 10l-3 5-5 5M10 14l5 2-1 6M3 15h3",
+  gear: "M9 3h6l1 3 3 1 2 5-2 5-3 1-1 3H9l-1-3-3-1-2-5 2-5 3-1 1-3ZM16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0",
   info: "M12 11v6M12 7h.01M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0",
   alert: "m12 3 10 18H2L12 3ZM12 9v5M12 17h.01",
   sun: "M12 3v2M12 19v2M3 12h2M19 12h2M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0",
@@ -50,6 +52,27 @@ const date = (v) =>
     : "Пока нет записей";
 const shortDate = (v) =>
   new Date(v).toLocaleDateString("ru-RU", { day: "numeric", month: "short" });
+const patientNavigation = [
+  ["overview", "home", "Мой день"],
+  ["diary", "book", "Дневник"],
+  ["move", "run", "Движение"],
+  ["learn", "leaf", "Знания"],
+  ["help", "heart", "Помощь"],
+  ["messages", "chat", "Врач"],
+  ["schedule", "clock", "Консультации"],
+];
+const patientTools = [["settings", "gear", "Настройки"]];
+function observationLabel(patient) {
+  return patient?.observed_since
+    ? "Наблюдается с " +
+        new Date(patient.observed_since).toLocaleDateString("ru-RU", {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+          timeZone: "Europe/Moscow",
+        })
+    : "Дата начала наблюдения не указана";
+}
 let state = {
   user: null,
   csrf: null,
@@ -138,6 +161,9 @@ function clearSession() {
     selected: null,
   };
   retryKeys.clear();
+  notificationReads.clear();
+  state.notificationSource = [];
+  state.notificationTotal = 0;
   $("#app-shell").hidden = true;
   $("#content").replaceChildren();
   $("#notifications-panel").hidden = true;
@@ -164,21 +190,21 @@ function chart(reports, compact = false) {
         `<polyline fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round" points="${values.map((r, i) => `${x(i)},${y(r[field])}`).join(" ")}"/>${values.map((r, i) => `<circle cx="${x(i)}" cy="${y(r[field])}" r="3.5" fill="white" stroke="${color}" stroke-width="2"/>`).join("")}`,
     )
     .join("");
-  return `<div class="legend"><span><i></i>Настроение</span><span><i></i>Тревога</span></div><svg class="trend" viewBox="0 0 520 202" role="img" aria-label="Динамика настроения и тревоги от 0 до 10. Даты и значения доступны в истории самоотчётов."><g stroke="#eff3f0" stroke-dasharray="4 4"><path d="M40 35H480M40 100H480M40 165H480"/></g><g fill="#a8b5ac" font-size="10"><text x="12" y="39">10</text><text x="18" y="104">5</text><text x="18" y="169">0</text><text x="40" y="195">${e(shortDate(values[0].created_at))}</text><text x="438" y="195">${e(shortDate(values.at(-1).created_at))}</text></g>${graphs}</svg>${compact ? "" : `<div class="chart-foot"><span>Последние ${values.length} записей · собственные оценки</span><b>0–10, учебный дневник</b></div>`}`;
+  return `<div class="legend"><span><i></i>Настроение</span><span><i></i>Тревога</span></div><svg class="trend" viewBox="0 0 520 202" role="img" aria-label="Динамика настроения и тревоги от 0 до 10. Даты и значения доступны в истории самоотчётов."><g stroke="#eff3f0" stroke-dasharray="4 4"><path d="M40 35H480M40 100H480M40 165H480"/></g><g fill="#a8b5ac" font-size="18"><text x="12" y="39">10</text><text x="18" y="104">5</text><text x="18" y="169">0</text><text x="40" y="195">${e(shortDate(values[0].created_at))}</text><text x="438" y="195">${e(shortDate(values.at(-1).created_at))}</text></g>${graphs}</svg>${compact ? "" : `<div class="chart-foot"><span>Последние ${values.length} записей · собственные оценки</span></div>`}`;
 }
 function heading(eyebrow, title, description, action = "") {
-  return `<div class="page-heading"><div><p class="eyebrow">${eyebrow}</p><h1>${title}</h1><p class="muted">${description}</p></div>${action ? '<div class="heading-actions">' + action + "</div>" : ""}</div>`;
+  return `<div class="page-heading"><div><h1>${title}</h1>${description ? `<p class="muted">${description}</p>` : ""}</div>${action ? '<div class="heading-actions">' + action + "</div>" : ""}</div>`;
 }
 const refreshButton = () =>
   `<button class="button" data-action="refresh" aria-label="Обновить данные">${icon("refresh")}Обновить</button>`;
 const badge = (p) =>
   p.unread > 0
-    ? '<span class="chip red">Требует внимания</span>'
+    ? '<span class="chip red">Обязательно</span>'
     : '<span class="chip green">На наблюдении</span>';
 const avatar = (name, color = "mint", size = "") =>
   `<div class="avatar ${color} ${size}">${e(initials(name))}</div>`;
 function stat(label, value, foot, glyph, color = "mint") {
-  return `<div class="stat-card"><div><div class="stat-label">${label}</div><div class="stat-number">${value}</div><p>${foot}</p></div><div class="stat-icon ${color}">${icon(glyph)}</div></div>`;
+  return `<div class="stat-card"><div><div class="stat-label">${label}</div><div class="stat-number">${value}</div></div><div class="stat-icon ${color}">${icon(glyph)}</div></div>`;
 }
 function patientRows(list) {
   return list
@@ -192,7 +218,15 @@ function overview() {
   const d = state.detail,
     doctor = state.user.role === "doctor",
     last = d?.reports[0];
-  if (!d) return '<div class="empty">Пациентов пока нет</div>';
+  if (!d)
+    return (
+      heading(
+        "КАБИНЕТ ВРАЧА",
+        `Добрый день, ${e(state.user.name.split(" ")[0])}`,
+        "",
+      ) +
+      '<section class="card welcome-doctor"><h2>Пригласите первого пациента</h2><p>Создайте ссылку: после регистрации карточка пациента появится в вашем кабинете.</p><button class="button primary" data-care="invite">Пригласить пациента</button><div id="invite-result"></div></section>'
+    );
   if (!doctor) return patientOverview();
   const alerts = state.patients.reduce((n, p) => n + p.unread, 0),
     messages = state.patients.reduce((n, p) => n + p.unread_messages, 0);
@@ -200,7 +234,7 @@ function overview() {
     heading(
       "КАБИНЕТ ВРАЧА",
       `Добрый день, ${e(state.user.name.split(" ")[0])}`,
-      "Всё важное о ваших пациентах — в одном месте.",
+      "",
       refreshButton(),
     ) +
     `<div class="stats-grid">${stat("Пациентов на наблюдении", state.patients.length, "Ваши закреплённые пациенты", "users")}${stat("Новых сигналов", alerts, alerts ? "Есть записи для просмотра" : "Все сигналы просмотрены", "shield", "peach")}${stat("Непрочитанных сообщений", messages, "Диалоги с пациентами", "chat", "lilac")}</div>
@@ -213,7 +247,7 @@ function overview() {
         )
         .join("") ||
       '<div class="empty">' + icon("check") + "Новых сигналов нет</div>"
-    }<p class="caption">Уведомления поступают в открытую вкладку. Это не экстренная служба.</p></div></div>
+    }</div></div>
     <div class="section-heading"><h2>Ваши пациенты</h2><button class="button quiet small" data-action="nav" data-page="patients">Все пациенты ${icon("arrow")}</button></div><div class="card">${patientRows(state.patients)}</div>`
   );
 }
@@ -231,7 +265,7 @@ function patientOverview() {
     ) +
     `<div class="intro-card"><div><p class="eyebrow">ВРЕМЯ ДЛЯ СЕБЯ</p><h2>${sent ? "Спасибо, что ведёте дневник" : "Как вы чувствуете себя сегодня?"}</h2><p>${sent ? "Ваш последний самоотчёт сохранён. Можно посмотреть историю или добавить новую запись." : "Отметьте настроение, тревогу и самочувствие. Записи увидит ваш ведущий врач."}</p><button class="button primary" data-action="nav" data-page="diary">${icon("plus")}Заполнить дневник</button></div><div class="intro-graphic" aria-hidden="true"><span>✦</span></div></div>
     <div class="stats-grid">${stat("Настроение", last ? `${last.mood}<small> / 10</small>` : "—", "Из последнего самоотчёта", "sun")}${stat("Тревога", last ? `${last.anxiety}<small> / 10</small>` : "—", "Субъективная оценка", "heart", "lilac")}${stat("Соблюдение плана", d.adherence === null ? "—" : `${d.adherence}<small>%</small>`, "Условный индекс, 7 записей", "check", "peach")}</div>
-    <div class="two-columns"><div class="card"><div class="card-heading"><h2>Моя динамика</h2><button class="button quiet small" data-action="history">История ${icon("arrow")}</button></div>${chart(d.reports)}</div><div><div class="card"><h2>На сегодня</h2><div class="routine-item"><div class="routine-icon">${icon(sent ? "check" : "book")}</div><div><h3>Заполнить дневник</h3><p>${sent ? "Сегодня уже есть запись" : "Пара минут внимания к себе"}</p></div></div><div class="routine-item"><div class="routine-icon">${icon("chat")}</div><div><h3>Оставаться на связи</h3><p>Вопросы можно обсудить с врачом</p></div></div><div class="routine-item"><div class="routine-icon">${icon("leaf")}</div><div><h3>Следовать согласованному плану</h3><p>Изменения подтверждает только врач</p></div></div></div><div class="card"><div class="patient-row">${avatar(d.doctor.name, "lilac")}<div class="patient-info"><strong>${e(d.doctor.name)}</strong><small>Ваш ведущий врач · демо</small></div></div><button class="button full" data-action="nav" data-page="messages">${icon("chat")}Написать врачу</button></div></div></div>`
+    <div class="two-columns"><div class="card"><div class="card-heading"><h2>Моя динамика</h2><button class="button quiet small" data-action="history">История ${icon("arrow")}</button></div>${chart(d.reports)}</div><div><div class="card"><h2>На сегодня</h2><div class="routine-item"><div class="routine-icon">${icon(sent ? "check" : "book")}</div><div><h3>Заполнить дневник</h3><p>${sent ? "Сегодня уже есть запись" : "Пара минут внимания к себе"}</p></div></div><div class="routine-item"><div class="routine-icon">${icon("chat")}</div><div><h3>Оставаться на связи</h3><p>Вопросы можно обсудить с врачом</p></div></div><div class="routine-item"><div class="routine-icon">${icon("leaf")}</div><div><h3>Следовать согласованному плану</h3><p>Изменения подтверждает только врач</p></div></div></div><div class="card"><div class="patient-row">${avatar(d.doctor.name, "lilac")}<div class="patient-info"><strong>${e(d.doctor.name)}</strong><small>Ваш ведущий врач</small></div></div><button class="button full" data-action="nav" data-page="messages">${icon("chat")}Написать врачу</button></div></div></div>`
   );
 }
 function filteredPatients() {
@@ -249,7 +283,7 @@ function patientCards() {
     ? list
         .map(
           (p, i) =>
-            `<article class="card patient-card"><div class="profile-top">${avatar(p.name, i % 2 ? "lilac" : "mint")}<div><h3>${e(p.name)}</h3><p class="caption">${e(p.age || "—")} лет · ${e(p.occupation || "Демо-профиль")}</p></div></div>${badge(p)}<div class="mini-metrics"><div><small>Настроение</small><strong>${p.mood ?? "—"}<span> / 10</span></strong></div><div><small>Тревога</small><strong>${p.anxiety ?? "—"}<span> / 10</span></strong></div></div><p class="caption">Последняя запись: ${e(date(p.last_report))}</p><button class="button full" data-action="patient" data-id="${p.id}">Открыть карточку ${icon("arrow")}</button></article>`,
+            `<article class="card patient-card"><div class="profile-top">${avatar(p.name, i % 2 ? "lilac" : "mint")}<div><h3>${e(p.name)}</h3><p class="caption">${e(p.age || "—")} лет · ${p.observed_since ? "Наблюдается с " + e(shortDate(p.observed_since)) + " " + new Date(p.observed_since).getFullYear() : "Дата начала наблюдения не указана"}</p></div></div>${badge(p)}<div class="mini-metrics"><div><small>Настроение</small><strong>${p.mood ?? "—"}<span> / 10</span></strong></div><div><small>Тревога</small><strong>${p.anxiety ?? "—"}<span> / 10</span></strong></div></div><p class="caption">Последняя запись: ${e(date(p.last_report))}</p><button class="button full" data-action="patient" data-id="${p.id}">Открыть карточку ${icon("arrow")}</button></article>`,
         )
         .join("")
     : '<div class="empty">Пациенты не найдены. Измените поиск или фильтр.</div>';
@@ -281,7 +315,7 @@ function proposals() {
     ? list
         .map(
           (p) =>
-            `<article class="proposal ${p.tier}"><span class="chip ${p.tier === "mandatory" ? "red" : "amber"}">${p.tier === "mandatory" ? "Обязательно в демо" : "Желательно в демо"}</span><h3>${e(p.title)}</h3><p>${e(p.reason)}</p><small class="caption">Правила ${e(p.rule_version)}${p.report_id ? " · отчёт #" + p.report_id : ""} · ${e(date(p.created_at))}</small><div class="proposal-actions"><button class="button small primary" data-action="resolve" data-id="${p.id}" data-status="accepted">Подтвердить</button><button class="button quiet small" data-action="resolve" data-id="${p.id}" data-status="rejected">Отклонить</button></div></article>`,
+            `<article class="proposal ${p.tier}"><span class="chip ${p.tier === "mandatory" ? "red" : "amber"}">${p.tier === "mandatory" ? "Обязательно" : "Желательно"}</span><h3>${e(p.title)}</h3><p>${e(p.reason)}</p><small class="caption">Основание: запись от ${e(date(p.created_at))}</small><div class="proposal-actions"><button class="button small primary" data-action="resolve" data-id="${p.id}" data-status="accepted">Подтвердить</button><button class="button quiet small" data-action="resolve" data-id="${p.id}" data-status="rejected">Отклонить</button></div></article>`,
         )
         .join("")
     : '<div class="empty">' +
@@ -320,19 +354,19 @@ function doctorCard() {
   if (state.tab === "assistant") content = assistantPage();
   if (state.tab === "chat") content = chatPage();
   if (state.tab === "audit")
-    content = `<div class="card"><h2>Журнал действий</h2><p class="caption">Сохранённые события в хронологическом порядке, новые сверху. Это журнал демо, без гарантии неизменяемости.</p>${state.audit.length ? state.audit.map((a) => `<div class="journal-item"><time>${e(date(a.created_at))}</time><h3>${e(a.detail)}</h3><p>${e(a.actor_name)} · ${e(a.action)}</p></div>`).join("") : '<div class="empty">События появятся после действий в приложении</div>'}</div>`;
+    content = `<div class="card"><h2>Журнал действий</h2>${state.audit.length ? state.audit.map((a) => `<div class="journal-item"><time>${e(date(a.created_at))}</time><h3>${e(a.detail)}</h3><p>${e(a.actor_name)} · ${e(a.action)}</p></div>`).join("") : '<div class="empty">События появятся после действий в приложении</div>'}</div>`;
   if (state.tab === "overview") content += wellbeingSummary();
-  return `<button class="back-link" data-action="nav" data-page="patients">${icon("back")}Все пациенты</button><div class="profile-banner">${avatar(p.name, "mint", "large")}<div><p class="eyebrow">КАРТОЧКА ПАЦИЕНТА · #${p.id}</p><h1>${e(p.name)}</h1><p>${e(d.profile.age || "—")} лет · ${e(d.profile.occupation || "Демо-профиль")}</p></div>${badge(state.patients.find((x) => x.id === p.id) || {})}</div><div class="tabs" aria-label="Разделы карточки">${tabs.map(([id, title]) => `<button data-action="tab" data-tab="${id}" class="${state.tab === id ? "active" : ""}" aria-pressed="${state.tab === id}">${title}</button>`).join("")}</div>${content}`;
+  return `<button class="back-link" data-action="nav" data-page="patients">${icon("back")}Все пациенты</button><div class="profile-banner">${avatar(p.name, "mint", "large")}<div><p class="eyebrow">КАРТОЧКА ПАЦИЕНТА · #${p.id}</p><h1>${e(p.name)}</h1><p>${e(d.profile.age || "—")} лет · ${e(observationLabel(state.patients.find((x) => x.id === p.id)))}</p></div>${badge(state.patients.find((x) => x.id === p.id) || {})}</div><div class="tabs" aria-label="Разделы карточки">${tabs.map(([id, title]) => `<button data-action="tab" data-tab="${id}" class="${state.tab === id ? "active" : ""}" aria-pressed="${state.tab === id}">${title}</button>`).join("")}</div>${content}`;
 }
 function planPage(doctor = false) {
   const d = state.detail,
     choice = d.catalog.find((c) => c.id === d.profile.plan);
   return `${doctor ? "" : heading("ПОДТВЕРЖДЁННЫЕ РЕШЕНИЯ", "Мой план", "Изменения появляются здесь после решения ведущего врача.", refreshButton())}
-  <div class="plan-current"><span class="chip green">${choice ? "Подтверждено врачом" : "План ещё не согласован"}</span><h3>${choice ? e(choice.name) : "Решение остаётся за врачом"}</h3><p>${choice ? e(d.profile.plan_note) : "Система формирует только предложения. Выбор не применяется автоматически."}</p><p class="caption">ДЕМО-варианты вымышлены. Это не препараты, не назначения и не инструкции по лечению.</p></div>
+  <div class="plan-current"><span class="chip green">${choice ? "Подтверждено врачом" : "План ещё не согласован"}</span><h3>${choice ? e(choice.name) : "Решение остаётся за врачом"}</h3><p>${choice ? e(d.profile.plan_note) : "Система формирует только предложения. Выбор не применяется автоматически."}</p></div>
   ${
     doctor
-      ? `<div class="section-heading"><h2>Предложения к рассмотрению</h2><span class="chip neutral">Правила ${e(d.rule_version)}</span></div><div class="source-note">Категории и пороги придуманы для демонстрации интерфейса. Каждое предложение требует вашего отдельного подтверждения или отклонения.</div><div class="two-columns"><div class="card">${proposals()}</div><div class="card"><h2>Как работает согласование</h2><div class="routine-item"><div class="routine-icon">1</div><div><h3>Проверить основание</h3><p>Самоотчёт и версия учебного правила указаны в предложении</p></div></div><div class="routine-item"><div class="routine-icon">2</div><div><h3>Принять решение</h3><p>Подтвердить или отклонить с обоснованием</p></div></div><div class="routine-item"><div class="routine-icon">3</div><div><h3>Сохранить результат</h3><p>Решение записывается в журнал, пациент получает уведомление</p></div></div></div></div>
-  <div class="section-heading"><h2>Вымышленные варианты сопровождения</h2></div><p class="caption">Ни один вариант не является реальным лекарством. Дозировки и медицинские показания отсутствуют.</p><div class="catalog-grid">${d.catalog
+      ? `<div class="section-heading"><h2>Предложения к рассмотрению</h2><span class="chip neutral">Правила ${e(d.rule_version)}</span></div><div class="two-columns"><div class="card">${proposals()}</div><div class="card"><h2>Как работает согласование</h2><div class="routine-item"><div class="routine-icon">1</div><div><h3>Проверить основание</h3><p>Посмотрите запись пациента и причину предложения</p></div></div><div class="routine-item"><div class="routine-icon">2</div><div><h3>Принять решение</h3><p>Подтвердить или отклонить с обоснованием</p></div></div><div class="routine-item"><div class="routine-icon">3</div><div><h3>Сохранить результат</h3><p>Решение записывается в журнал, пациент получает уведомление</p></div></div></div></div>
+  <div class="section-heading"><h2>Вымышленные варианты сопровождения</h2></div><div class="catalog-grid">${d.catalog
     .map((c) => {
       const blocked = d.profile.intolerance === c.id,
         pending = d.proposals.some(
@@ -348,16 +382,11 @@ function planPage(doctor = false) {
 }
 function diaryPage() {
   return (
-    heading(
-      "МОЙ ДНЕВНИК",
-      "Минута внимания к себе",
-      "Собственные оценки, без автоматических медицинских выводов.",
-      refreshButton(),
-    ) +
+    heading("МОЙ ДНЕВНИК", "Минута внимания к себе", "", refreshButton()) +
     `<div class="tabs"><button data-action="diary" data-mode="form" class="${state.diary === "form" ? "active" : ""}">Самоотчёт</button><button data-action="diary" data-mode="history" class="${state.diary === "history" ? "active" : ""}">История записей</button></div>` +
     (state.diary === "history"
       ? `<div class="card"><h2>Как менялось самочувствие</h2>${chart(state.detail.reports)}</div><div class="card" id="report-history"><h2>История · ${state.detail.reports_total} записей</h2><p class="caption">Показаны последние 100 записей.</p>${reportList(state.detail.reports)}</div>`
-      : `<div class="two-columns"><form id="report-form" class="card"><div class="card-heading"><h2>Как вы сегодня?</h2><span class="chip green">Демо-дневник</span></div><label class="range-label" for="mood">Настроение <output id="mood-value" for="mood">5 / 10</output></label><input id="mood" name="mood" type="range" min="0" max="10" value="5"><div class="scale"><span>Очень плохое</span><span>Отличное</span></div><label class="range-label" for="anxiety">Тревога <output id="anxiety-value" for="anxiety">5 / 10</output></label><input id="anxiety" name="anxiety" type="range" min="0" max="10" value="5"><div class="scale"><span>Нет тревоги</span><span>Очень сильная</span></div><label for="adherence">Следовали согласованным рекомендациям?</label><select id="adherence" name="adherence"><option>Да</option><option>Частично</option><option>Нет</option><option>Не применимо</option></select><label for="adverse">Самочувствие / нежелательные явления</label><textarea id="adverse" name="adverse_effects" maxlength="500" rows="2" placeholder="Что хотелось бы обсудить с врачом?"></textarea><label for="note">Комментарий</label><textarea id="note" name="note" maxlength="500" rows="2" placeholder="Только вымышленные сведения"></textarea><label class="safety"><input id="safety" name="safety_signal" type="checkbox"><span>Есть опасения за свою безопасность или мысли о причинении себе вреда</span></label><p id="urgent" class="urgent" role="alert" hidden>При непосредственной опасности обратитесь в местные экстренные службы или за срочной медицинской помощью. Не ждите ответа в приложении: оно не обеспечивает экстренную связь.</p><div class="form-footer"><small>Запись сохранится на сервере и станет доступна вашему врачу.</small><button class="button primary" type="submit">Сохранить самоотчёт ${icon("arrow")}</button></div></form><div><div class="card"><h2>Дневник, а не диагноз</h2><p class="caption">Вопросы и числовые пороги придуманы для демонстрации. Они не являются валидированной шкалой и не определяют необходимость лечения.</p><div class="divider"></div><div class="routine-item"><div class="routine-icon">${icon("shield")}</div><div><h3>Ваши записи — вашему врачу</h3><p>Доступ ограничен закреплённым врачом и вашим демо-аккаунтом</p></div></div><div class="routine-item"><div class="routine-icon">${icon("clock")}</div><div><h3>Без ожидания в опасной ситуации</h3><p>Не используйте дневник для получения экстренной помощи</p></div></div></div><div class="card"><h2>Без интернета</h2><p class="caption">Отправка требует соединения. Текст остаётся в открытой форме, но пропадёт при перезагрузке. Фоновой отправки и сохранения данных офлайн нет.</p></div></div></div>`)
+      : `<div class="two-columns"><form id="report-form" class="card"><div class="card-heading"><h2>Как вы сегодня?</h2><span class="chip green">Сегодня</span></div><label class="range-label" for="mood">Настроение <output id="mood-value" for="mood">5 / 10</output></label><input id="mood" name="mood" type="range" min="0" max="10" value="5"><div class="scale"><span>Очень плохое</span><span>Отличное</span></div><label class="range-label" for="anxiety">Тревога <output id="anxiety-value" for="anxiety">5 / 10</output></label><input id="anxiety" name="anxiety" type="range" min="0" max="10" value="5"><div class="scale"><span>Нет тревоги</span><span>Очень сильная</span></div><label for="adherence">Следовали согласованным рекомендациям?</label><select id="adherence" name="adherence"><option>Да</option><option>Частично</option><option>Нет</option><option>Не применимо</option></select><label for="adverse">Самочувствие / нежелательные явления</label><textarea id="adverse" name="adverse_effects" maxlength="500" rows="2" placeholder="Что хотелось бы обсудить с врачом?"></textarea><label for="note">Комментарий</label><textarea id="note" name="note" maxlength="500" rows="2" placeholder="Только вымышленные сведения"></textarea><label class="safety"><input id="safety" name="safety_signal" type="checkbox"><span>Есть опасения за свою безопасность или мысли о причинении себе вреда</span></label><p id="urgent" class="urgent" role="alert" hidden>При непосредственной опасности обратитесь в местные экстренные службы или за срочной медицинской помощью. Не ждите ответа в приложении: оно не обеспечивает экстренную связь.</p><div class="form-footer"><small>Запись сохранится на сервере и станет доступна вашему врачу.</small><button class="button primary" type="submit">Сохранить самоотчёт ${icon("arrow")}</button></div></form><div><div class="card"><h2>Дневник, а не диагноз</h2><div class="divider"></div><div class="routine-item"><div class="routine-icon">${icon("shield")}</div><div><h3>Ваши записи — вашему врачу</h3><p>Доступ ограничен закреплённым врачом и вашим демо-аккаунтом</p></div></div><div class="routine-item"><div class="routine-icon">${icon("clock")}</div><div><h3>Без ожидания в опасной ситуации</h3><p>Не используйте дневник для получения экстренной помощи</p></div></div></div><div class="card"><h2>Без интернета</h2><p class="caption">Для сохранения дневника нужно подключение к интернету.</p></div></div></div>`)
   );
 }
 function chatThread() {
@@ -373,7 +402,7 @@ function chatThread() {
 function chatPage() {
   const d = state.detail,
     partner = state.user.role === "doctor" ? d.patient : d.doctor;
-  return `<div class="card chat-card"><div class="chat-heading">${avatar(partner.name, "lilac")}<div><h3>${e(partner.name)}</h3><p>${state.user.role === "doctor" ? "Пациент" : "Ведущий врач"} · синтетический диалог</p></div></div><div class="chat-thread" id="chat-thread" aria-label="Переписка">${chatThread()}</div><form class="chat-compose" id="message-form"><label class="visually-hidden" for="message-body">Сообщение</label><textarea id="message-body" name="body" required maxlength="1000" rows="2" placeholder="Написать сообщение…"></textarea><button class="button primary" type="submit" aria-label="Отправить сообщение">${icon("send")}<span>Отправить</span></button></form></div><p class="caption">Не экстренный канал. Обновляется в открытой вкладке; push подключается в настройках. SMS нет. Последние 100 сообщений; новые появляются автоматически.</p>`;
+  return `<div class="card chat-card"><div class="chat-heading">${avatar(partner.name, "lilac")}<div><h3>${e(partner.name)}</h3><p>${state.user.role === "doctor" ? "Пациент" : "Ведущий врач"} · синтетический диалог</p></div></div><div class="chat-thread" id="chat-thread" aria-label="Переписка">${chatThread()}</div><form class="chat-compose" id="message-form"><label class="visually-hidden" for="message-body">Сообщение</label><textarea id="message-body" name="body" required maxlength="1000" rows="2" placeholder="Написать сообщение…"></textarea><button class="button primary" type="submit" aria-label="Отправить сообщение">${icon("send")}<span>Отправить</span></button></form></div><p class="caption">Чат с врачом. Для срочной помощи звоните 112.</p>`;
 }
 function messagesPage() {
   if (state.user.role === "patient")
@@ -425,26 +454,21 @@ function render() {
   const doctor = state.user.role === "doctor";
   const nav = doctor
     ? [
+        ["overview", "home", "Главное"],
         ["patients", "users", "Пациенты"],
         ["letters", "chat", "Письма"],
         ["reference", "book", "Справочник"],
         ["news", "info", "Новости"],
         ["forum", "users", "Форум"],
+        ["schedule", "clock", "Мои встречи"],
       ]
-    : [
-        ["overview", "home", "Мой день"],
-        ["diary", "book", "Дневник"],
-        ["move", "heart", "Движение"],
-        ["learn", "leaf", "Знания"],
-        ["help", "heart", "Помощь"],
-        ["messages", "chat", "Сообщения"],
-      ];
+    : patientNavigation;
   const roleNav =
     state.user.role === "relative"
       ? [
           ["overview", "heart", "Сигналы"],
           ["learn", "book", "Как помочь"],
-          ["contacts", "chat", "Куда звонить"],
+          ["contacts", "chat", "Полезные контакты"],
         ]
       : nav;
   $("#navigation").innerHTML = roleNav
@@ -456,7 +480,8 @@ function render() {
   $("#breadcrumb").textContent =
     state.page === "card"
       ? "Карточка пациента"
-      : nav.find((n) => n[0] === state.page)?.[2] || "Обзор";
+      : [...roleNav, ...patientTools].find((n) => n[0] === state.page)?.[2] ||
+        "Обзор";
   $("#account-avatar").textContent = initials(state.user.name);
   $("#account-avatar").title = state.user.name;
   const views = {
@@ -490,7 +515,11 @@ function render() {
     contacts: contactsPage,
     tour: tourPage,
   };
-  $("#content").innerHTML = (views[state.page] || overview)();
+  const markup = (views[state.page] || overview)();
+  $("#content").innerHTML =
+    state.user.role === "patient"
+      ? `<div class="patient-page">${markup}</div>`
+      : markup;
   decoratePsicompas();
   if ($("#chat-thread"))
     $("#chat-thread").scrollTop = $("#chat-thread").scrollHeight;
@@ -510,7 +539,38 @@ async function load() {
   state.patients = patients;
   if (!patients.some((p) => p.id === state.selected))
     state.selected = patients[0]?.id;
-  if (!state.selected) return;
+  if (!state.selected) {
+    const endpoints = {
+      appointments: "/api/appointments",
+      templates: "/api/surveys/templates",
+      integrations: "/api/integrations",
+      letters: "/api/letters",
+      forum: "/api/forum",
+      research: "/api/research",
+    };
+    const values = await Promise.all(
+      Object.values(endpoints).map((path) => api(path)),
+    );
+    if (!state.user || version !== selectionVersion) return;
+    Object.assign(
+      state,
+      Object.fromEntries(
+        Object.keys(endpoints).map((key, i) => [key, values[i]]),
+      ),
+      {
+        detail: null,
+        workspace: null,
+        wellbeing: null,
+        messages: [],
+        audit: [],
+        aiRuns: [],
+        escalations: [],
+        slots: [],
+      },
+    );
+    render();
+    return;
+  }
   const selected = state.selected;
   const [
     detail,
@@ -565,6 +625,9 @@ async function load() {
   state.escalations = escalations;
   state.wellbeing = wellbeing;
   state.workspace = workspace;
+  state.counterClockOffset = workspace.server_now
+    ? Date.now() - Date.parse(workspace.server_now)
+    : 0;
   state.letters = letters;
   state.forum = forum;
   state.research = research;
@@ -593,7 +656,7 @@ function renderLogin(error = "") {
       created_at: new Date(Date.now() - i * 86400000).toISOString(),
     }));
   $("#login-screen").innerHTML =
-    `<div class="login-layout"><div class="login-form-side"><div class="brand"><span class="brand-mark">✦</span><span>Клинический компас<small>Пространство заботы</small></span></div><p class="eyebrow">ИНТЕРАКТИВНОЕ ДЕМО</p><h1>Внимание к человеку.<br>Ясность в решениях.</h1><p>Дневник самочувствия, связь с врачом и прозрачный путь от наблюдения к решению.</p><button class="demo-login" data-action="login" data-account="doctor">${avatar("Анна Соколова", "mint")}<span><strong>Войти как врач</strong><small>Анна Соколова · кабинет и пациенты</small></span>${icon("arrow")}</button><button class="demo-login" data-action="login" data-account="patient-a">${avatar("Александра Морозова", "lilac")}<span><strong>Войти как Александра</strong><small>Пациент · дневник и личный план</small></span>${icon("arrow")}</button><button class="demo-login" data-action="login" data-account="patient-b">${avatar("Михаил Волков", "peach")}<span><strong>Войти как Михаил</strong><small>Пациент · сценарий наблюдения</small></span>${icon("arrow")}</button><p class="login-note">Все сведения и варианты сопровождения вымышлены. Демо-аккаунты общедоступны: не вводите реальные персональные или медицинские данные.</p><details><summary>Войти по логину и паролю</summary><form id="login-form"><label for="username">Логин</label><input id="username" name="username" autocomplete="username" required maxlength="80"><label for="password">Пароль</label><input id="password" name="password" type="password" autocomplete="current-password" required maxlength="200"><button class="button primary full" type="submit">Войти</button></form><p class="caption">Логины: doctor, patient-a, patient-b. Демо-пароль: compass-demo.</p></details><div id="login-error" class="login-error" role="alert" ${error ? "" : "hidden"}>${e(error)}</div></div><div class="login-art" aria-hidden="true"><div class="art-card"><div class="patient-row">${avatar("Михаил Волков", "lilac")}<div class="patient-info"><strong>Самочувствие в динамике</strong><small>Дневник · последние 7 записей</small></div></div>${chart(artReports, true)}<div class="art-stats"><div><strong>8 <small>/ 10</small></strong><small>Настроение</small></div><div><strong>3 <small>/ 10</small></strong><small>Тревога</small></div></div></div><div class="art-pill">${icon("check")}<div>Решение подтверждено врачом<small>Понятный план. Совместное движение.</small></div></div><div class="art-caption"><h2>Забота, в которой<br>есть место диалогу</h2><p>Инструмент поддерживает.<br>Человек принимает решение.</p></div></div></div>`;
+    `<div class="login-layout"><div class="login-form-side"><div class="brand"><span class="brand-mark">✦</span><span>Клинический компас<small>Пространство заботы</small></span></div><h1>Внимание к человеку.<br>Ясность в решениях.</h1><p>Дневник самочувствия, связь с врачом и прозрачный путь от наблюдения к решению.</p><button class="demo-login" data-action="login" data-account="doctor">${avatar("Анна Соколова", "mint")}<span><strong>Войти как врач</strong><small>Анна Соколова · кабинет и пациенты</small></span>${icon("arrow")}</button><button class="demo-login" data-action="login" data-account="patient-a">${avatar("Александра Морозова", "lilac")}<span><strong>Войти как Александра</strong><small>Пациент · дневник и личный план</small></span>${icon("arrow")}</button><button class="demo-login" data-action="login" data-account="patient-b">${avatar("Михаил Волков", "peach")}<span><strong>Войти как Михаил</strong><small>Пациент · сценарий наблюдения</small></span>${icon("arrow")}</button><p class="login-note">Все сведения и варианты сопровождения вымышлены. Демо-аккаунты общедоступны: не вводите реальные персональные или медицинские данные.</p><details><summary>Войти по логину и паролю</summary><form id="login-form"><label for="username">Логин</label><input id="username" name="username" autocomplete="username" required maxlength="80"><label for="password">Пароль</label><input id="password" name="password" type="password" autocomplete="current-password" required maxlength="200"><button class="button primary full" type="submit">Войти</button></form><p class="caption">Логины: doctor, patient-a, patient-b. Демо-пароль: compass-demo.</p></details><div id="login-error" class="login-error" role="alert" ${error ? "" : "hidden"}>${e(error)}</div></div><div class="login-art" aria-hidden="true"><div class="art-card"><div class="patient-row">${avatar("Михаил Волков", "lilac")}<div class="patient-info"><strong>Самочувствие в динамике</strong><small>Дневник · последние 7 записей</small></div></div>${chart(artReports, true)}<div class="art-stats"><div><strong>8 <small>/ 10</small></strong><small>Настроение</small></div><div><strong>3 <small>/ 10</small></strong><small>Тревога</small></div></div></div><div class="art-pill">${icon("check")}<div>Решение подтверждено врачом<small>Понятный план. Совместное движение.</small></div></div><div class="art-caption"><h2>Забота, в которой<br>есть место диалогу</h2><p>Инструмент поддерживает.<br>Человек принимает решение.</p></div></div></div>`;
 }
 async function login(username, password) {
   if (busy) return;
@@ -614,6 +677,8 @@ async function login(username, password) {
       filter: "all",
       diary: "form",
     };
+    beginNavigationSession();
+    sendPresence();
     $("#login-screen").hidden = true;
     $("#login-screen").replaceChildren();
     $("#app-shell").hidden = false;
@@ -652,6 +717,24 @@ async function run(form, task) {
 }
 async function navigate(page, id) {
   if (busy) return;
+  if (state.user?.role === "patient") {
+    const alias = {
+      tree: ["tree"],
+      surveys: ["diary", "diary", "scales"],
+      medications: ["diary", "diary", "meds"],
+      plan: ["diary", "diary", "meds"],
+      records: ["messages", "doctor", "chat"],
+      consents: ["settings", "settings", "consents"],
+      about: ["settings", "settings", "about"],
+      tour: ["settings", "settings", "general"],
+    }[page];
+    if (alias) {
+      page = alias[0];
+      if (alias[1])
+        state.sectionTabs = { ...state.sectionTabs, [alias[1]]: alias[2] };
+    }
+  }
+  if (prepareNavigation(page, id)) return;
   $("#notifications-panel").hidden = true;
   $("#notifications-button").setAttribute("aria-expanded", "false");
   state.page = page;
@@ -748,27 +831,7 @@ document.addEventListener("click", async (event) => {
         button.disabled = false;
       }
     }
-    if (action === "notification") {
-      const notification = state.notifications.find((n) => n.id === Number(id));
-      await api("/api/notifications/read", { id: Number(id) });
-      if (state.user.role === "doctor") {
-        state.tab = notification.alert_id
-          ? "overview"
-          : notification.title === "Новое сообщение"
-            ? "chat"
-            : "overview";
-        await navigate("card", notification.patient_id);
-      } else
-        await navigate(
-          notification.title === "Новое сообщение"
-            ? "messages"
-            : notification.title === "Решение по плану" ||
-                notification.title === "Новое решение врача"
-              ? "plan"
-              : "overview",
-        );
-      await pollNotifications();
-    }
+    if (action === "notification") await readNotification(Number(id));
   } catch (error) {
     toast(error.message, true);
   }
@@ -812,6 +875,8 @@ document.addEventListener("submit", (event) => {
     return run(form, async () => {
       await write("/api/patients/" + state.selected + "/reports", data);
       state.diary = "history";
+      state.calendarDay = care().today;
+      state.calendarMonth = care().today.slice(0, 7);
       await load();
       toast(
         data.safety_signal
@@ -886,6 +951,58 @@ async function refreshChat() {
   }
   await acknowledgeMessages(selected);
 }
+const notificationReads = new Map();
+function renderNotifications(patchOnly = false) {
+  const source = state.notificationSource || [],
+    owner = state.user?.id;
+  state.notifications = source.map((n) =>
+    notificationReads.get(n.id)?.owner === owner
+      ? { ...n, read_at: notificationReads.get(n.id).stamp }
+      : n,
+  );
+  const locallyRead = source.filter(
+    (n) => !n.read_at && notificationReads.get(n.id)?.owner === owner,
+  ).length;
+  const unread = Math.max(0, (state.notificationTotal || 0) - locallyRead);
+  $("#notification-count").textContent = unread > 99 ? "99+" : String(unread);
+  $("#notification-count").hidden = !unread;
+  if (!patchOnly)
+    $("#notification-list").innerHTML = state.notifications.length
+      ? state.notifications
+          .map(
+            (n) =>
+              `<button class="notification-item ${n.read_at ? "" : "unread"}" data-action="notification" data-id="${n.id}"><span class="notification-heading"><strong>${e(n.title)}</strong><span class="notification-state">${n.read_at ? "Прочитано" : "Новое"}</span></span><p>${e(n.body)}</p><time datetime="${e(n.created_at)}">${e(date(n.created_at))}</time></button>`,
+          )
+          .join("")
+      : '<div class="empty">Уведомлений пока нет</div>';
+  else
+    for (const n of state.notifications) {
+      const button = $(`#notification-list [data-id="${n.id}"]`);
+      if (button) {
+        button.classList.toggle("unread", !n.read_at);
+        button.querySelector(".notification-state").textContent = n.read_at
+          ? "Прочитано"
+          : "Новое";
+      }
+    }
+}
+async function readNotification(id) {
+  const item = state.notifications.find((n) => n.id === id),
+    owner = state.user?.id;
+  if (!item || item.read_at || !owner) return;
+  const optimistic = { owner, stamp: new Date().toISOString() };
+  notificationReads.set(id, optimistic);
+  renderNotifications(true);
+  try {
+    await api("/api/notifications/read", { id });
+  } catch (error) {
+    if (state.user?.id === owner && notificationReads.get(id) === optimistic) {
+      notificationReads.delete(id);
+      renderNotifications(true);
+    }
+    throw error;
+  }
+}
 async function pollNotifications(initial = false) {
   if (!state.user || pollBusy || !navigator.onLine) return;
   pollBusy = true;
@@ -906,18 +1023,9 @@ async function pollNotifications(initial = false) {
         if (!n.delivered_at) n.delivered_at = ack.delivered_at;
       });
     }
-    state.notifications = result.items;
-    $("#notification-count").textContent =
-      result.unread > 99 ? "99+" : result.unread;
-    $("#notification-count").hidden = !result.unread;
-    $("#notification-list").innerHTML = result.items.length
-      ? result.items
-          .map(
-            (n) =>
-              `<button class="notification-item ${n.read_at ? "" : "unread"}" data-action="notification" data-id="${n.id}"><strong>${e(n.title)}</strong><p>${e(n.body)}</p><time>${e(date(n.created_at))}${n.delivered_at ? " · получено приложением " + e(date(n.delivered_at)) : ""}</time>${n.read_at ? '<span class="chip neutral">Просмотрено</span>' : ""}</button>`,
-          )
-          .join("")
-      : '<div class="empty">Новых уведомлений пока нет</div>';
+    state.notificationSource = result.items;
+    state.notificationTotal = result.unread;
+    renderNotifications();
     if (!initial && result.items[0]?.id && previous !== result.items[0].id) {
       if (
         !busy &&
@@ -1023,6 +1131,8 @@ async function boot() {
     }
     state.user = result.user;
     state.csrf = result.csrf;
+    beginNavigationSession();
+    sendPresence();
     $("#login-screen").hidden = true;
     $("#app-shell").hidden = false;
     await load();

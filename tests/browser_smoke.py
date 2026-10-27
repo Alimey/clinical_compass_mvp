@@ -90,8 +90,12 @@ with tempfile.TemporaryDirectory() as temp:
             patient.locator("#safety").check()
             expect(patient.locator("#urgent")).to_be_visible()
             patient.get_by_role("button", name="Сохранить самоотчёт").click()
-            expect(patient.locator("#report-history")).to_contain_text("История")
-            patient.locator("#report-history details").first.locator("summary").click()
+            expect(patient.locator("#report-history")).to_contain_text(
+                "Новый синтетический отчёт"
+            )
+            patient.locator("#report-history .saved-day").first.locator(
+                ":scope > summary"
+            ).click()
             expect(patient.locator("#report-history")).to_contain_text(
                 "<script>window.injected=true</script>"
             )
@@ -105,11 +109,15 @@ with tempfile.TemporaryDirectory() as temp:
                 "отметил(а) опасения", timeout=10000
             )
             doctor.locator("#notification-list .notification-item").first.click()
+            expect(doctor.locator("#notifications-panel")).to_be_visible()
+            doctor.locator("#close-notifications").click()
+            doctor.locator('[data-action=patient][data-id="2"]').first.click()
             expect(
                 doctor.get_by_role("heading", name="Александра Морозова")
             ).to_be_visible()
             doctor.get_by_role("button", name="Отметить просмотренным").first.click()
             expect(doctor.locator("#toast")).to_contain_text("Сигнал отмечен")
+            doctor.wait_for_function("()=>!busy")
             doctor.get_by_role("button", name="План и варианты", exact=True).click()
             expect(
                 doctor.get_by_role("button", name="Учебная несовместимость")
@@ -125,10 +133,13 @@ with tempfile.TemporaryDirectory() as temp:
             expect(doctor.locator(".plan-current")).to_contain_text("ДЕМО-Альфа")
             doctor.get_by_role("button", name="Журнал", exact=True).click()
             expect(doctor.locator("#content")).to_contain_text("proposal.accepted")
-            patient.get_by_role("button", name="Ещё", exact=True).click()
-            patient.get_by_role("button", name="Мой план", exact=True).click()
-            expect(patient.locator(".plan-current")).to_contain_text("ДЕМО-Альфа")
-            patient.get_by_role("button", name="Сообщения", exact=True).click()
+            patient.locator("#navigation [data-page=diary]").click()
+            patient.locator("[data-ext=sub][data-group=diary][data-key=meds]").click()
+            expect(patient.locator(".medication-schedule")).to_contain_text(
+                "Авиандр 20 мг"
+            )
+            assert patient.evaluate("state.detail.profile.plan") == "demo-alpha"
+            patient.locator("#navigation [data-page=messages]").click()
             patient.locator("#message-body").fill(
                 "Привет! Это синтетическое сообщение."
             )

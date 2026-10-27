@@ -30,11 +30,28 @@ DEFAULTS = {
     "relative_name": "",
     "relative_phone": "",
     "relative_relation": "",
+    "streak_label": "Мой отсчёт",
     "streak_on": False,
     "streak_start": "",
     "streak_best": 0,
 }
 PLAN_KEYS = ("signs", "self", "distract", "people", "pros", "safe")
+ASSIGNABLE_ASSESSMENTS = {
+    "gad7",
+    "phq9",
+    "mmpi",
+    "leonhard",
+    "beck_hopelessness",
+    "beck_depression",
+    "spielberger",
+    "hcl33",
+    "mdq",
+    "dembo",
+    "cope",
+    "schulte",
+    "serial7",
+}
+LICENSED_ASSESSMENTS = {"mmpi", "beck_hopelessness", "beck_depression"}
 
 
 def preferences(ident):
@@ -51,6 +68,7 @@ def init_sections(seed_demo):
     CREATE TABLE IF NOT EXISTS patient_preferences(patient_id INTEGER PRIMARY KEY REFERENCES users(id),settings_json TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS patient_entries(id INTEGER PRIMARY KEY AUTOINCREMENT,patient_id INTEGER NOT NULL REFERENCES users(id),kind TEXT NOT NULL,data_json TEXT NOT NULL,shared INTEGER NOT NULL,created_at TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS assessments(id INTEGER PRIMARY KEY AUTOINCREMENT,patient_id INTEGER NOT NULL REFERENCES users(id),actor_id INTEGER NOT NULL,kind TEXT NOT NULL,answers_json TEXT NOT NULL,score INTEGER NOT NULL,created_at TEXT NOT NULL);
+    CREATE TABLE IF NOT EXISTS assessment_assignments(id INTEGER PRIMARY KEY AUTOINCREMENT,patient_id INTEGER NOT NULL REFERENCES users(id),doctor_id INTEGER NOT NULL REFERENCES users(id),kind TEXT NOT NULL,due_at TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'assigned',created_at TEXT NOT NULL,completed_at TEXT,result_id INTEGER UNIQUE REFERENCES assessments(id));
     CREATE TABLE IF NOT EXISTS safety_plans(patient_id INTEGER PRIMARY KEY REFERENCES users(id),body_json TEXT NOT NULL,doctor_id INTEGER NOT NULL,updated_at TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS care_agreements(patient_id INTEGER PRIMARY KEY REFERENCES users(id),body TEXT NOT NULL,doctor_id INTEGER NOT NULL,created_at TEXT NOT NULL,patient_signed_at TEXT,ends_on TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS support_events(id INTEGER PRIMARY KEY AUTOINCREMENT,patient_id INTEGER NOT NULL REFERENCES users(id),kind TEXT NOT NULL,body TEXT NOT NULL,created_at TEXT NOT NULL,doctor_read_at TEXT,relative_read_at TEXT);
@@ -181,9 +199,30 @@ def register_sections(app, patient, require_role, payload, text, write_once):
         )
         agreement = rows("SELECT * FROM care_agreements WHERE patient_id=?", (ident,))
         return jsonify(
+            server_now=now(),
+            scale_series=(
+                [
+                    {
+                        "id": s["id"],
+                        "kind": s["kind"],
+                        "score": s["score"],
+                        "created_at": s["created_at"],
+                    }
+                    for s in rows(
+                        "SELECT id,kind,score,created_at FROM assessments WHERE patient_id=? ORDER BY id DESC LIMIT 100",
+                        (ident,),
+                    )
+                ]
+                if owner
+                else []
+            ),
             preferences=public_prefs,
             entries=[entry(r) for r in entries],
             assessments=scales,
+            assessment_assignments=rows(
+                "SELECT * FROM assessment_assignments WHERE patient_id=? ORDER BY id DESC",
+                (ident,),
+            ),
             plan=plan,
             agreement=agreement[0] if agreement else None,
             events=rows(
@@ -208,6 +247,23 @@ def register_sections(app, patient, require_role, payload, text, write_once):
             ),
             code=code(ident),
         )
+
+    @app.post("/api/patients/<int:ident>/counter/start")
+    def start_counter(ident):
+        patient(ident)
+        require_role("patient")
+        data = payload()
+
+        def save():
+            prefs = preferences(ident)
+            prefs.update(streak_on=True, streak_start=now())
+            db().execute(
+                "INSERT INTO patient_preferences VALUES(?,?) ON CONFLICT(patient_id) DO UPDATE SET settings_json=excluded.settings_json",
+                (ident, json.dumps(prefs)),
+            )
+            return {"ok": True}, 200
+
+        return write_once(data, save)
 
     @app.post("/api/patients/<int:ident>/preferences")
     def save_preferences(ident):
@@ -297,12 +353,94 @@ def register_sections(app, patient, require_role, payload, text, write_once):
 
         return write_once(data, save)
 
+    @app.post("/api/patients/<int:ident>/assessment-assignments")
+    def assign_assessment(ident):
+        patient(ident)
+        require_role("doctor")
+        data = payload()
+        kind = text(data, "kind", 50, True)
+        if kind not in ASSIGNABLE_ASSESSMENTS:
+            raise ValueError("Неизвестная форма для назначения")
+        if kind in LICENSED_ASSESSMENTS:
+            abort(403, "Проводится на приёме по лицензии. Онлайн-форма недоступна")
+        due = text(data, "due_at", 100, True)
+        try:
+            deadline = datetime.fromisoformat(due.replace("Z", "+00:00"))
+            if deadline.tzinfo is None or deadline <= datetime.now(timezone.utc):
+                raise ValueError()
+        except ValueError:
+            raise ValueError("Укажите будущий срок выполнения с часовым поясом")
+
+        def save():
+            cur = db().execute(
+                "INSERT INTO assessment_assignments(patient_id,doctor_id,kind,due_at,created_at) VALUES(?,?,?,?,?)",
+                (ident, g.user["id"], kind, deadline.isoformat(), now()),
+            )
+            audit(g.user["id"], ident, "assessment.assigned", kind)
+            notify(
+                ident,
+                ident,
+                "Назначен опрос",
+                "Специалист назначил форму. Откройте Дневник → Шкалы.",
+            )
+            return {"id": cur.lastrowid}, 201
+
+        return write_once(data, save)
+
+    @app.post(
+        "/api/patients/<int:ident>/assessment-assignments/<int:assignment_id>/cancel"
+    )
+    def cancel_assessment(ident, assignment_id):
+        patient(ident)
+        require_role("doctor")
+        data = payload()
+
+        def save():
+            changed = db().execute(
+                "UPDATE assessment_assignments SET status='cancelled' WHERE id=? AND patient_id=? AND status='assigned'",
+                (assignment_id, ident),
+            )
+            if not changed.rowcount:
+                abort(409, "Задание уже завершено, отменено или недоступно")
+            audit(g.user["id"], ident, "assessment.cancelled", str(assignment_id))
+            notify(
+                ident,
+                ident,
+                "Задание отменено",
+                "Специалист отменил назначенную форму. Заполнять её не требуется.",
+            )
+            return {"status": "cancelled"}, 200
+
+        return write_once(data, save)
+
     @app.post("/api/patients/<int:ident>/assessments")
     def assessment(ident):
         account = patient(ident)
         data = payload()
         kind, answers = data.get("kind"), data.get("answers")
-        sizes = {"gad7": (7, 3), "phq9": (9, 3), "hama": (14, 4)}
+        if isinstance(kind, str) and kind in LICENSED_ASSESSMENTS:
+            abort(403, "Проводится на приёме по лицензии. Онлайн-форма недоступна")
+        sizes = {
+            "gad7": (7, 3),
+            "phq9": (9, 3),
+            "hama": (14, 4),
+            **{
+                k: (6, 3)
+                for k in (
+                    "mmpi",
+                    "leonhard",
+                    "beck_hopelessness",
+                    "beck_depression",
+                    "spielberger",
+                    "hcl33",
+                    "mdq",
+                    "dembo",
+                    "cope",
+                )
+            },
+            "schulte": (1, 36000),
+            "serial7": (13, 100),
+        }
         if not isinstance(kind, str) or kind not in sizes:
             raise ValueError("Неизвестная шкала")
         require_role("doctor" if kind == "hama" else "patient")
@@ -315,11 +453,55 @@ def register_sections(app, patient, require_role, payload, text, write_once):
             raise ValueError("Ответьте на все вопросы шкалы")
 
         def save():
+            assignment = None
+            if kind in ASSIGNABLE_ASSESSMENTS:
+                assignment_id = data.get("assignment_id")
+                if type(assignment_id) is not int:
+                    abort(403, "Эту форму сначала должен назначить специалист")
+                assignment = (
+                    db()
+                    .execute(
+                        "SELECT * FROM assessment_assignments WHERE id=? AND patient_id=? AND kind=?",
+                        (assignment_id, ident, kind),
+                    )
+                    .fetchone()
+                )
+                if not assignment:
+                    abort(403, "Нет назначения для этой формы")
+                if assignment["status"] != "assigned":
+                    abort(409, "Задание уже завершено или отменено")
             cur = db().execute(
                 "INSERT INTO assessments(patient_id,actor_id,kind,answers_json,score,created_at) VALUES(?,?,?,?,?,?)",
-                (ident, g.user["id"], kind, json.dumps(answers), sum(answers), now()),
+                (
+                    ident,
+                    g.user["id"],
+                    kind,
+                    json.dumps(answers),
+                    (
+                        sum(answers)
+                        if kind in ("gad7", "phq9", "hama")
+                        else (
+                            answers[0]
+                            if kind == "schulte"
+                            else (
+                                sum(
+                                    v == 100 - 7 * (i + 1)
+                                    for i, v in enumerate(answers)
+                                )
+                                if kind == "serial7"
+                                else 0
+                            )
+                        )
+                    ),
+                    now(),
+                ),
             )
             audit(g.user["id"], ident, "assessment.created", "Учебная шкала " + kind)
+            if assignment:
+                db().execute(
+                    "UPDATE assessment_assignments SET status='completed',completed_at=?,result_id=? WHERE id=?",
+                    (now(), cur.lastrowid, assignment["id"]),
+                )
             if g.user["role"] == "patient":
                 notify(
                     account["doctor_id"],
@@ -460,7 +642,7 @@ def register_sections(app, patient, require_role, payload, text, write_once):
             event_id = create_event(
                 account,
                 "sos",
-                "Пациент попросил связаться через кнопку SOS. Это не вызов экстренной службы.",
+                "Мне сейчас нужна поддержка. Пожалуйста, свяжитесь со мной. Запрос отправлен через кнопку SOS; экстренная служба не вызвана.",
             )
             return {"id": event_id, "status": "saved", "emergency_called": False}, 201
 
@@ -522,7 +704,7 @@ def register_sections(app, patient, require_role, payload, text, write_once):
                 last = (
                     db()
                     .execute(
-                        "SELECT MAX(created_at) FROM reports WHERE patient_id=?",
+                        "SELECT last_seen FROM user_presence WHERE user_id=?",
                         (ident,),
                     )
                     .fetchone()[0]

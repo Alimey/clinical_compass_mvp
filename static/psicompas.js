@@ -25,17 +25,6 @@ const practiceCatalog = {
       "Почувствуйте опору под ногами",
     ],
   },
-  stretch: {
-    title: "Размяться без спешки",
-    seconds: 120,
-    glyph: "leaf",
-    text: "Выберите удобное положение. Двигайтесь в комфортном диапазоне. При боли или головокружении остановитесь.",
-    steps: [
-      "Расположите стопы на опоре",
-      "Мягко расправьте плечи",
-      "Переведите взгляд от экрана и потянитесь, если удобно",
-    ],
-  },
 };
 const lessons = [
   {
@@ -71,24 +60,30 @@ const lessons = [
       "Не обязательно выполнять всё сразу. Можно начать с одного посильного шага и заметить, как вы себя чувствуете после него.",
       "Эти материалы помогают ориентироваться в приложении и не заменяют личные рекомендации специалиста.",
     ],
-    page: "move",
-    action: "Выбрать паузу",
+    page: "help",
+    action: "Сделать перерыв",
   },
 ];
 let practiceSession = null;
 let practiceTicker = null;
+let homeTreePaused = false;
 
-function treeArt(points = 0) {
+function treeArt(points = 0, animated = false, personal = !!state.user) {
   let seed = 17;
   const random = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-  const flowers = Array.from({ length: 54 }, (_, i) => {
+  const visible = 26;
+  const flowers = Array.from({ length: Math.max(54, visible) }, (_, i) => {
     const angle = random() * Math.PI * 2;
     const radius = Math.sqrt(random());
     const x = 150 + Math.cos(angle) * radius * 103;
     const y = 111 + Math.sin(angle) * radius * 76;
-    return `<g opacity="${i < Math.min(54, 9 + points * 3) ? 1 : 0.14}"><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(5 + random() * 5).toFixed(1)}" fill="${["#f2a3b9", "#fbd3de", "#e77f9e"][i % 3]}"/><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2" fill="#e77f9e"/></g>`;
+    return `<g class="tree-blossom${i === visible - 1 ? " new-blossom" : ""}" opacity="${i < visible ? 1 : 0.14}"><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(5 + random() * 5).toFixed(1)}" fill="${["#f2a3b9", "#fbd3de", "#e77f9e"][i % 3]}"/><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2" fill="#e77f9e"/></g>`;
   }).join("");
-  return `<svg class="care-tree" viewBox="0 0 300 300" role="img" aria-label="Цветущее дерево заботы"><ellipse cx="150" cy="283" rx="72" ry="7" fill="var(--line)"/><g fill="none" stroke="var(--trunk)" stroke-linecap="round"><path stroke-width="12" d="M150 278Q155 230 148 186Q138 140 153 92"/><path stroke-width="7" d="M150 216Q108 184 89 144M148 188Q183 165 211 123M147 161Q115 135 110 89M150 142Q174 123 183 76"/><path stroke-width="4" d="M122 193L76 177M102 167L106 124M176 171L222 165M186 151L181 111M140 147L152 112M120 125L87 110"/></g>${flowers}</svg>`;
+  return `<svg class="care-tree${animated ? " animated-tree" : ""}" viewBox="0 0 300 300" role="img" aria-label="Цветущее дерево заботы"><ellipse cx="150" cy="283" rx="72" ry="7" fill="var(--line)"/><g class="tree-tap"><g class="tree-crown">${animated ? '<ellipse cx="150" cy="115" rx="109" ry="85" fill="#f2a3b9" opacity=".1"/>' : ""}<g fill="none" stroke="var(--trunk)" stroke-linecap="round"><path stroke-width="12" d="M150 278Q155 230 148 186Q138 140 153 92"/><path stroke-width="7" d="M150 216Q108 184 89 144M148 188Q183 165 211 123M147 161Q115 135 110 89M150 142Q174 123 183 76"/><path stroke-width="4" d="M122 193L76 177M102 167L106 124M176 171L222 165M186 151L181 111M140 147L152 112M120 125L87 110"/></g>${flowers}<g class="tree-flowers">${personal ? treeFlowerMarkup() : ""}</g></g>${animated ? '<g class="tree-petal"><ellipse cx="218" cy="102" rx="4" ry="7" fill="#e77f9e"/></g><g class="tree-petal"><ellipse cx="83" cy="125" rx="4" ry="6" fill="#f2a3b9"/></g><g class="tree-petal"><ellipse cx="175" cy="83" rx="3" ry="6" fill="#e77f9e"/></g>' : ""}</g></svg>`;
+}
+
+function homeTree() {
+  return `<figure class="home-tree-scene"><button class="home-tree-link" data-action="nav" data-page="tree" aria-label="Открыть моё дерево">${treeArt(carePoints(), true)}</button></figure>`;
 }
 function careIllustration() {
   return `<svg class="care-illustration" viewBox="0 0 300 240" aria-hidden="true"><ellipse cx="168" cy="214" rx="108" ry="12" fill="var(--accent)" opacity=".06"/><path d="M51 120c-6-61 54-92 110-91 64 1 119 47 106 106-13 58-101 79-153 61-31-10-59-36-63-76Z" fill="var(--accent)" opacity=".07"/><rect x="189" y="30" width="78" height="46" rx="16" fill="var(--surface)"/><path d="m204 65-5 15 24-9" fill="var(--surface)"/><path d="M206 53h10l5-10 7 22 8-14h14" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M85 205c-7-21-11-45-2-67 4-12 12-20 25-24l26-2c21 7 34 28 36 50l3 43Z" fill="var(--accent)"/><path d="m112 115-17 25 21 43 26-48-13-22" fill="var(--surface)"/><path d="M114 98v21c1 11 16 11 18 0V98" fill="#dfb99e"/><ellipse cx="122" cy="78" rx="25" ry="31" fill="#ebcbb4"/><path d="M97 84c-15-29 0-56 24-55 28 1 37 20 30 50-10-1-14-16-15-22-8 10-22 14-38 13Z" fill="#244653"/><path d="M111 85h1m20 0h1" stroke="#244653" stroke-width="3" stroke-linecap="round"/><path d="M117 98q7 5 13-1" fill="none" stroke="#ad7662" stroke-width="2" stroke-linecap="round"/><path d="m100 170 33-5 28 22-34 12-30-14" fill="#ebcbb4"/><rect x="128" y="153" width="54" height="66" rx="5" transform="rotate(-14 128 153)" fill="var(--surface)"/><path d="m143 169 24-6m-21 17 24-6m-21 17 18-5" stroke="var(--accent)" opacity=".35" stroke-width="3" stroke-linecap="round"/><path d="M69 213h115" stroke="var(--accent)" stroke-width="7" stroke-linecap="round"/><path d="M230 209v-49m0 24c-21-4-29-16-27-26 17-2 28 11 27 26Zm0-12c2-21 13-30 26-28 1 16-11 27-26 28Z" fill="var(--accent)" opacity=".45"/><path d="M211 202h37l-6 17h-25Z" fill="var(--accent)" opacity=".6"/><circle cx="62" cy="80" r="17" fill="var(--surface)"/><path d="M55 80h14m-7-7v14" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/></svg>`;
@@ -115,13 +110,13 @@ function medicationPreview() {
   const active = c.prescriptions.filter(
     (p) => p.active && p.starts_on <= c.today && p.ends_on >= c.today,
   );
-  return `<section class="card medication-card"><div class="card-heading"><h2>Мои препараты</h2><button class="text-button" data-action="nav" data-page="medications">График приёма</button></div><p class="caption">Вымышленные ДЕМО-варианты</p>${
+  return `<section class="card medication-card"><div class="card-heading"><h2>Мои препараты</h2><button class="text-button" data-action="nav" data-page="medications">График приёма</button></div>${
     active.length
       ? active
           .slice(0, 2)
           .map(
             (p) =>
-              `<div class="medication-preview"><h3>${e(p.title)}</h3><p class="caption">${e(p.note)}</p><div class="dose-preview">${p.times
+              `<div class="medication-preview"><h3>${e(prescriptionTitle(p))}</h3>${prescriptionNote(p) ? `<p class="caption">${e(prescriptionNote(p))}</p>` : ""}<div class="dose-preview">${p.times
                 .map((time) => {
                   const taken = c.medication_marks.find(
                     (m) =>
@@ -142,7 +137,13 @@ function medicationPreview() {
 
 patientOverview = function () {
   const c = care();
-  const pending = c.surveys.filter((s) => s.status === "assigned");
+  const pending = [
+    ...c.surveys,
+    ...(ws().assessment_assignments || []).map((a) => ({
+      ...a,
+      title: assessmentTitle(a.kind),
+    })),
+  ].filter((s) => s.status === "assigned");
   const day = new Date().toLocaleDateString("ru-RU", {
     weekday: "long",
     day: "numeric",
@@ -150,23 +151,16 @@ patientOverview = function () {
     timeZone: "Europe/Moscow",
   });
   const name = state.user.name.split(" ")[0];
-  const actions = [
-    ["schedule", "clock", "Встречи"],
-    ["surveys", "book", "Опросы"],
-    ["diary", "sun", "Дневник"],
-    ["medications", "leaf", "Таблетница"],
-    ["records", "chart", "Моя карта"],
-    ["messages", "chat", "Чат"],
-  ];
-  return `<div class="patient-dashboard"><div class="today-heading"><div><p class="eyebrow">${e(day)}</p><h1>Здравствуйте, ${e(name)}</h1><p class="muted">Небольшие шаги. Каждый день.</p></div><button class="help-pill" data-action="nav" data-page="help">Помощь</button></div>
+  const actions = [...patientNavigation, ...patientTools];
+  return `<div class="patient-dashboard"><div class="today-heading"><div><p class="eyebrow">${e(day)}</p><h1>Здравствуйте, ${e(name)}</h1><p class="muted">Небольшие шаги. Каждый день.</p></div></div>
     <div class="quick-grid home-actions" aria-label="Быстрые действия">${actions.map(([page, glyph, label]) => `<button class="quick-card" data-action="nav" data-page="${page}"><span class="action-circle">${icon(glyph)}</span><strong>${label}</strong></button>`).join("")}</div>
-    <section class="welcome-garden"><div><span class="eyebrow">ВРЕМЯ ДЛЯ СЕБЯ</span><h2>Забота рядом.<br>В вашем ритме.</h2><p>Замечайте своё состояние и оставайтесь на связи со специалистом.</p><button class="button primary" data-action="nav" data-page="tree">Моё дерево ${icon("arrow")}</button></div>${careIllustration()}</section>
+    <section class="welcome-garden"><div><h2>Забота рядом.<br>В вашем ритме.</h2><p>Замечайте своё состояние и оставайтесь на связи со специалистом.</p></div>${homeTree()}</section>
     ${appointmentStrip()}
-    ${pending.length ? `<section class="notice info survey-reminder"><div><span class="eyebrow">ОТ СПЕЦИАЛИСТА</span><h2>${pending.length === 1 ? "Вас ждёт опрос" : "Вас ждут опросы"}</h2><p>${e(pending[0].title)} · до ${e(clinicDate(pending[0].due_at))}</p></div><button class="button primary" data-action="nav" data-page="surveys">Назначенные опросы · ${pending.length} ${icon("arrow")}</button></section>` : ""}
+    ${pending.length ? `<section class="notice info survey-reminder"><div><h2>${pending.length === 1 ? "Вас ждёт опрос" : "Вас ждут опросы"}</h2><p>${e(pending[0].title)} · до ${e(clinicDate(pending[0].due_at))}</p></div><button class="button primary" data-action="nav" data-page="surveys">Назначенные опросы · ${pending.length} ${icon("arrow")}</button></section>` : ""}
     ${medicationPreview()}
-    <section class="card mood-card"><h2>Как настроение?</h2><p class="caption">Минута внимания к себе</p>${moodFaces(-1, true)}<button class="button primary full" data-ui="open-diary">Заполнить дневник ${icon("arrow")}</button></section>
-    <section class="card specialist-card">${specialistContact()}<p class="caption">Вопросы и наблюдения можно обсудить в переписке.</p><button class="button full" data-action="nav" data-page="messages">${icon("chat")}Написать врачу</button></section>
-    <section class="card home-trend"><div class="card-heading"><h2>Моя динамика</h2><button class="text-button" data-action="history">История</button></div>${chart(state.detail.reports)}</section></div>`;
+    <section class="card mood-card"><h2>Как настроение?</h2>${moodFaces(-1, true)}<button class="button primary full" data-ui="open-diary">Заполнить дневник ${icon("arrow")}</button></section>
+    <section class="card specialist-card">${specialistContact()}<button class="button full" data-action="nav" data-page="messages">${icon("chat")}Написать врачу</button></section>
+    ${streakPage(true)}${seasonalNote()}</div>`;
 };
 function specialistContact() {
   const doctor = state.detail.doctor;
@@ -248,12 +242,12 @@ function treePage() {
       "Забота складывается из мелочей",
       "Дерево расцветает от записей и завершённых занятий.",
     ) +
-    `<section class="card tree-card">${treeArt(points)}<h2>${points} ${points === 1 ? "отметка" : "отметок"} заботы</h2><p class="muted">Дни с записями и занятия в доступной истории. Это визуальный символ участия, а не оценка здоровья.</p><button class="button primary" data-ui="open-diary">Заполнить дневник</button><button class="button" data-action="nav" data-page="move">Выбрать небольшую паузу</button></section>`
+    `<section class="card tree-card">${treeArt(points)}<h2>${points} ${points === 1 ? "отметка" : "отметок"} заботы</h2><p class="muted">Дни с записями и занятия в доступной истории. Это визуальный символ участия, а не оценка здоровья.</p><button class="button primary" data-ui="open-diary">Заполнить дневник</button><button class="button" data-action="nav" data-page="help">Сделать перерыв</button></section>`
   );
 }
 function wellbeingSummary() {
   const activities = state.wellbeing?.activities || [];
-  return `<section class="card"><h2>Занятия и материалы</h2><p class="caption">Самоотметки пациента, без измерения нагрузки и клинических выводов.</p>${
+  return `<section class="card"><h2>Занятия и материалы</h2>${
     activities.length
       ? activities
           .slice(0, 6)
@@ -268,7 +262,7 @@ function wellbeingSummary() {
 function practiceView() {
   const session = practiceSession;
   const item = practiceCatalog[session.key];
-  return `<section class="card practice-card"><p class="eyebrow">В СВОЁМ РИТМЕ</p><h2>${item.title}</h2><p>${item.text}</p><div class="breath-space"><div class="breathing-orb ${session.key === "breathing" && session.running ? "running" : ""}"><span id="practice-time">${practiceRemaining()}</span></div></div><ol class="practice-steps">${item.steps.map((s) => `<li>${s}</li>`).join("")}</ol><p class="caption">Таймер помогает выделить время. Приложение не измеряет дыхание или нагрузку.</p><div class="practice-actions"><button class="button primary" data-ui="practice-toggle">${session.running ? "Пауза" : "Продолжить"}</button><button class="button" data-ui="practice-close">Завершить без отметки</button></div><button class="button primary full" id="practice-save" data-ui="practice-save" ${practiceSecondsLeft() > 0 ? "hidden" : ""}>Отметить выполненным</button></section>`;
+  return `<section class="card practice-card"><p class="eyebrow">В СВОЁМ РИТМЕ</p><h2>${item.title}</h2><p>${item.text}</p><div class="breath-space"><div class="breathing-orb ${session.key === "breathing" && session.running ? "running" : ""}"><span id="practice-time">${practiceRemaining()}</span></div></div><ol class="practice-steps">${item.steps.map((s) => `<li>${s}</li>`).join("")}</ol><div class="practice-actions"><button class="button primary" data-ui="practice-toggle">${session.running ? "Пауза" : "Продолжить"}</button><button class="button" data-ui="practice-close">Завершить без отметки</button></div><button class="button primary full" id="practice-save" data-ui="practice-save" ${practiceSecondsLeft() > 0 ? "hidden" : ""}>Отметить выполненным</button></section>`;
 }
 function movementPage() {
   const activities = (state.wellbeing?.activities || []).filter(
@@ -282,7 +276,7 @@ function movementPage() {
     ) +
     (practiceSession
       ? practiceView()
-      : `<section class="notice info"><h2>Без спешки и нормативов</h2><p>Выберите то, что подходит вам сейчас. Любое занятие можно остановить.</p></section>${Object.entries(
+      : `<section class="notice info"><h2>Без спешки</h2><p>Выберите то, что подходит вам сейчас. Любое занятие можно остановить.</p></section>${Object.entries(
           practiceCatalog,
         )
           .map(
@@ -353,13 +347,20 @@ renderLogin = function (error = "") {
   const title = $(".login-form-side h1");
   if (title) title.innerHTML = "Забота рядом.<br>Каждый день.";
   const art = $(".login-art");
-  if (art)
-    art.innerHTML = `${careIllustration()}<p class="eyebrow">ПРОСТРАНСТВО ЗАБОТЫ</p><h2>Рядом. Даже между встречами.</h2><p>Замечать изменения.<br>Оставаться на связи.</p>`;
+  if (art) {
+    art.removeAttribute("aria-hidden");
+    art.innerHTML = `<div class="entry-garden">${treeArt(0, true, false)}</div><div class="entry-message"><blockquote id="entry-quote">${e(entryQuotes[entryQuoteIndex])}</blockquote><button class="text-button" type="button" data-entry-quote>Другая мысль ${icon("refresh")}</button></div>`;
+  }
+  $("#login-form").insertAdjacentHTML(
+    "afterend",
+    '<div class="registration-actions"><button type="button" class="button full" data-registration="open">Создать аккаунт</button><button type="button" class="text-button" data-registration="invitation">Есть приглашение?</button></div>',
+  );
+  decoratePublicEntry();
 };
 function decoratePsicompas() {
+  if (state.page === "tree") $("#breadcrumb").textContent = "Моё дерево";
   const doctor = isDoctor();
-  $("#session-role").textContent =
-    `${doctor ? "Специалист" : "Пациент"} · демо`;
+  $("#session-role").textContent = `${doctor ? "Специалист" : "Пациент"}`;
   $("#more-button").hidden = false;
   document.body.dataset.role = state.user.role;
   document.body.dataset.page = state.page;
@@ -367,15 +368,7 @@ function decoratePsicompas() {
   $("#header-user").textContent = state.user.name;
   $("#sidebar-account").innerHTML =
     `${avatar(state.user.name, "blue")}<span><strong>${e(state.user.name)}</strong><small>${doctor ? "Специалист" : state.user.role === "relative" ? "Близкий" : "Пациент"}</small></span>`;
-  $("#workspace-tools").innerHTML = (
-    state.user.role === "relative"
-      ? [["settings", "info", "Настройки"]]
-      : [
-          ...(doctor ? [["overview", "home", "Главная"]] : []),
-          ["schedule", "clock", "Мои встречи"],
-          ["settings", "info", "Настройки"],
-        ]
-  )
+  $("#workspace-tools").innerHTML = patientTools
     .map(
       ([page, glyph, label]) =>
         `<button class="nav-item ${state.page === page ? "active" : ""}" data-action="nav" data-page="${page}" ${state.page === page ? 'aria-current="page"' : ""}>${icon(glyph)}<span>${label}</span></button>`,
@@ -399,7 +392,22 @@ function decoratePsicompas() {
       item.setAttribute("aria-current", "page");
     }
   }
+  if (innerWidth < 1024) {
+    const navigation = $("#navigation"),
+      active = navigation.querySelector("[aria-current=page]");
+    if (active) {
+      const left =
+          active.getBoundingClientRect().left -
+          navigation.getBoundingClientRect().left +
+          navigation.scrollLeft,
+        right = left + active.offsetWidth;
+      if (left < navigation.scrollLeft) navigation.scrollLeft = left;
+      else if (right > navigation.scrollLeft + navigation.clientWidth)
+        navigation.scrollLeft = right - navigation.clientWidth;
+    }
+  }
   if (state.page !== "move" && practiceSession?.running) pausePractice();
+  updateNavigationArrows();
   updateThemeControl();
   rememberRoute();
 }
@@ -433,46 +441,107 @@ const pageSets = {
     "medications",
   ]),
 };
-let restoringRoute = false;
-function rememberRoute() {
-  if (restoringRoute || !state.user) return;
-  const route = {
+let restoringRoute = false,
+  navigationSession = null,
+  nextHistoryMode = null;
+const routeParents = {
+  card: "patients",
+  builder: "settings",
+  about: "settings",
+  scenarios: "settings",
+  tour: "settings",
+  research: "settings",
+};
+function currentRoute() {
+  return {
     page: state.page,
     selected: state.selected,
     tab: state.tab,
     user: state.user.id,
   };
-  const old = history.state?.compass;
-  if (old && JSON.stringify(old) === JSON.stringify(route)) return;
-  const method = old?.user === route.user ? "pushState" : "replaceState";
+}
+function ownedTrail() {
+  const entry = history.state;
+  if (
+    !state.user ||
+    entry?.compassSession !== navigationSession ||
+    entry.compass?.user !== state.user.id
+  )
+    return [];
+  return Array.isArray(entry.compassTrail) ? entry.compassTrail : [];
+}
+function writeRoute(route, trail, method = "replaceState") {
   history[method](
-    { compass: route },
+    {
+      compass: route,
+      compassTrail: trail,
+      compassSession: navigationSession,
+      compassBack: trail.length > 1,
+    },
     "",
-    "#page=" + encodeURIComponent(state.page),
+    "#page=" + encodeURIComponent(route.page),
   );
+}
+function beginNavigationSession() {
+  navigationSession =
+    Date.now().toString(36) + Math.random().toString(36).slice(2);
+  nextHistoryMode = null;
+  const home = { ...currentRoute(), page: "overview", tab: "overview" };
+  writeRoute(home, [home]);
+}
+function prepareNavigation(page, id) {
+  if (restoringRoute || !state.user) return false;
+  const trail = ownedTrail();
+  const index = trail.findIndex(
+    (r) =>
+      r.page === page && (page !== "card" || !id || r.selected === Number(id)),
+  );
+  if (index >= 0 && index < trail.length - 1) {
+    history.go(index - trail.length + 1);
+    return true;
+  }
+  nextHistoryMode = routeParents[state.page] === page ? "replaceState" : null;
+  return false;
+}
+function rememberRoute() {
+  if (restoringRoute || !state.user) return;
+  if (!navigationSession) beginNavigationSession();
+  const route = currentRoute(),
+    trail = ownedTrail(),
+    previous = trail.at(-1);
+  if (previous && JSON.stringify(previous) === JSON.stringify(route)) {
+    nextHistoryMode = null;
+    return;
+  }
+  const method =
+    nextHistoryMode ||
+    (previous?.page === route.page ? "replaceState" : "pushState");
+  nextHistoryMode = null;
+  const next =
+    method === "replaceState"
+      ? [...trail.slice(0, -1), route]
+      : [...trail, route];
+  writeRoute(route, next, method);
+}
+async function goBack() {
+  if (busy || !state.user) return;
+  if (ownedTrail().length > 1) history.back();
+  else if (state.page !== "overview")
+    await navigate(routeParents[state.page] || "overview");
 }
 window.addEventListener("popstate", async (event) => {
   if (!state.user) return;
   const route = event.state?.compass;
   if (
     !route ||
+    event.state?.compassSession !== navigationSession ||
     route.user !== state.user.id ||
-    !pageSets[state.user.role]?.has(route.page)
-  )
-    return;
-  if (busy) {
-    history.replaceState(
-      {
-        compass: {
-          page: state.page,
-          selected: state.selected,
-          tab: state.tab,
-          user: state.user.id,
-        },
-      },
-      "",
-      "#page=" + state.page,
-    );
+    !pageSets[state.user.role]?.has(route.page) ||
+    busy
+  ) {
+    const current = currentRoute(),
+      trail = ownedTrail();
+    writeRoute(current, trail.length ? trail : [current]);
     return;
   }
   restoringRoute = true;
@@ -483,15 +552,84 @@ window.addEventListener("popstate", async (event) => {
     restoringRoute = false;
   }
 });
+function updateNavigationArrows() {
+  const nav = $("#navigation"),
+    mobile = innerWidth < 1024;
+  $("#nav-scroll-prev").disabled = !mobile || nav.scrollLeft <= 2;
+  $("#nav-scroll-next").disabled =
+    !mobile || nav.scrollLeft >= nav.scrollWidth - nav.clientWidth - 2;
+}
+for (const [id, direction] of [
+  ["nav-scroll-prev", -1],
+  ["nav-scroll-next", 1],
+])
+  $("#" + id).onclick = () => {
+    const nav = $("#navigation");
+    nav.scrollBy({
+      left: direction * Math.max(160, nav.clientWidth * 0.8),
+      behavior: matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "instant"
+        : "smooth",
+    });
+  };
+$("#navigation").addEventListener("scroll", updateNavigationArrows, {
+  passive: true,
+});
+new ResizeObserver(updateNavigationArrows).observe($("#navigation"));
+const entryQuotes = [
+  "Сегодня можно двигаться в своём темпе.",
+  "Даже маленький шаг заслуживает внимания.",
+  "Необязательно успевать всё сразу.",
+  "Можно сделать паузу и попросить поддержки.",
+  "Забота о себе складывается из небольших действий.",
+];
+let entryQuoteIndex = Math.floor(Date.now() / 86400000) % entryQuotes.length;
+document.addEventListener("click", (event) => {
+  if (event.target.closest("[data-entry-quote]")) {
+    entryQuoteIndex = (entryQuoteIndex + 1) % entryQuotes.length;
+    $("#entry-quote").textContent = entryQuotes[entryQuoteIndex];
+  }
+});
+function seasonalNote() {
+  const month = Number(care().today.slice(5, 7));
+  const [title, text] =
+    month >= 9 && month <= 11
+      ? [
+          "Световой день становится короче",
+          "Если есть возможность, найдите несколько минут для прогулки при дневном свете.",
+        ]
+      : month === 12 || month <= 2
+        ? [
+            "Больше света в зимний день",
+            "Можно выбрать светлое время для небольшой прогулки или побыть у окна в перерыве.",
+          ]
+        : month <= 5
+          ? [
+              "Светлых часов становится больше",
+              "Небольшая прогулка может стать приятной паузой в привычных делах.",
+            ]
+          : [
+              "Лето — время небольших прогулок",
+              "Выбирайте комфортное время для отдыха на свежем воздухе.",
+            ];
+  return `<section class="card home-season"><span class="season-symbol" aria-hidden="true">${icon("sun")}</span><h2>${title}</h2><p>${text}</p></section>`;
+}
 function updateThemeControl() {
   const dark =
     document.documentElement.dataset.theme === "dark" ||
     (!document.documentElement.dataset.theme &&
       matchMedia("(prefers-color-scheme: dark)").matches);
-  $("#theme-toggle").setAttribute(
-    "aria-label",
-    dark ? "Включить светлую тему" : "Включить тёмную тему",
-  );
+  for (const control of document.querySelectorAll(
+    "#theme-toggle, [data-theme-toggle]",
+  )) {
+    const label = dark ? "Включить светлую тему" : "Включить тёмную тему";
+    control.setAttribute("aria-label", label);
+    control.title = label;
+    control.setAttribute("aria-pressed", String(dark));
+    control.innerHTML = dark
+      ? icon("sun")
+      : '<span aria-hidden="true">◐</span>';
+  }
   $("meta[name=theme-color]").content = dark ? "#08405e" : "#0b6390";
 }
 try {
@@ -499,7 +637,7 @@ try {
   if (["light", "dark"].includes(theme))
     document.documentElement.dataset.theme = theme;
 } catch {}
-$("#theme-toggle").onclick = () => {
+function toggleTheme() {
   const current =
     document.documentElement.dataset.theme ||
     (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
@@ -509,7 +647,15 @@ $("#theme-toggle").onclick = () => {
     localStorage.setItem("psicompas-theme", theme);
   } catch {}
   updateThemeControl();
-};
+}
+$("#theme-toggle").onclick = toggleTheme;
+document.addEventListener("click", (event) => {
+  if (event.target.closest("[data-theme-toggle]")) toggleTheme();
+});
+matchMedia("(prefers-color-scheme: dark)").addEventListener(
+  "change",
+  updateThemeControl,
+);
 function practiceSecondsLeft() {
   if (!practiceSession) return 0;
   return Math.max(
@@ -575,6 +721,8 @@ document.addEventListener("visibilitychange", () => {
 });
 const baseClearSession = clearSession;
 clearSession = function () {
+  navigationSession = null;
+  nextHistoryMode = null;
   pausePractice();
   practiceSession = null;
   baseClearSession();
@@ -594,7 +742,14 @@ document.addEventListener("click", async (event) => {
   const action = button.dataset.ui;
   const key = button.dataset.key;
   try {
-    if (action === "install") {
+    if (action === "tree-motion") {
+      homeTreePaused = !homeTreePaused;
+      button
+        .closest(".home-tree-scene")
+        .classList.toggle("is-paused", homeTreePaused);
+      button.setAttribute("aria-pressed", String(homeTreePaused));
+      button.textContent = homeTreePaused ? "Продолжить" : "Пауза";
+    } else if (action === "install") {
       if (pendingInstall) await $("#install").onclick();
       else
         toast(

@@ -11,20 +11,31 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta
       name="description"
-      content="Клинический компас: синтетическое демо сопровождения пациента"
+      content="ПсиКомпас: дневник самочувствия и связь с врачом"
     />
     <link rel="manifest" href="/static/manifest.webmanifest" />
     <link rel="icon" href="/static/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/static/icon-192.png" />
     <link rel="stylesheet" href="/static/style.css" />
     <link rel="stylesheet" href="/static/psicompas.css" />
+    <link rel="stylesheet" href="/static/experience.css" />
+    <link rel="stylesheet" href="/static/patient-ui.css" />
+    <link rel="stylesheet" href="/static/games.css" />
+    <link rel="stylesheet" href="/static/shell.css" />
     <script src="/static/offline.js" defer></script>
     <script src="/static/app.js" defer></script>
     <script src="/static/care.js" defer></script>
     <script src="/static/psicompas.js" defer></script>
     <script src="/static/prototype-content.js" defer></script>
+    <script src="/static/experience.js" defer></script>
+    <script src="/static/patient-ui.js" defer></script>
+    <script src="/static/presence.js" defer></script>
+    <script src="/static/project-copy.js" defer></script>
+    <script src="/static/revision8.js" defer></script>
+    <script src="/static/games.js" defer></script>
+    <script src="/static/registration.js" defer></script>
     <script src="/static/sections.js" defer></script>
-    <title>ПсиКомпас · демо</title>
+    <title>ПсиКомпас</title>
   </head>
   <body>
     <div id="login-screen" hidden></div>
@@ -40,13 +51,30 @@
           /><span>ПсиКомпас<small>Пространство заботы</small></span></a
         >
         <div class="workspace-label">МОЁ ПРОСТРАНСТВО</div>
-        <nav id="navigation" aria-label="Основная навигация"></nav>
+        <div class="navigation-dock">
+          <button
+            type="button"
+            class="nav-scroll-arrow"
+            id="nav-scroll-prev"
+            aria-label="Прокрутить разделы влево"
+            aria-controls="navigation"
+          >
+            ‹
+          </button>
+          <nav id="navigation" aria-label="Основная навигация"></nav>
+          <button
+            type="button"
+            class="nav-scroll-arrow"
+            id="nav-scroll-next"
+            aria-label="Прокрутить разделы вправо"
+            aria-controls="navigation"
+          >
+            ›
+          </button>
+        </div>
         <nav id="workspace-tools" aria-label="Инструменты пространства"></nav>
         <div class="sidebar-foot">
           <div id="sidebar-account"></div>
-          <p class="caption">
-            Синтетическое демо<br />Каждое решение — за специалистом
-          </p>
         </div>
       </aside>
       <div class="workspace">
@@ -100,11 +128,7 @@
           <span
             ><i></i
             ><span id="sync-label" class="sync-label">На связи</span></span
-          ><span id="session-role">Синтетическое демо</span>
-        </div>
-        <div class="demo-strip">
-          <span class="small-dot"></span> Вымышленные пациенты, правила и
-          варианты сопровождения. Не для реального лечения.
+          ><span id="session-role">Ваш кабинет</span>
         </div>
         <div id="connection" class="connection-banner" role="status" hidden>
           Нет соединения. Отправка недоступна. Неотправленные формы хранятся
@@ -114,6 +138,15 @@
           <span>Есть новые события</span
           ><button class="button quiet" data-action="refresh">
             Обновить данные
+          </button>
+        </div>
+        <div id="patient-safety-bar" class="patient-safety-bar" hidden>
+          <button
+            class="button danger hold-sos global-sos"
+            data-ext="sos"
+            aria-label="SOS: удерживайте полторы секунды"
+          >
+            <strong>SOS</strong><span>Удерживайте 1,5 сек.</span>
           </button>
         </div>
         <main id="content" tabindex="-1"></main>
@@ -129,10 +162,6 @@
             ×
           </button>
         </div>
-        <p class="caption">
-          Внутри приложения · проверка каждые 5 секунд при открытой вкладке. Не
-          канал экстренной связи.
-        </p>
         <div id="notification-list"></div>
       </div>
     </div>
@@ -149,12 +178,9 @@
           required
           maxlength="500"
           rows="4"
-          placeholder="Только вымышленные сведения"
+          placeholder="Укажите основание решения"
         ></textarea>
-        <p class="caption">
-          Сохраним ваше подтверждение и основание в журнале. Никаких реальных
-          назначений или направлений не выполняется.
-        </p>
+
         <div class="dialog-actions">
           <button type="button" class="button quiet" id="cancel-resolution">
             Отмена</button
@@ -164,5 +190,6 @@
         </div>
       </form>
     </dialog>
+    <footer class="demo-data-footer">Демо-данные</footer>
   </body>
 </html>

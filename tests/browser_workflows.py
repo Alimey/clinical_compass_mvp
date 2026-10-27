@@ -88,7 +88,8 @@ with tempfile.TemporaryDirectory() as temp:
 
             signin(doc, "doctor")
             expect(doc.get_by_role("heading", name="Добрый день, Анна")).to_be_visible()
-            expect(doc.locator(".appointment-tile")).to_have_count(2)
+            expect(doc.locator(".doctor-calendar-card")).to_be_visible()
+            expect(doc.locator(".activity-day .calendar-marks small")).to_have_text("2")
             doc.screenshot(path=str(ART / "overview-v3.png"), full_page=True)
             nav(doc, "Ещё")
             doc.get_by_role("button", name="Конструктор опросов", exact=True).click()
@@ -168,13 +169,12 @@ with tempfile.TemporaryDirectory() as temp:
             expect(
                 doc.locator(".card").filter(has_text="Таблетница E2E")
             ).to_have_count(1)
-            nav(pat, "Ещё")
-            pat.get_by_role("button", name="Таблетница", exact=True).click()
-            dose = pat.locator(".card").filter(has_text="Таблетница E2E")
-            dose.get_by_role("button", name="Принято", exact=True).click()
-            expect(dose).to_contain_text("Отмечено: принято")
-            nav(pat, "Ещё")
-            pat.get_by_role("button", name="Расписание", exact=True).click()
+            nav(pat, "Дневник")
+            pat.locator("[data-ext=sub][data-group=diary][data-key=meds]").click()
+            dose = pat.locator(f'.dose-check[data-day="{today}"][data-time="00:00"]')
+            dose.click()
+            expect(dose).to_have_attribute("aria-pressed", "true")
+            nav(pat, "Консультации")
             slot = pat.locator("#booking-slot option").nth(1).get_attribute("value")
             pat.locator("#booking-slot").select_option(slot)
             with pat.expect_response(
@@ -188,6 +188,9 @@ with tempfile.TemporaryDirectory() as temp:
             cancel.click()
             expect(pat.locator("#content")).to_contain_text("Отменена")
             nav(pat, "Ещё")
+            pat.locator(
+                "[data-ext=sub][data-group=settings][data-key=consents]"
+            ).click()
             form = pat.locator("#offline-save-form")
             form.locator("[name=pin]").fill("123456")
             form.locator("[name=confirm]").fill("123456")

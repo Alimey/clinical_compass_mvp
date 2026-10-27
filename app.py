@@ -19,10 +19,12 @@ from compass.assistants import register_assistants
 from compass.delivery import init_delivery, register_delivery
 from compass.wellbeing import init_wellbeing, register_wellbeing
 from compass.sections import init_sections, register_sections, preferences
+from compass.insights import init_insights, register_insights
 
 from compass.db import audit, db, init_db, notify, now, rows
 from compass.demo import seed
 from compass.rules import add_proposals, CATALOG, VERSION
+from compass.project_copy import init_project_copy
 
 
 def create_app(database=None, *, seed_demo=True, testing=False):
@@ -55,6 +57,8 @@ def create_app(database=None, *, seed_demo=True, testing=False):
         init_delivery()
         init_wellbeing()
         init_sections(seed_demo)
+        init_insights()
+        init_project_copy(seed_demo)
 
     @app.before_request
     def authenticate():
@@ -263,6 +267,11 @@ def create_app(database=None, *, seed_demo=True, testing=False):
                 ),
             )
         user = rows("SELECT * FROM users WHERE id=?", (account["user_id"],))[0]
+        if user["role"] == "patient":
+            from compass.reminder_policy import record_presence
+
+            with db():
+                record_presence(user["id"])
         response = jsonify(user=user, csrf=csrf)
         response.set_cookie(
             "compass_session",
@@ -297,6 +306,11 @@ def create_app(database=None, *, seed_demo=True, testing=False):
         )
         result = rows(
             f"""SELECT u.id,u.name,p.age,p.occupation,p.goal,
+            (SELECT MIN(stamp) FROM (
+                SELECT created_at AS stamp FROM reports WHERE patient_id=u.id
+                UNION ALL SELECT created_at FROM audit WHERE patient_id=u.id AND action='intake.completed'
+                UNION ALL SELECT created_at FROM encounters WHERE patient_id=u.id
+            )) AS observed_since,
             ((SELECT COUNT(*) FROM alerts a WHERE a.patient_id=u.id AND a.status='new') + (SELECT COUNT(*) FROM support_events s WHERE s.patient_id=u.id AND s.doctor_read_at IS NULL)) AS unread,
             (SELECT COUNT(*) FROM messages m WHERE m.patient_id=u.id AND m.sender_id!=? AND m.read_at IS NULL) AS unread_messages,
             (SELECT mood FROM reports r WHERE r.patient_id=u.id ORDER BY id DESC LIMIT 1) AS mood,
@@ -676,14 +690,18 @@ def create_app(database=None, *, seed_demo=True, testing=False):
 
     @app.get("/api/notifications")
     def notifications():
+        from compass.reminder_policy import cancel_stale_reminders
+
+        with db():
+            cancel_stale_reminders(g.user["id"])
         return jsonify(
             items=rows(
-                "SELECT * FROM notifications WHERE user_id=? ORDER BY id DESC LIMIT 50",
+                "SELECT * FROM notifications WHERE user_id=? AND NOT EXISTS (SELECT 1 FROM notification_guards g WHERE g.notification_id=notifications.id AND g.cancelled=1) ORDER BY id DESC LIMIT 50",
                 (g.user["id"],),
             ),
             unread=db()
             .execute(
-                "SELECT COUNT(*) FROM notifications WHERE user_id=? AND read_at IS NULL",
+                "SELECT COUNT(*) FROM notifications WHERE user_id=? AND read_at IS NULL AND NOT EXISTS (SELECT 1 FROM notification_guards g WHERE g.notification_id=notifications.id AND g.cancelled=1)",
                 (g.user["id"],),
             )
             .fetchone()[0],
@@ -749,6 +767,7 @@ def create_app(database=None, *, seed_demo=True, testing=False):
     register_delivery(app, require_role, payload)
     register_wellbeing(app, patient, require_role, payload, write_once)
     register_sections(app, patient, require_role, payload, text, write_once)
+    register_insights(app, patient, require_role, payload)
     return app
 
 

@@ -66,6 +66,21 @@ with tempfile.TemporaryDirectory() as temp:
             expect(
                 page.get_by_role("heading", name="Здравствуйте, Александра")
             ).to_be_visible()
+            crown = page.locator(".animated-tree .tree-crown")
+            expect(page.locator(".animated-tree")).to_be_visible()
+            expect(page.locator(".tree-motion-toggle")).to_have_count(0)
+            assert crown.evaluate("el=>getComputedStyle(el).animationName") == "none"
+            page.emulate_media(reduced_motion="no-preference")
+            assert (
+                crown.evaluate("el=>getComputedStyle(el).animationName") == "tree-sway"
+            )
+            context.set_offline(True)
+            assert (
+                crown.evaluate("el=>getComputedStyle(el).animationPlayState")
+                == "running"
+            )
+            context.set_offline(False)
+            page.emulate_media(reduced_motion="reduce")
             for width in (320, 390, 430, 768, 1024, 1280, 1440, 1920):
                 page.set_viewport_size({"width": width, "height": 900})
                 assert page.evaluate(
@@ -94,7 +109,7 @@ with tempfile.TemporaryDirectory() as temp:
                     assert appointments["x"] > hero["x"] + hero["width"] - 1
                     page.locator("#workspace-tools [data-page=settings]").click()
                     expect(
-                        page.get_by_role("heading", name="Настройки и инструменты")
+                        page.get_by_role("heading", name="Уведомления и установка PWA")
                     ).to_be_visible()
                     page.locator(".app-brand[data-page=overview]").click()
                     expect(
@@ -110,9 +125,24 @@ with tempfile.TemporaryDirectory() as temp:
                     ).first.bounding_box()
                     assert first["width"] >= 44, (width, first)
                 if width in (390, 1440):
+                    page.evaluate("scrollTo(0,0)")
                     page.screenshot(
                         path=str(ART / f"responsive-home-{width}.png"), full_page=True
                     )
+                    page.emulate_media(reduced_motion="no-preference")
+                    tree_box = page.locator(
+                        ".home-tree-scene .care-tree"
+                    ).bounding_box()
+                    garden_box = page.locator(".welcome-garden").bounding_box()
+                    assert tree_box["y"] >= garden_box["y"], (
+                        width,
+                        tree_box,
+                        garden_box,
+                    )
+                    page.locator(".welcome-garden").screenshot(
+                        path=str(ART / f"tree-home-{width}.png"), animations="disabled"
+                    )
+                    page.emulate_media(reduced_motion="reduce")
             page.set_viewport_size({"width": 1440, "height": 1000})
             page.locator("#navigation [data-page=messages]").click()
             expect(page.locator("#message-form")).to_be_visible()
@@ -128,7 +158,7 @@ with tempfile.TemporaryDirectory() as temp:
             )
             page.set_viewport_size({"width": 390, "height": 844})
             page.evaluate("scrollTo(0,0)")
-            mobile_nav = page.locator("#navigation").bounding_box()
+            mobile_nav = page.locator(".navigation-dock").bounding_box()
             assert abs(mobile_nav["y"] + mobile_nav["height"] - 844) < 2
             assert abs(page.locator(".topbar").bounding_box()["y"]) < 2
             page.screenshot(
@@ -158,7 +188,7 @@ with tempfile.TemporaryDirectory() as temp:
             assert not errors, errors
             browser.close()
             print(
-                "PASS: full-width shell, real desktop columns and sidebar, tablet/phone navigation, 8 widths, login/chat, theme switching and desktop messaging"
+                "PASS: animated home tree offline, reduced motion, full-width shell, desktop columns and sidebar, tablet/phone navigation, 8 widths, login/chat, theme switching and desktop messaging"
             )
     finally:
         server.terminate()

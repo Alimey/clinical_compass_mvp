@@ -27,10 +27,11 @@ def audit(actor, patient, action, detail):
 
 
 def notify(user, patient, title, body, alert=None):
-    db().execute(
+    result = db().execute(
         "INSERT INTO notifications(user_id,patient_id,title,body,alert_id,created_at) VALUES(?,?,?,?,?,?)",
         (user, patient, title, body, alert, now()),
     )
+    return result.lastrowid
 
 
 def init_db():

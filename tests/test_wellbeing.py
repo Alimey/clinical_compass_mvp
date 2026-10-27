@@ -2,6 +2,8 @@
 
 import tempfile
 import unittest
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from pathlib import Path
 
 from app import create_app
@@ -57,6 +59,172 @@ class WellbeingTest(unittest.TestCase):
         self.assertEqual(reopened.test_client().get("/api/health").status_code, 200)
         self.assertEqual(
             self.patient.get("/api/patients/2").json["reports"][0]["sleep"], 7
+        )
+
+    def test_tree_taps_are_owned_durable_idempotent_and_do_not_create_health_records(
+        self,
+    ):
+        for _ in range(2):
+            result = self.post(self.patient, self.pc, {}, "tree", key="flower-1")
+            self.assertEqual(result.status_code, 200)
+            self.assertEqual(result.json["blossoms"], 1)
+        self.assertEqual(
+            self.post(self.patient, self.pc, {}, "tree").json["blossoms"], 2
+        )
+        data = self.patient.get("/api/patients/2/wellbeing").json
+        self.assertEqual(data["tree_blossoms"], 2)
+        self.assertEqual(data["activities"], [])
+        self.assertEqual(self.patient.get("/api/patients/2").json["reports_total"], 0)
+        self.assertEqual(self.post(self.doctor, self.dc, {}, "tree").status_code, 403)
+        self.assertEqual(self.other.get("/api/patients/2/wellbeing").status_code, 404)
+        self.assertEqual(
+            self.patient.post(
+                "/api/patients/3/tree", json={}, headers={"X-CSRF-Token": self.pc}
+            ).status_code,
+            404,
+        )
+        self.assertEqual(
+            self.patient.post("/api/patients/2/tree", json={}).status_code, 403
+        )
+        reopened = create_app(self.path, seed_demo=False, testing=True)
+        client = reopened.test_client()
+        client.post(
+            "/api/auth/login",
+            json={"username": "patient-a", "password": "compass-demo"},
+        )
+        self.assertEqual(
+            client.get("/api/patients/2/wellbeing").json["tree_blossoms"], 2
+        )
+
+    def test_calendar_plans_complete_once_and_can_be_cancelled_and_readded(self):
+        today = datetime.now(ZoneInfo("Europe/Moscow")).date().isoformat()
+        result = self.post(
+            self.patient, self.pc, {"activity": "walk", "day": today}, "activity-plans"
+        )
+        self.assertEqual(result.status_code, 200)
+        ident = result.json["id"]
+        duplicate = self.post(
+            self.patient, self.pc, {"activity": "walk", "day": today}, "activity-plans"
+        )
+        self.assertEqual(duplicate.json["id"], ident)
+        path = f"activity-plans/{ident}/cancel"
+        self.assertEqual(self.post(self.patient, self.pc, {}, path).status_code, 200)
+        self.assertEqual(
+            self.post(
+                self.patient, self.pc, {}, f"activity-plans/{ident}/complete"
+            ).status_code,
+            400,
+        )
+        self.post(
+            self.patient, self.pc, {"activity": "walk", "day": today}, "activity-plans"
+        )
+        for _ in range(2):
+            self.assertEqual(
+                self.post(
+                    self.patient, self.pc, {}, f"activity-plans/{ident}/complete"
+                ).status_code,
+                200,
+            )
+        data = self.doctor.get("/api/patients/2/wellbeing").json
+        self.assertEqual(len(data["activities"]), 1)
+        self.assertEqual(data["plans"][0]["status"], "done")
+        self.assertEqual(
+            data["plans"][0]["completed_at"], data["activities"][0]["created_at"]
+        )
+        self.assertEqual(self.post(self.patient, self.pc, {}, path).status_code, 400)
+
+    def test_calendar_validates_dates_keys_ownership_and_future_completion(self):
+        today = datetime.now(ZoneInfo("Europe/Moscow")).date()
+        tomorrow = (today + timedelta(days=1)).isoformat()
+        for key, day in [
+            ("stretch", str(today)),
+            ("breathing", str(today)),
+            ("walk", "2026-02-30"),
+            ("walk", None),
+            ("walk", (today + timedelta(days=367)).isoformat()),
+        ]:
+            self.assertEqual(
+                self.post(
+                    self.patient,
+                    self.pc,
+                    {"activity": key, "day": day},
+                    "activity-plans",
+                ).status_code,
+                400,
+            )
+        ident = self.post(
+            self.patient,
+            self.pc,
+            {"activity": "desk", "day": tomorrow},
+            "activity-plans",
+        ).json["id"]
+        self.assertEqual(
+            self.post(
+                self.patient, self.pc, {}, f"activity-plans/{ident}/complete"
+            ).status_code,
+            400,
+        )
+        self.assertEqual(
+            self.post(
+                self.doctor,
+                self.dc,
+                {"activity": "desk", "day": str(today)},
+                "activity-plans",
+            ).status_code,
+            403,
+        )
+        self.assertEqual(
+            self.patient.post(
+                f"/api/patients/3/activity-plans/{ident}/cancel",
+                json={},
+                headers={"X-CSRF-Token": self.pc},
+            ).status_code,
+            404,
+        )
+        self.assertEqual(
+            self.post(
+                self.patient, self.pc, {}, "activity-plans/9999/cancel"
+            ).status_code,
+            404,
+        )
+
+    def test_observation_period_is_from_existing_records_not_occupation(self):
+        data = {
+            "mood": 5,
+            "anxiety": 4,
+            "adherence": "Да",
+            "safety_signal": False,
+            "note": "",
+            "adverse_effects": "",
+        }
+        self.post(self.patient, self.pc, data, "reports")
+        record = self.doctor.get("/api/patients").json[0]
+        self.assertEqual(
+            record["observed_since"],
+            self.patient.get("/api/patients/2").json["reports"][0]["created_at"],
+        )
+
+    def test_counter_start_uses_server_clock_and_is_private_and_idempotent(self):
+        first = self.post(self.patient, self.pc, {}, "counter/start", key="counter-1")
+        self.assertEqual(first.status_code, 200)
+        prefs = self.patient.get("/api/patients/2/workspace").json["preferences"]
+        self.assertTrue(prefs["streak_on"])
+        self.assertLessEqual(
+            datetime.fromisoformat(prefs["streak_start"]), datetime.now(ZoneInfo("UTC"))
+        )
+        self.post(self.patient, self.pc, {}, "counter/start", key="counter-1")
+        self.assertEqual(
+            self.patient.get("/api/patients/2/workspace").json["preferences"][
+                "streak_start"
+            ],
+            prefs["streak_start"],
+        )
+        self.assertNotIn(
+            "streak_start",
+            self.doctor.get("/api/patients/2/workspace").json["preferences"],
+        )
+        self.assertEqual(
+            self.post(self.doctor, self.dc, {}, "counter/start").status_code, 403
         )
 
     def test_invalid_wellbeing_values_never_write_reports(self):
