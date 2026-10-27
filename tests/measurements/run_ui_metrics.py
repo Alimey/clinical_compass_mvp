@@ -1,4 +1,4 @@
-"""Measure UI and real SOS on an isolated localhost Gunicorn instance."""
+"""Measure UI and real SOS on an isolated localhost WSGI instance."""
 
 import json
 import math
@@ -13,8 +13,10 @@ import sys
 import tempfile
 import time
 import urllib.request
+from contextlib import closing
 
 from playwright.sync_api import sync_playwright, expect
+from runtime import revision, server_command, server_label, stop_server
 
 ROOT = Path(os.environ.get("COMPASS_REPO", Path(__file__).resolve().parents[2]))
 OUT = Path(os.environ.get("COMPASS_METRICS_OUT", ROOT / "test-results" / "metrics"))
@@ -33,11 +35,10 @@ def summary(rows, key):
 
 def main(base, database):
     result = {
-        "commit": subprocess.check_output(
-            ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True
-        ).strip(),
+        "commit": revision(ROOT),
         "network": "HTTP localhost; no TLS, WAN or CPU/network throttling",
-        "server": "Gunicorn 1 worker / 4 threads; separate temporary SQLite database; reminder worker disabled",
+        "server": server_label()
+        + "; separate temporary SQLite database; reminder worker disabled",
         "browser": "Chromium desktop and mobile viewport, not physical Safari/iPhone/Android",
         "errors": [],
         "http_5xx": [],
@@ -48,7 +49,8 @@ def main(base, database):
     }
     with sync_playwright() as pw:
         browser = pw.chromium.launch(
-            executable_path=shutil.which("chromium"), args=["--no-sandbox"]
+            executable_path=os.environ.get("CHROMIUM_PATH") or shutil.which("chromium"),
+            args=["--no-sandbox"] if sys.platform.startswith("linux") else [],
         )
 
         def attach(page):
@@ -197,7 +199,7 @@ def main(base, database):
             };
         }"""
         )
-        with sqlite3.connect(database) as con:
+        with closing(sqlite3.connect(database)) as con, con:
             prefs = json.loads(
                 con.execute(
                     "SELECT settings_json FROM patient_preferences WHERE patient_id=2"
@@ -232,7 +234,7 @@ def main(base, database):
                 "status": resp.status,
                 "hold_to_send_ms": round(timing["sent"] - timing["pressed"], 3),
             }
-            with sqlite3.connect(database) as con:
+            with closing(sqlite3.connect(database)) as con, con:
                 ids = {
                     uid: con.execute(
                         "SELECT MAX(id) FROM notifications WHERE patient_id=2 AND user_id=? AND title=?",
@@ -270,7 +272,7 @@ def main(base, database):
         for role, page, _ in recipients:
             page.screenshot(path=str(OUT / f"sos-{role}.png"), full_page=True)
         patient.screenshot(path=str(OUT / "sos-patient.png"), full_page=True)
-        with sqlite3.connect(database) as con:
+        with closing(sqlite3.connect(database)) as con, con:
             ids = [r["event_id"] for r in result["sos"]]
             result["sos_saved"] = con.execute(
                 "SELECT COUNT(*) FROM support_events WHERE id IN ("
@@ -308,7 +310,7 @@ def main(base, database):
 
 
 if __name__ == "__main__":
-    with tempfile.TemporaryDirectory(prefix="cc-poster-", dir="/tmp") as directory:
+    with tempfile.TemporaryDirectory(prefix="cc-poster-") as directory:
         with socket.socket() as sock:
             sock.bind(("127.0.0.1", 0))
             port = sock.getsockname()[1]
@@ -327,20 +329,12 @@ if __name__ == "__main__":
         }
         with (OUT / "ui-server.log").open("w") as log:
             process = subprocess.Popen(
-                [
-                    str(ROOT / ".venv/bin/gunicorn"),
-                    "--bind",
-                    f"127.0.0.1:{port}",
-                    "--workers",
-                    "1",
-                    "--threads",
-                    "4",
-                    "app:create_app()",
-                ],
+                server_command(ROOT, port),
                 cwd=ROOT,
                 env=env,
                 stdout=log,
                 stderr=log,
+                start_new_session=True,
             )
             try:
                 base = f"http://127.0.0.1:{port}"
@@ -354,5 +348,4 @@ if __name__ == "__main__":
                         time.sleep(0.05)
                 main(base, database)
             finally:
-                process.terminate()
-                process.wait(timeout=15)
+                stop_server(process)

@@ -1,18 +1,14 @@
 """Isolated local HTTP benchmarks and recovery drills. Run with repo .venv Python."""
 
 from concurrent.futures import ThreadPoolExecutor
-from contextlib import contextmanager
+from contextlib import closing, contextmanager
 from datetime import datetime, timedelta, timezone
 import csv
-import hashlib
 import http.cookiejar
 import json
 import math
 import os
 from pathlib import Path
-import platform
-import random
-import signal
 import socket
 import sqlite3
 import subprocess
@@ -40,22 +36,19 @@ os.environ.update(
 from app import create_app
 from compass.backup import backup
 from compass.care import local_today
+from runtime import revision, server_command, server_label, stop_server, system_info
 
 DATA = {
-    "commit": subprocess.check_output(
-        ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True
-    ).strip(),
+    "commit": revision(ROOT),
     "started_at": datetime.now(timezone.utc).isoformat(),
     "environment": {
-        "platform": platform.platform(),
-        "python": platform.python_version(),
+        **system_info(),
+        "server": server_label(),
         "sqlite": sqlite3.sqlite_version,
         "workers": 1,
         "threads": 4,
         "network": "HTTP loopback 127.0.0.1; no TLS/WAN",
         "scheduler": "disabled for API isolation",
-        "cpu_max": Path("/sys/fs/cgroup/cpu.max").read_text().strip(),
-        "memory_max": Path("/sys/fs/cgroup/memory.max").read_text().strip(),
     },
     "single": {},
     "load": [],
@@ -166,16 +159,7 @@ def server(path):
     log = (OUT / "benchmark-server.log").open("a")
     started = time.perf_counter()
     process = subprocess.Popen(
-        [
-            str(ROOT / ".venv/bin/gunicorn"),
-            "--bind",
-            f"127.0.0.1:{port}",
-            "--workers",
-            "1",
-            "--threads",
-            "4",
-            "app:create_app()",
-        ],
+        server_command(ROOT, port),
         cwd=ROOT,
         env=env,
         stdout=log,
@@ -184,29 +168,23 @@ def server(path):
     )
     base = f"http://127.0.0.1:{port}"
     probe = Client(base)
-    for _ in range(300):
-        if process.poll() is not None:
-            raise RuntimeError("Benchmark Gunicorn exited; see log")
-        if probe.call("/api/health")[0] == 200:
-            break
-        time.sleep(0.03)
-    else:
-        raise RuntimeError("Benchmark server not ready")
     try:
+        for _ in range(300):
+            if process.poll() is not None:
+                raise RuntimeError("Benchmark server exited; see log")
+            if probe.call("/api/health")[0] == 200:
+                break
+            time.sleep(0.03)
+        else:
+            raise RuntimeError("Benchmark server not ready")
         yield base, process, (time.perf_counter() - started) * 1000
     finally:
-        if process.poll() is None:
-            os.killpg(process.pid, signal.SIGTERM)
-            try:
-                process.wait(timeout=12)
-            except subprocess.TimeoutExpired:
-                os.killpg(process.pid, signal.SIGKILL)
-                process.wait()
+        stop_server(process)
         log.close()
 
 
 def fixture(path, count, start=1000):
-    with sqlite3.connect(path) as con:
+    with closing(sqlite3.connect(path)) as con, con:
         hashed = con.execute(
             "SELECT password_hash FROM credentials WHERE user_id=2"
         ).fetchone()[0]
@@ -256,7 +234,7 @@ def fixture(path, count, start=1000):
 
 
 def counts(path):
-    with sqlite3.connect(path) as con:
+    with closing(sqlite3.connect(path)) as con, con:
         return {
             table: con.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
             for table in [
@@ -280,7 +258,7 @@ def main():
             ["repeat", "sessions", "role", "operation", "status", "expected", "ms"]
         )
 
-    with tempfile.TemporaryDirectory(prefix="ccb-", dir="/tmp") as directory:
+    with tempfile.TemporaryDirectory(prefix="ccb-") as directory:
         temp = Path(directory)
         path = temp / "base.db"
         create_app(path, seed_demo=False, testing=True)
@@ -548,8 +526,7 @@ def main():
                 accepted.append(body["id"])
             before = counts(recovery_db)
             start = time.perf_counter()
-            os.killpg(process.pid, signal.SIGKILL)
-            process.wait()
+            stop_server(process, force=True)
         with server(recovery_db) as (base, process, ready):
             recovered_ms = (time.perf_counter() - start) * 1000
             actor.base = base
@@ -557,7 +534,7 @@ def main():
                 "/api/patients/1000/reports", report("Crash drill accepted"), last_key
             )
             after = counts(recovery_db)
-            with sqlite3.connect(recovery_db) as con:
+            with closing(sqlite3.connect(recovery_db)) as con, con:
                 found = {
                     r[0]
                     for r in con.execute(
@@ -599,7 +576,7 @@ def main():
             actor.base = base
             code, result, ms = actor.call("/api/patients/1000")
             rto_ms = (time.perf_counter() - start) * 1000
-            with sqlite3.connect(restored) as con:
+            with closing(sqlite3.connect(restored)) as con, con:
                 missing = sum(
                     con.execute(
                         "SELECT COUNT(*) FROM reports WHERE id=?", (ident,)
