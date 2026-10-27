@@ -1,1 +1,1 @@
-"""Clinical Compass synthetic demonstration modules."""
+"""Серверные модули ПсиКомпаса."""

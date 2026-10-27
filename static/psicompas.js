@@ -1,7 +1,5 @@
 "use strict";
 
-// The uploaded prototype supplies the visual language. Account rights and all
-// shared care records continue to come from the authenticated server.
 const practiceCatalog = {
   breathing: {
     title: "Спокойная пауза",

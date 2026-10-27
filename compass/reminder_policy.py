@@ -1,4 +1,4 @@
-"""Recheck reminder relevance and patient consent immediately before delivery."""
+"""Проверка актуальности напоминаний и согласий перед доставкой."""
 
 import os
 from datetime import datetime, timedelta, timezone

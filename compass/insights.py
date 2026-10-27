@@ -1,4 +1,4 @@
-"""Patient graph observations from a real external model and a dated data snapshot."""
+"""Анализ динамики пациента через внешний ИИ по снимку данных."""
 
 import hashlib
 import json

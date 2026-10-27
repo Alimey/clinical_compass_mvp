@@ -1,4 +1,3 @@
-/* Product workflows: real local operations, optional external integrations. */
 const care = () =>
   state.detail?.care || {
     appointments: [],

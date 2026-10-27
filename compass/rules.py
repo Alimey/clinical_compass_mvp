@@ -1,4 +1,4 @@
-"""Entirely fictional rules and care options. No clinical validity or drug data."""
+"""Демонстрационные правила формирования предложений для специалиста."""
 
 from compass.db import db, now
 

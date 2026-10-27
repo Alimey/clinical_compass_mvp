@@ -1,4 +1,4 @@
-"""Default Render startup also enables the notification scheduler."""
+"""Настройки запуска приложения и планировщика на Render."""
 
 import os
 from compass.gunicorn_conf import post_worker_init

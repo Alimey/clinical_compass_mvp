@@ -1,4 +1,4 @@
-"""Public themes, registration of three linked roles and fresh doctor workspace."""
+"""Проверка текстов разделов и ограничений опросников."""
 
 import os
 from pathlib import Path

@@ -1,4 +1,4 @@
-"""Long-polling Telegram intake, safe to run on a local computer, no public webhook."""
+"""Первичная анкета пациента через Telegram long polling."""
 
 import json
 import os

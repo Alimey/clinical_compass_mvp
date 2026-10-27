@@ -1,6 +1,5 @@
 "use strict";
 
-// Small, local interactions keep sub-sections on their current page.
 const groundingSteps = [
   [
     "5 вещей, которые вы видите",

@@ -1,4 +1,3 @@
-/* Keep patient sub-tabs and content in a single, predictable reading order. */
 body[data-role="patient"] #content {
   display: block;
 }

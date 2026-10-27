@@ -1,6 +1,4 @@
 "use strict";
-// Full section map from the supplied prototype. Shared records use the API;
-// unsupported device/organization connections are labelled as demo examples.
 const ws = () =>
   state.workspace || {
     preferences: {},

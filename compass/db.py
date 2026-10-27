@@ -1,3 +1,5 @@
+"""Подключение SQLite, схема данных и журнал действий."""
+
 import sqlite3
 from datetime import datetime, timezone
 from flask import current_app, g

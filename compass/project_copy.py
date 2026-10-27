@@ -1,4 +1,4 @@
-"""One-time updates of known demo text; never rewrite user-authored records."""
+"""Однократное обновление исходных демонстрационных записей."""
 
 from datetime import datetime, timedelta, timezone
 from compass.db import db, now

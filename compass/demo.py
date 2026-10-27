@@ -1,3 +1,5 @@
+"""Начальные демонстрационные аккаунты и записи."""
+
 from datetime import datetime, timedelta, timezone
 from werkzeug.security import generate_password_hash
 from compass.db import db, notify

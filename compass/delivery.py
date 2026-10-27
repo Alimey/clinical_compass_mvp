@@ -1,4 +1,4 @@
-"""Durable reminders, escalation queue and genuine encrypted Web Push."""
+"""Напоминания, очередь эскалации и доставка Web Push."""
 
 import base64
 import json

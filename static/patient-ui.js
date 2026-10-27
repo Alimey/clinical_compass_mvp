@@ -1,6 +1,5 @@
 "use strict";
 
-// Patient screens from the team's second revision: one page per menu entry.
 const stripHeading = (html) => {
   const doc = new DOMParser().parseFromString(html, "text/html");
   doc.querySelectorAll(".page-heading").forEach((node) => node.remove());

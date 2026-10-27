@@ -1,4 +1,4 @@
-"""Scheduling, synthetic records, assigned questionnaires and medication tracking."""
+"""Расписание, опросы, назначения и отметки приёма."""
 
 import json
 from datetime import datetime, timedelta, timezone

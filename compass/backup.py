@@ -1,4 +1,4 @@
-"""Consistent SQLite online backup. Never overwrite an existing destination."""
+"""Резервное копирование SQLite с проверкой целостности."""
 
 import argparse
 from contextlib import closing

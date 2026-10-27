@@ -1,4 +1,3 @@
-/* Design experiments: gardens, calendars and in-place exercises. */
 @media (max-width: 599px) {
   body[data-role="patient"] .patient-dashboard .home-actions {
     grid-template-columns: repeat(3, minmax(0, 1fr));

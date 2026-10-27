@@ -1,4 +1,4 @@
-"""Clinical Compass: authenticated synthetic PWA, never for real patient care."""
+"""Точка входа Flask-приложения «ПсиКомпас»."""
 
 import hashlib
 import json

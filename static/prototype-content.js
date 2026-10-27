@@ -1,5 +1,4 @@
 "use strict";
-// Content adapted from the user-supplied mockup; demonstration only.
 const prototypeContent = {
   gad7: [
     "Нервничали, тревожились или были «на взводе»",

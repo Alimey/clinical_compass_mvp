@@ -1,4 +1,4 @@
-"""Single-use specialist invites and real patient account provisioning."""
+"""Приглашения, регистрация и привязка пациента к специалисту."""
 
 import hashlib
 import os

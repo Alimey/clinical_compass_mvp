@@ -1,4 +1,4 @@
-"""One background worker per database; independent scheduler and delivery loops."""
+"""Фоновые циклы планировщика и доставки уведомлений."""
 
 import threading
 import time

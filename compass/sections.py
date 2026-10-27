@@ -1,4 +1,4 @@
-"""Persistent workflows for every section of the team's mobile prototype."""
+"""Данные и действия дополнительных разделов приложения."""
 
 import csv
 import io

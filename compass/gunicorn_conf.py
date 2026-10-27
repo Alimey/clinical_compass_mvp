@@ -1,4 +1,4 @@
-"""Use with one Gunicorn worker per database; the worker hosts the scheduler."""
+"""Запуск планировщика в единственном Gunicorn worker."""
 
 from compass.worker import start_worker
 import os

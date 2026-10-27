@@ -1,4 +1,4 @@
-"""Geometry and interaction checks for real desktop, tablet and phone layouts."""
+"""Проверка дневника, таблетницы, практик и адаптивных экранов."""
 
 import os
 from pathlib import Path

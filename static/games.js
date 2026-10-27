@@ -1,6 +1,5 @@
 "use strict";
 
-// Local play: no accounts, health records or network requests are created here.
 const compassGames = (() => {
   const W = 720,
     H = 500;

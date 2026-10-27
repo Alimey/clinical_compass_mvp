@@ -77,7 +77,7 @@ function applyProjectCopy() {
     }
     return html;
   };
-  // Names and descriptions only; do not invent or replace disputed phone numbers.
+  // Обновление названий и ссылок справочника.
   prototypeContent.categories = prototypeContent.categories.map(
     ([key, title]) => [
       key,

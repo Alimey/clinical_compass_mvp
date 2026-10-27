@@ -1,4 +1,4 @@
-"""Self-reported wellbeing activities; no clinical scoring or device measurements."""
+"""Практики, план занятий и дерево активности пациента."""
 
 from datetime import date, datetime
 import math

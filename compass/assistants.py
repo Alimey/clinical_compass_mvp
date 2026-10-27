@@ -1,4 +1,4 @@
-"""Real OpenAI-compatible API adapter. No fabricated AI fallback."""
+"""Подключение внешнего ИИ через OpenAI-совместимый API."""
 
 import json
 import os
