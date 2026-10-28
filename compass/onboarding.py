@@ -10,6 +10,7 @@ from flask import abort, g, jsonify
 from werkzeug.security import generate_password_hash
 from urllib.parse import urlsplit
 from compass.db import db, rows, now, audit, notify
+from compass.name_crypto import seal
 
 
 def digest(token):
@@ -121,7 +122,7 @@ def provision(token, data, password=None, chat_id=None):
         db()
         .execute(
             "INSERT INTO users(role,name,doctor_id) VALUES('patient',?,?)",
-            (name.strip(), invitation["doctor_id"]),
+            (seal(name.strip()), invitation["doctor_id"]),
         )
         .lastrowid
     )
@@ -200,7 +201,7 @@ def register_onboarding(app, require_role, payload, text, write_once):
             con.execute("BEGIN IMMEDIATE")
             phone = available_phone(data.get("phone"))
             ident = con.execute(
-                "INSERT INTO users(role,name) VALUES('doctor',?)", (name,)
+                "INSERT INTO users(role,name) VALUES('doctor',?)", (seal(name),)
             ).lastrowid
             con.execute(
                 "INSERT INTO credentials VALUES(?,?,?)",
@@ -243,7 +244,7 @@ def register_onboarding(app, require_role, payload, text, write_once):
             invitation = relative_invite_record(token)
             phone = available_phone(data.get("phone"))
             ident = con.execute(
-                "INSERT INTO users(role,name) VALUES('relative',?)", (name,)
+                "INSERT INTO users(role,name) VALUES('relative',?)", (seal(name),)
             ).lastrowid
             con.execute(
                 "INSERT INTO credentials VALUES(?,?,?)",

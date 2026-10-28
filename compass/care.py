@@ -7,6 +7,7 @@ from zoneinfo import ZoneInfo
 from flask import abort, g, jsonify
 from compass.db import db, rows, now, audit, notify
 from compass.rules import CATALOG
+from compass.exports import patient_code, export_text
 
 CLINIC_TZ = ZoneInfo("Europe/Moscow")
 
@@ -543,8 +544,13 @@ def register_care(app, patient, require_role, payload, text, write_once):
         if not item:
             abort(404, "Результат не найден")
         item = item[0]
-        patient(item["patient_id"])
-        body = f"СИНТЕТИЧЕСКИЙ ДОКУМЕНТ · НЕ ДЛЯ МЕДИЦИНСКИХ РЕШЕНИЙ\n{item['title']}\n{item['created_at']}\n\n{item['result']}\n\n{item['note']}"
+        account = patient(item["patient_id"])
+        code = patient_code(item["patient_id"])
+        content = f"{item['title']}\n{item['created_at']}\n\n{item['result']}\n\n{item['note']}"
+        body = (
+            f"СИНТЕТИЧЕСКИЙ ДОКУМЕНТ · НЕ ДЛЯ МЕДИЦИНСКИХ РЕШЕНИЙ\nПациент: {code}\n"
+            + export_text(content, account["name"], code)
+        )
         return app.response_class(
             body,
             content_type="text/plain; charset=utf-8",

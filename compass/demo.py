@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, timezone
 from werkzeug.security import generate_password_hash
 from compass.db import db, notify
 from compass.rules import add_proposals, VERSION
+from compass.name_crypto import seal
 
 # These credentials are deliberately public demo fixtures, never real accounts.
 DEMO_PASSWORD = "compass-demo"
@@ -22,11 +23,11 @@ def seed(history=True):
         for ident, role, name, doctor, username in ACCOUNTS:
             con.execute(
                 "INSERT OR IGNORE INTO users VALUES(?,?,?,?)",
-                (ident, role, name, doctor),
+                (ident, role, seal(name), doctor),
             )
             con.execute(
                 "UPDATE users SET name=? WHERE id=? AND name IN ('Врач (демо)','Пациент А (вымышленный)','Пациент Б (вымышленный)')",
-                (name, ident),
+                (seal(name), ident),
             )
             if not con.execute(
                 "SELECT 1 FROM credentials WHERE user_id=?", (ident,)

@@ -11,6 +11,8 @@ from werkzeug.security import generate_password_hash
 
 from compass.db import audit, db, now, notify, rows
 from compass.assistants import complete
+from compass.name_crypto import seal
+from compass.exports import patient_code
 
 DEFAULTS = {
     "share_mood": True,
@@ -95,7 +97,8 @@ def init_sections(seed_demo):
         ).fetchone()
     ):
         cur = con.execute(
-            "INSERT INTO users(role,name,doctor_id) VALUES('relative','Екатерина Морозова',NULL)"
+            "INSERT INTO users(role,name,doctor_id) VALUES('relative',?,NULL)",
+            (seal("Екатерина Морозова"),),
         )
         relative = cur.lastrowid
         con.execute(
@@ -149,17 +152,7 @@ def entry(row):
 
 def register_sections(app, patient, require_role, payload, text, write_once):
     def code(ident):
-        result = rows("SELECT code FROM research_codes WHERE patient_id=?", (ident,))
-        if not result:
-            with db() as con:
-                con.execute(
-                    "INSERT OR IGNORE INTO research_codes VALUES(?,?)",
-                    (ident, "PK-" + secrets.token_hex(4).upper()),
-                )
-            result = rows(
-                "SELECT code FROM research_codes WHERE patient_id=?", (ident,)
-            )
-        return result[0]["code"]
+        return patient_code(ident)
 
     @app.get("/api/patients/<int:ident>/workspace")
     def workspace(ident):

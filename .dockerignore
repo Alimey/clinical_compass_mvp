@@ -5,3 +5,6 @@ __pycache__
 .env
 demo.db
 node_modules
+test-results
+**/patient-names.key
+**/*.before-names-*.enc

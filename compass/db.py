@@ -3,6 +3,7 @@
 import sqlite3
 from datetime import datetime, timezone
 from flask import current_app, g
+from compass.name_crypto import name_row_factory, seal, unseal
 
 
 def now():
@@ -12,7 +13,8 @@ def now():
 def db():
     if "db" not in g:
         g.db = sqlite3.connect(current_app.config["DATABASE"], timeout=10)
-        g.db.row_factory = sqlite3.Row
+        g.db.row_factory = name_row_factory
+        g.db.create_function("open_notice", 1, lambda value: unseal(value, "notice"))
         g.db.execute("PRAGMA foreign_keys=ON")
     return g.db
 
@@ -31,7 +33,7 @@ def audit(actor, patient, action, detail):
 def notify(user, patient, title, body, alert=None):
     result = db().execute(
         "INSERT INTO notifications(user_id,patient_id,title,body,alert_id,created_at) VALUES(?,?,?,?,?,?)",
-        (user, patient, title, body, alert, now()),
+        (user, patient, title, seal(body, "notice"), alert, now()),
     )
     return result.lastrowid
 

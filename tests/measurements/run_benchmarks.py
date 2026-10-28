@@ -36,6 +36,7 @@ os.environ.update(
 from app import create_app
 from compass.backup import backup
 from compass.care import local_today
+from compass.name_crypto import seal
 from runtime import revision, server_command, server_label, stop_server, system_info
 
 DATA = {
@@ -184,7 +185,8 @@ def server(path):
 
 
 def fixture(path, count, start=1000):
-    with closing(sqlite3.connect(path)) as con, con:
+    fixture_app = create_app(path, seed_demo=False, testing=True)
+    with fixture_app.app_context(), closing(sqlite3.connect(path)) as con, con:
         hashed = con.execute(
             "SELECT password_hash FROM credentials WHERE user_id=2"
         ).fetchone()[0]
@@ -193,7 +195,7 @@ def fixture(path, count, start=1000):
         for ident in range(start, start + count):
             con.execute(
                 "INSERT INTO users(id,role,name,doctor_id) VALUES(?,?,?,?)",
-                (ident, "patient", f"Нагрузочный пациент {ident}", 1),
+                (ident, "patient", seal(f"Нагрузочный пациент {ident}"), 1),
             )
             con.execute(
                 "INSERT INTO credentials VALUES(?,?,?)",

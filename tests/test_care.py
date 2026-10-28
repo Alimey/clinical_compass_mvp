@@ -18,6 +18,7 @@ from compass.db import db, now
 from compass.care import local_today
 from compass.delivery import reminders_and_escalations, dispatch_push
 from compass.telegram_bot import handle_update
+from compass.name_crypto import unseal
 
 
 class CareTest(unittest.TestCase):
@@ -475,7 +476,8 @@ class CareTest(unittest.TestCase):
                 .execute("SELECT body FROM telegram_outbox ORDER BY id DESC LIMIT 1")
                 .fetchone()[0]
             )
-            token = body.split("#activate=")[1].split("\n")[0]
+            self.assertTrue(body.startswith("pcenc:v1:outbox:"))
+            token = unseal(body, "outbox").split("#activate=")[1].split("\n")[0]
         public = self.app.test_client()
         self.assertEqual(
             public.post(

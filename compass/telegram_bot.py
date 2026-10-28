@@ -8,6 +8,7 @@ from flask import current_app
 from compass.db import db, now
 from compass.onboarding import digest, invite_record, provision
 from compass.assistants import ai_settings, complete, SYSTEM, AssistantUnavailable
+from compass.name_crypto import seal, unseal
 
 STEPS = [
     ("name", "Как вас зовут? Используйте вымышленное имя."),
@@ -41,7 +42,8 @@ def telegram_api(method, data):
 
 def enqueue(chat, body):
     db().execute(
-        "INSERT INTO telegram_outbox(chat_id,body) VALUES(?,?)", (chat, body[:4000])
+        "INSERT INTO telegram_outbox(chat_id,body) VALUES(?,?)",
+        (chat, seal(body[:4000], "outbox")),
     )
 
 
@@ -81,7 +83,12 @@ def handle_update(update):
             )
             con.execute(
                 "INSERT OR REPLACE INTO telegram_sessions VALUES(?,?,?,?)",
-                (chat_id, item["token_hash"], "name", json.dumps({"_token": token})),
+                (
+                    chat_id,
+                    item["token_hash"],
+                    "name",
+                    seal(json.dumps({"_token": token}), "intake"),
+                ),
             )
             enqueue(
                 chat_id,
@@ -98,7 +105,7 @@ def handle_update(update):
                 "Откройте персональную ссылку от специалиста, чтобы начать анкету.",
             )
             return
-        data = json.loads(session["data_json"])
+        data = json.loads(unseal(session["data_json"], "intake"))
         stage = session["stage"]
         if stage == "done":
             enqueue(
@@ -137,8 +144,8 @@ def handle_update(update):
                 + data["phone"],
             )
             con.execute(
-                "UPDATE telegram_sessions SET stage='done',data_json='{}' WHERE chat_id=?",
-                (chat_id,),
+                "UPDATE telegram_sessions SET stage='done',data_json=? WHERE chat_id=?",
+                (seal("{}", "intake"), chat_id),
             )
             return
         index = next((i for i, s in enumerate(STEPS) if s[0] == stage), None)
@@ -183,7 +190,7 @@ def handle_update(update):
             )
         con.execute(
             "UPDATE telegram_sessions SET stage=?,data_json=? WHERE chat_id=?",
-            (next_stage, json.dumps(data, ensure_ascii=False), chat_id),
+            (next_stage, seal(json.dumps(data, ensure_ascii=False), "intake"), chat_id),
         )
         enqueue(chat_id, prompt)
 
@@ -201,7 +208,7 @@ def enrich_intake(chat_id):
     )
     if not session:
         return
-    data = json.loads(session["data_json"])
+    data = json.loads(unseal(session["data_json"], "intake"))
     if data.get("_ai_done"):
         return
     facts = {key: data[key] for key in ("age", "sex", "context") if key in data}
@@ -220,13 +227,13 @@ def enrich_intake(chat_id):
         ).fetchone()
         if not current or current["invite_hash"] != session["invite_hash"]:
             return
-        latest = json.loads(current["data_json"])
+        latest = json.loads(unseal(current["data_json"], "intake"))
         latest["_ai_done"] = True
         latest["_ai_summary"] = answer
         latest["_ai_model"] = ai_settings()[1]
         con.execute(
             "UPDATE telegram_sessions SET data_json=? WHERE chat_id=?",
-            (json.dumps(latest, ensure_ascii=False), chat_id),
+            (seal(json.dumps(latest, ensure_ascii=False), "intake"), chat_id),
         )
         enqueue(
             chat_id,
@@ -275,7 +282,7 @@ def tick_telegram():
                 "sendMessage",
                 {
                     "chat_id": record["chat_id"],
-                    "text": record["body"],
+                    "text": unseal(record["body"], "outbox"),
                     "protect_content": True,
                 },
             )

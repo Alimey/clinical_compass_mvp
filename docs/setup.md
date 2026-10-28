@@ -170,6 +170,8 @@ GitHub Pages не запускает Python API. Публичный сервер
 
 ## Проверки и восстановление
 
+Имена и служебные копии защищаются отдельным ключом. Локально он создаётся в `patient-names.key` рядом с БД; для сервера предусмотрены `COMPASS_NAME_KEY` и `COMPASS_NAME_KEY_FILE`. Для восстановления копии нужен тот же ключ. [Миграция, хранение ключа и выгрузки](name-encryption.md).
+
 ```bash
 .venv/bin/python -m unittest discover -s tests -v
 node --check static/app.js

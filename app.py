@@ -25,6 +25,7 @@ from compass.db import audit, db, init_db, notify, now, rows
 from compass.demo import seed
 from compass.rules import add_proposals, CATALOG, VERSION
 from compass.project_copy import init_project_copy
+from compass.name_crypto import init_name_cipher, migrate_names, seal, unseal
 
 
 def create_app(database=None, *, seed_demo=True, testing=False):
@@ -42,6 +43,7 @@ def create_app(database=None, *, seed_demo=True, testing=False):
         SECURE_COOKIE=os.environ.get("COMPASS_SECURE_COOKIES") == "1",
     )
     Path(app.config["DATABASE"]).parent.mkdir(parents=True, exist_ok=True)
+    init_name_cipher(app)
 
     @app.teardown_appcontext
     def close_db(_error):
@@ -59,6 +61,7 @@ def create_app(database=None, *, seed_demo=True, testing=False):
         init_sections(seed_demo)
         init_insights()
         init_project_copy(seed_demo)
+        migrate_names()
 
     @app.before_request
     def authenticate():
@@ -186,12 +189,21 @@ def create_app(database=None, *, seed_demo=True, testing=False):
                 if old:
                     if old["fingerprint"] != fingerprint:
                         abort(409, "Ключ запроса уже использован для других данных")
-                    return jsonify(json.loads(old["response"])), old["status"]
+                    return (
+                        jsonify(json.loads(unseal(old["response"], "cache"))),
+                        old["status"],
+                    )
             result, code = action()
             if key:
                 con.execute(
                     "INSERT INTO idempotency VALUES(?,?,?,?,?)",
-                    (g.user["id"], key, fingerprint, json.dumps(result), code),
+                    (
+                        g.user["id"],
+                        key,
+                        fingerprint,
+                        seal(json.dumps(result), "cache"),
+                        code,
+                    ),
                 )
         return jsonify(result), code
 
@@ -696,7 +708,7 @@ def create_app(database=None, *, seed_demo=True, testing=False):
             cancel_stale_reminders(g.user["id"])
         return jsonify(
             items=rows(
-                "SELECT * FROM notifications WHERE user_id=? AND NOT EXISTS (SELECT 1 FROM notification_guards g WHERE g.notification_id=notifications.id AND g.cancelled=1) ORDER BY id DESC LIMIT 50",
+                "SELECT id,user_id,patient_id,title,open_notice(body) AS body,alert_id,created_at,delivered_at,read_at FROM notifications WHERE user_id=? AND NOT EXISTS (SELECT 1 FROM notification_guards g WHERE g.notification_id=notifications.id AND g.cancelled=1) ORDER BY id DESC LIMIT 50",
                 (g.user["id"],),
             ),
             unread=db()

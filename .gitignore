@@ -13,3 +13,5 @@ push-vapid.pem
 !.env.example
 *.sqlite
 *.db
+patient-names.key
+*.before-names-*.enc
