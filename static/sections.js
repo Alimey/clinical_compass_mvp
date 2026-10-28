@@ -641,6 +641,9 @@ settingsPage = function () {
         ["tour", "Сценарий для защиты"],
       ];
   return (
+    (isDoctor()
+      ? `<section class="card" id="doctor-data-export"><h2>Выгрузка данных</h2><p>Сводная таблица ваших пациентов, разрешивших выгрузку. Вместо имён — коды пациентов.</p><div class="proposal-actions"><a class="button primary" href="/api/research.csv" download>Скачать CSV</a><button class="button" data-action="nav" data-page="research">Просмотреть данные</button></div></section>`
+      : "") +
     `<div class="quick-grid">${links.map(([page, title]) => `<button class="quick-card" data-action="nav" data-page="${page}">${icon("arrow")}<strong>${title}</strong></button>`).join("")}</div>` +
     sectionSettings()
   );
